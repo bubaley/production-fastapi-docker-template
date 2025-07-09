@@ -5,7 +5,7 @@ from app.core.viewsets import BaseModelViewSet
 from app.domains.task.models import Task
 from app.domains.task.schemas import TaskCreateSchema, TaskReadSchema
 
-router = APIRouter(prefix='/projects', tags=['projects'])
+router = APIRouter(prefix='/tasks', tags=['tasks'])
 
 
 @viewset(router)
