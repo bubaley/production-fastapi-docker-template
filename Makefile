@@ -10,9 +10,6 @@ wait-for = $(call log,"👀$(2) waiting...") && wait-for $(1) && $(call log,"☑
 # ----------- SHORT COMMANDS ----------- #
 
 r: run ## short run runserver
-m: migrate ## short run migrate
-mm: makemigrations ## short run makemigrations
-mr: migrate run ## short run migrate && runserver
 
 # ----------- BASE COMMANDS ----------- #
 
@@ -21,17 +18,6 @@ run: ## run runserver
 
 lint: ## run lint
 	pre-commit run --all-files
-
-# ----------- DATABASE COMMANDS ----------- #
-
-migrate: ## run migrate
-	aerich upgrade
-
-makemigrations: ## run makemigrations
-	aerich migrate
-
-init-db: ## run makemigrations
-	aerich init-db
 
 # ----------- PRODUCTION COMMANDS ----------- #
 

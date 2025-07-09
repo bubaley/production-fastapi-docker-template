@@ -1,20 +1,25 @@
 [project]
 name = "fastapi-docker-example"
 version = "0.0.0"
-keywords = ["fastapi", "docker", "example"]
+keywords = [ "docker", "example", "fastapi" ]
 requires-python = ">=3.12"
 
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
-    "fastapi>=0.115.13",
-    "tortoise-orm>=0.25.1",
     "aerich[toml]>=0.9.1",
-    "pydantic-settings>=2.10.1",
-    "uvicorn[standard]>=0.35.0",
+    "fastapi>=0.115.13",
     "fastapi-mason>=0.0.1",
+    "pydantic-settings>=2.10.1",
+    "tortoise-orm>=0.25.1",
+    "uvicorn[standard]>=0.35.0",
 ]
 
 [dependency-groups]
-dev = ["coverage>=7.9.2", "pre-commit>=4.2.0", "ruff>=0.12.2"]
+dev = [ "coverage>=7.9.2", "pre-commit>=4.2.0", "ruff>=0.12.2" ]
 
 [tool.ruff]
 target-version = "py313"
@@ -24,14 +29,14 @@ fix = true
 format.quote-style = "single"
 format.line-ending = "auto"
 format.skip-magic-trailing-comma = false
-lint.extend-select = ["I"]
-lint.extend-per-file-ignores."core/settings/*.py" = ["F403", "F405"]
+lint.extend-select = [ "I" ]
+lint.extend-per-file-ignores."core/settings/*.py" = [ "F403", "F405" ]
 # Bandit configuration
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.bandit]
-skips = ["B101"]
-exclude_dirs = ["tests", "*/tests/*", "*/migrations/*"]
+skips = [ "B101" ]
+exclude_dirs = [ "tests", "*/tests/*", "*/migrations/*" ]
 
 [tool.aerich]
 tortoise_orm = "app.core.database.TORTOISE_ORM"
