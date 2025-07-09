@@ -2,13 +2,8 @@
 name = "fastapi-docker-example"
 version = "0.0.0"
 keywords = [ "docker", "example", "fastapi" ]
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 
-classifiers = [
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-]
 dependencies = [
     "aerich[toml]>=0.9.1",
     "fastapi>=0.115.13",

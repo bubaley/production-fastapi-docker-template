@@ -2,8 +2,8 @@ from fastapi import APIRouter
 from fastapi_mason.decorators import action, viewset
 
 from app.core.viewsets import BaseModelViewSet
-from app.project.models import Project
-from app.project.schemas import ProjectCreateSchema, ProjectReadSchema
+from app.domains.project.models import Project
+from app.domains.project.schemas import ProjectCreateSchema, ProjectReadSchema
 
 router = APIRouter(prefix='/projects', tags=['projects'])
 
