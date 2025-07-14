@@ -8,9 +8,9 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     app_name: str = 'Production FastAPI Docker Example'
 
-    debug: bool = Field(True)
-    database_url: str = Field('sqlite://db.sqlite3')
-    secret_key: str = Field('secret-key-change-me')
+    debug: bool = Field(default=True)
+    database_url: str = Field(default='sqlite://db.sqlite3')
+    secret_key: str = Field(default='secret-key-change-me')
 
 
 settings = Settings()

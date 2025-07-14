@@ -1,20 +1,18 @@
 from fastapi import APIRouter
-from fastapi_mason.decorators import action, viewset
+from fastapi_mason.decorators import viewset
 
-from app.core.viewsets import BaseModelViewSet
+from app.core.viewsets import BaseViewSet
 from app.domains.project.models import Project
-from app.domains.project.schemas import ProjectCreateSchema, ProjectReadSchema
+from app.domains.project.schemas import (
+    ProjectCreateSchema,
+    ProjectReadSchema,
+)
 
-router = APIRouter(prefix='/projects', tags=['projects'])
+projects_router = APIRouter(prefix='/projects', tags=['projects'])
 
 
-@viewset(router)
-class ProjectViewSet(BaseModelViewSet[Project]):
+@viewset(projects_router)
+class ProjectViewSet(BaseViewSet[Project]):
     model = Project
     read_schema = ProjectReadSchema
     create_schema = ProjectCreateSchema
-
-    @action(methods=['GET'], detail=True, response_model=ProjectReadSchema)
-    async def example_route(self, item_id: int):
-        obj = await self.get_object(item_id)
-        return await ProjectReadSchema.from_tortoise_orm(obj)

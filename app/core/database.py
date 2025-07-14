@@ -6,7 +6,6 @@ from app.core.settings import settings
 
 MODELS = [
     'app.domains.project.models',
-    'app.domains.task.models',
 ]
 
 TORTOISE_ORM = {

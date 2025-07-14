@@ -32,7 +32,7 @@ MANIFEST
 *.pot
 db.sqlite3
 *.sqlite3
-db.sqlite3*
+db.sqlite3-journal
 local_settings.py
 staticfiles/
 media/
@@ -113,12 +113,6 @@ ipython_config.py
 
 # UV (modern Python package manager)
 .uv_cache/
-
-# pipenv
-Pipfile.lock
-
-# Poetry
-poetry.lock
 
 # Virtual environments
 .env
