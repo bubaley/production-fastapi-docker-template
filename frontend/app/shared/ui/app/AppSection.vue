@@ -3,7 +3,7 @@
     v-bind="$attrs"
     :variant="resolvedFlat ? 'text' : 'outlined'"
     :radius="resolvedFlat ? 'unset' : 'lg'"
-    :class="{ 'c-section': !resolvedFlat }"
+    :class="{ 'app-section': !resolvedFlat }"
     :display="display"
     style="position: relative"
     class="gap-md"
@@ -24,7 +24,7 @@
             :title="title"
             class="mr-1"
           />
-          <slot name="actions"></slot>
+          <slot name="actions" />
         </div>
         <div
           v-if="description"

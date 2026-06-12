@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Full-stack starter template with FastAPI and Nuxt"
 readme = "README.md"
 requires-python = ">=3.14"
-classifiers = [ "Programming Language :: Python :: 3 :: Only", "Programming Language :: Python :: 3.14" ]
+classifiers = [ "Programming Language :: Python :: 3 :: Only" ]
 dependencies = [
     "bcrypt>=5.0.0",
     "boto3>=1.42.88",
@@ -47,6 +47,11 @@ lint.extend-select = [ "I" ]
 lint.extend-per-file-ignores."core/settings/*.py" = [ "F403", "F405" ]
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = [ "app" ]
+python_files = [ "test_*.py" ]
+
 [tool.pyright]
 typeCheckingMode = "basic"
 reportAssignmentType = false
@@ -54,11 +59,6 @@ reportAssignmentType = false
 [tool.bandit]
 skips = [ "B101" ]
 exclude_dirs = [ "tests", "*/tests/*", "*/migrations/*" ]
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = [ "app" ]
-python_files = [ "test_*.py" ]
 
 [tool.tortoise]
 tortoise_orm = "app.core.database.TORTOISE_ORM"

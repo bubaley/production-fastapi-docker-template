@@ -226,4 +226,4 @@ const handleSaveState = useActionState(
 - `$api` is a pre-configured fetch client with `baseURL: /api/v1` and `Organization-Key` header
 - Never use `useFetch` directly — always go through a repo
 - Prefer `useRepo('key')` in views over importing repo stores directly
-- Use `AppColumn` / `AppSelect` 
+- Use `AppColumn` / `AppSelect`

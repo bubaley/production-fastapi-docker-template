@@ -70,7 +70,7 @@
 <script setup generic="T extends AppModel" lang="ts">
 import { cloneDeep } from 'lodash-es'
 import type { AppListTemplateProps } from './types/template-types'
-import { type AppListProps, type ItemClickEvent } from '../app/AppList.vue'
+import type { AppListProps, ItemClickEvent } from '../app/AppList.vue'
 import type { AppPaginationEvent } from './AppPagination.vue'
 
 const props = withDefaults(defineProps<AppListTemplateProps<T>>(), {

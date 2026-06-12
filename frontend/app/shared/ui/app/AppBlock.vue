@@ -10,8 +10,8 @@
       class="app-block-icon"
       :class="{ 'mr-2': hasDefaultSlot }"
     />
-    <slot></slot>
-    <slot name="overlay"> </slot>
+    <slot />
+    <slot name="overlay" />
   </div>
 </template>
 

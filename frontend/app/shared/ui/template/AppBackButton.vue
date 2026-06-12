@@ -14,7 +14,7 @@ export type AppBackButtonProps = {
   iconSize?: number
 }
 
-const props = withDefaults(defineProps<AppBackButtonProps>(), {
+withDefaults(defineProps<AppBackButtonProps>(), {
   iconSize: 22,
 })
 </script>

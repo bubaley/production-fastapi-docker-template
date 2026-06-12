@@ -3,7 +3,7 @@ import asyncio
 import code
 import importlib
 import inspect
-import subprocess
+import subprocess  # nosec B404
 import sys
 
 import typer
@@ -33,7 +33,7 @@ def run_tests(path: str = typer.Argument('app', help='Path to tests or specific 
     Run pytest for the specified path (defaults to 'tests').
     """
     typer.echo(f'Running tests in: {path}')
-    result = subprocess.run([sys.executable, '-m', 'pytest', path])
+    result = subprocess.run([sys.executable, '-m', 'pytest', path])  # nosec B603
     sys.exit(result.returncode)
 
 
@@ -83,7 +83,7 @@ def shell():
 
             def runcode(self, code_obj):
                 try:
-                    result = eval(code_obj, self.locals)  # noqa: S307
+                    result = eval(code_obj, self.locals)  # nosec B307
                     if asyncio.iscoroutine(result):
                         self._loop.run_until_complete(result)
                 except SystemExit:

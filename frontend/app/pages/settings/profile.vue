@@ -11,7 +11,7 @@
         size="2xl"
         radius="md"
         icon="lucide:user"
-      ></AppBlock>
+      />
       <div>
         <div class="text-xl font-bold">{{ data.email }}</div>
         <div class="text-secondary mt-1">{{ data.first_name }} {{ data.last_name }}</div>

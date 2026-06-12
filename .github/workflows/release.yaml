@@ -15,7 +15,7 @@
 
 # env:
 #   REGISTRY: cr.yandex
-#   IMAGE_NAME: 
+#   IMAGE_NAME:
 
 # jobs:
 #   release:

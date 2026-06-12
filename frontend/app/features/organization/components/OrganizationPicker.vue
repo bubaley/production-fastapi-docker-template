@@ -7,8 +7,7 @@
     :repo="useRepo('organization')"
     :pt="selectPt"
     class="bg-transparent!"
-  >
-  </AppSelect>
+  />
 </template>
 
 <script setup lang="ts">
