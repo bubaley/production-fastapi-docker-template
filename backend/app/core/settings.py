@@ -4,6 +4,7 @@
 from pathlib import Path
 from typing import Literal
 
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
 ROOT_ENV_FILE = Path(__file__).resolve().parents[3] / '.env'
@@ -65,10 +66,11 @@ class Settings(BaseSettings):
     def database_url(self) -> str:
         return f'{self.sql_engine}://{self.sql_user}:{self.sql_password}@{self.sql_host}:{self.sql_port}/{self.sql_database}'
 
-    class Config:
-        env_file = ROOT_ENV_FILE
-        env_file_encoding = 'utf-8'
-        extra = 'allow'
+    model_config = ConfigDict(
+        env_file=ROOT_ENV_FILE,
+        env_file_encoding='utf-8',
+        extra='allow',
+    )
 
 
 settings = Settings()

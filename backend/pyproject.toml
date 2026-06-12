@@ -7,31 +7,31 @@ requires-python = ">=3.14"
 classifiers = [ "Programming Language :: Python :: 3 :: Only" ]
 dependencies = [
     "bcrypt>=5.0.0",
-    "boto3>=1.42.88",
-    "cryptography>=46.0.7",
-    "fastapi>=0.135.3",
+    "boto3>=1.43.29",
+    "cryptography>=49.0.0",
+    "fastapi>=0.136.3",
     "fastapi-ronin>=0.5.0",
     "glom>=25.12.0",
-    "gunicorn>=25.3.0",
-    "httpx>=0.28.1",
+    "gunicorn>=26.0.0",
+    "httpx2>=2.4.0",
     "loguru>=0.7.3",
-    "pydantic-settings>=2.13.1",
+    "pydantic-settings>=2.14.1",
     "python-jose[cryptography]>=3.5.0",
-    "python-multipart>=0.0.26",
-    "redis>=7.4.0",
-    "taskiq>=0.12.1",
+    "python-multipart>=0.0.32",
+    "redis>=7.4.1",
+    "taskiq>=0.12.4",
     "taskiq-redis>=1.2.2",
     "tortoise-orm[asyncpg]>=1.1.7",
-    "typer>=0.24.1",
-    "uvicorn[standard]>=0.44.0",
+    "typer>=0.26.7",
+    "uvicorn[standard]>=0.49.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pre-commit>=4.5.1",
-    "pytest>=8.4.0",
-    "pytest-asyncio>=1.0.0",
-    "ruff>=0.15.10",
+    "pre-commit>=4.6.0",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.17",
 ]
 
 [tool.ruff]
