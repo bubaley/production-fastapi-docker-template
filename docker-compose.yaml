@@ -1,0 +1,54 @@
+x-restart-policy: &restart_policy
+  restart: unless-stopped
+x-healthcheck-defaults: &healthcheck_defaults
+  interval: 5s
+  timeout: 5s
+  retries: 10
+  start_period: 30s
+
+services:
+  app:
+    <<: *restart_policy
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi-nuxt-template
+    ports:
+      - "${APP_ENTRY_PORT:-8080}:8080"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+  redis:
+    <<: *restart_policy
+    image: redis:8.6.2-alpine
+    container_name: fastapi-nuxt-template-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      <<: *healthcheck_defaults
+      test: ["CMD", "redis-cli", "ping"]
+  db:
+    <<: *restart_policy
+    image: postgres:18.3-alpine
+    container_name: fastapi-nuxt-template-db
+    environment:
+      POSTGRES_DB: ${SQL_DATABASE:-postgres}
+      POSTGRES_USER: ${SQL_USER:-postgres}
+      POSTGRES_PASSWORD: ${SQL_PASSWORD:-postgres}
+    ports:
+      - "${DB_ENTRY_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      <<: *healthcheck_defaults
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${SQL_USER:-postgres} -d ${SQL_DATABASE:-postgres}",
+        ]
+
+volumes:
+  postgres_data:
+  redis_data:

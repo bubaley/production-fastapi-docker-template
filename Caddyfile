@@ -1,0 +1,39 @@
+:8080 {
+    # API routes -> Backend
+    # WebSocket route
+    handle /ws/* {
+        reverse_proxy localhost:8000
+    }
+    # API routes -> Backend
+    handle /api/v1/* {
+        reverse_proxy localhost:8000 {
+            header_up X-Forwarded-For {http.request.remote.host}
+            header_up X-Forwarded-Proto {http.request.proto}
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+
+    # Frontend - all other routes
+    handle {
+        # Try to serve static files from Nuxt dist
+        file_server {
+            root /app/frontend/.output/public
+            index index.html
+        }
+
+        # Fallback to SSR for SPA routes
+        reverse_proxy localhost:3000 {
+            header_up X-Forwarded-For {http.request.remote.host}
+            header_up X-Forwarded-Proto {http.request.proto}
+            header_up X-Forwarded-Host {http.request.host}
+        }
+
+    }
+
+    log {
+        output stdout
+        format json
+    }
+
+    encode gzip
+}

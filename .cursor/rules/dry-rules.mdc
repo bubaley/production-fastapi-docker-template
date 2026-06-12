@@ -1,0 +1,52 @@
+---
+alwaysApply: true
+---
+
+# DRY Rules (Frontend & Backend)
+
+## General Principle
+- **Don't Repeat Yourself (DRY)** — avoid duplicating logic, data structures, and algorithms.
+- If identical or very similar logic appears in two or more places, refactor into a reusable unit.
+
+## Frontend (React / Vue / etc.)
+
+### Component Rendering
+- **Do not manually duplicate JSX/Vue blocks.**
+- If you need to render multiple structurally similar elements:
+  - **Basic case** → render them inside a **loop** (`map`, `forEach`).
+  - **Complex case** → extract a **separate component** and reuse it.
+  - **Prefer existing components** before creating new ones.
+
+### Logic Duplication (Hooks / Composables / Utils)
+- Do not copy-paste stateful logic or helper functions between components.
+- Move shared logic into:
+  - Custom hooks (React) / Composables (Vue)
+  - Utility functions
+  - Shared stores / services
+
+## Backend (any language / framework)
+
+### Code & Logic Reuse
+- No duplicate business logic across endpoints, services, or modules.
+- Extract reusable logic into:
+  - Shared functions / methods
+  - Services or helpers
+  - Middleware / decorators where appropriate
+
+### Data & Models
+- Avoid duplicating validation rules, DB queries, or DTO mappings.
+- Use base classes, traits, or composition to share behavior.
+
+## Cross-Cutting (Frontend + Backend)
+- If the same validation or data transformation logic exists on both frontend and backend — consider generating or sharing it via a common library (if architecture allows).
+- Prefer a **single source of truth** for rules like field formats, enums, or constants.
+
+## What is considered a violation?
+- Copy-pasting a block of code → **violation**.
+- Writing two similar loops instead of a reusable function → **violation**.
+- Creating a new component from scratch when an existing one can be extended → **violation** (unless extension breaks encapsulation).
+
+## Allowed exceptions (rare)
+- Performance-critical hot paths (but comment why).
+- Very simple one-liners where abstraction adds more noise than value.
+- Different layers (e.g., presentation vs. persistence) with different responsibilities — but still, do not duplicate **logic**, only structure if needed.

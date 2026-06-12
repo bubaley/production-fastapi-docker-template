@@ -1,0 +1,85 @@
+$radius-map: (
+  'sm': 4px,
+  'md': 8px,
+  'lg': 16px
+);
+
+$size-map: (
+  'xs': 20px,
+  'sm': 24px,
+  'md': 32px,
+  'lg': 36px,
+  'xl': 40px,
+  '2xl': 48px,
+  '3xl': 56px,
+  '4xl': 64px,
+  '5xl': 72px,
+  '6xl': 80px,
+  '7xl': 88px,
+  '8xl': 96px,
+  '9xl': 104px,
+  '10xl': 112px
+);
+
+$title-size-map: (
+  'sm': 16px,
+  'md': 18px,
+  'lg': 22px,
+  'xl': 26px,
+);
+
+
+$weight-map: (
+  'light': 300,
+  'regular': 400,
+  'medium': 500,
+  'semibold': 600,
+  'bold': 700,
+);
+
+$colors-map: (
+  'primary': (
+    var(--p-primary-500),
+    true
+  ),
+  'cloud': (
+    var(--p-cloud-500),
+    true
+  ),
+  'info': (
+    #1b76d3,
+    true
+  ),
+  'danger': (
+    var(--p-danger-500),
+    true
+  ),
+  'pink': (
+    #e91e64,
+    true
+  ),
+  'success': (
+    var(--p-success-500),
+    true
+  ),
+  'accent': (
+    var(--p-accent-500),
+    true
+  ),
+  'orange': (
+    var(--p-orange-500),
+    true
+  ),
+  'yellow': (
+    #ffc107,
+    false
+  ),
+  'teal': (
+    #009688,
+    true
+  ),
+  'secondary': (
+    var(--p-surface-500),
+    false
+  )
+);

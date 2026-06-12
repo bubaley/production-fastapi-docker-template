@@ -1,0 +1,68 @@
+[project]
+name = "fastapi-nuxt-template"
+version = "0.1.0"
+description = "Full-stack starter template with FastAPI and Nuxt"
+readme = "README.md"
+requires-python = ">=3.14"
+classifiers = [ "Programming Language :: Python :: 3 :: Only", "Programming Language :: Python :: 3.14" ]
+dependencies = [
+    "bcrypt>=5.0.0",
+    "boto3>=1.42.88",
+    "cryptography>=46.0.7",
+    "fastapi>=0.135.3",
+    "fastapi-ronin>=0.5.0",
+    "glom>=25.12.0",
+    "gunicorn>=25.3.0",
+    "httpx>=0.28.1",
+    "loguru>=0.7.3",
+    "pydantic-settings>=2.13.1",
+    "python-jose[cryptography]>=3.5.0",
+    "python-multipart>=0.0.26",
+    "redis>=7.4.0",
+    "taskiq>=0.12.1",
+    "taskiq-redis>=1.2.2",
+    "tortoise-orm[asyncpg]>=1.1.7",
+    "typer>=0.24.1",
+    "uvicorn[standard]>=0.44.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+    "pytest>=8.4.0",
+    "pytest-asyncio>=1.0.0",
+    "ruff>=0.15.10",
+]
+
+[tool.ruff]
+target-version = "py314"
+
+line-length = 120
+indent-width = 4
+fix = true
+format.quote-style = "single"
+format.line-ending = "auto"
+format.skip-magic-trailing-comma = false
+lint.extend-select = [ "I" ]
+lint.extend-per-file-ignores."core/settings/*.py" = [ "F403", "F405" ]
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.pyright]
+typeCheckingMode = "basic"
+reportAssignmentType = false
+
+[tool.bandit]
+skips = [ "B101" ]
+exclude_dirs = [ "tests", "*/tests/*", "*/migrations/*" ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = [ "app" ]
+python_files = [ "test_*.py" ]
+
+[tool.tortoise]
+tortoise_orm = "app.core.database.TORTOISE_ORM"
+location = "./migrations"
+
+[tool.pyupgrade]
+py314-plus = true

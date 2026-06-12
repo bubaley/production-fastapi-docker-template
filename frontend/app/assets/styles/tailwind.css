@@ -1,0 +1,9 @@
+@import 'tailwindcss';
+
+@import 'tailwindcss-primeui';
+
+/* @custom-variant dark (&:where(.darkasd, .darkasd *)); */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@source inline("{!,}font-{normal,medium,semibold,bold,black}");
+@source inline("{!,}text-{normal,sm,md,lg,xl,2xl,3xl}");

@@ -1,0 +1,17 @@
+---
+alwaysApply: true
+---
+
+# Agent workflow
+
+## DRY
+- Do not duplicate logic, components, or data structures — reuse existing abstractions (see `dry-rules.mdc`).
+- Extend existing components and helpers before creating new ones.
+
+## Migrations
+- **Never run migrations** (`make mm`, `make m`, `tortoise migrate`, etc.) unless the user explicitly asks.
+- When models change, describe what migration is needed — let the user run it.
+
+## Tests
+- **Never run tests** unless the user explicitly asks.
+- Do not add tests unless requested or they provide meaningful coverage of real behavior.

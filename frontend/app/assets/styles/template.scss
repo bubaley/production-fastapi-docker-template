@@ -1,0 +1,21 @@
+/* Gaps */
+.gap-sm {
+  gap: 8px;
+}
+.gap-md {
+  gap: 16px;
+}
+
+/* Section */
+.c-section {
+    padding: 16px;
+  }
+  
+  .c-section-negative-padding-x {
+    margin: 0 -16px;
+  }
+  
+  .c-section-negative-padding-y {
+    margin: -16px 0;
+  }
+  

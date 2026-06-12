@@ -1,0 +1,160 @@
+---
+description: Pattern for creating domain modules in the backend (FastAPI + Tortoise ORM + fastapi-ronin)
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend: domain module structure
+
+Each domain is a folder at `backend/app/domains/<name>/` with four files.
+
+## models.py
+
+```python
+from uuid import UUID
+
+from tortoise import fields
+from app.core.models import BaseModel
+
+class MyModel(BaseModel):
+    organization = fields.ForeignKeyField('models.Organization', related_name='my_models', on_delete=fields.CASCADE)
+    organization_id: UUID
+    name = fields.CharField(max_length=255)
+
+    class Meta:
+        table = 'my_model'
+        ordering = ['id']
+```
+
+- Always inherit from `BaseModel` (provides `id: UUID`, `created_at`, `updated_at`)
+- Declare FK as a pair: the field + `_id: UUID` annotation
+- `related_name` — always plural
+
+## schemas.py
+
+See `app/domains/organization/schemas.py`.
+
+- **Create**: `BaseCreateSchema` + `@schema(model=...)`
+- **Update** (when PATCH is supported): separate schema or same fields as create
+- **Read**: `BaseReadSchema` + create fields; nested relations via other read schemas
+- DTOs not tied to a single model: a separate class extending `BaseCreateSchema` or `BaseSchema`, **without** `@schema(model=...)`
+- For shared create/update/read fields, extract a base schema — optional, use when it reduces duplication
+- Separate groups of schemas in the file with section comments (`# MY_MODEL_SCHEMAS`)
+
+```python
+from uuid import UUID
+
+from fastapi_ronin.decorators import schema
+
+from app.core.models import BaseCreateSchema, BaseReadSchema
+from app.domains.myapp.models import MyModel
+
+# MY_MODEL_SCHEMAS
+
+
+@schema(model=MyModel)
+class MyModelCreateSchema(BaseCreateSchema):
+    name: str
+
+
+@schema(model=MyModel)
+class MyModelUpdateSchema(BaseCreateSchema):
+    name: str
+
+
+@schema(model=MyModel)
+class MyModelReadSchema(BaseReadSchema, MyModelCreateSchema):
+    organization_id: UUID
+```
+
+- `organization` is set from auth state via `process_state_to_model` in `before_save` — do not require it in create schema unless the endpoint is org-agnostic
+
+## filters.py
+
+```python
+from fastapi_ronin import filters
+from app.domains.myapp.models import MyModel
+
+class MyModelFilterSet(filters.FilterSet):
+    fields = [
+        filters.CharFilter('name', view_name='search', default_lookup='icontains'),
+    ]
+    class Meta:
+        model = MyModel
+```
+
+## views.py
+
+A domain may have **multiple models** — use a separate `APIRouter` and viewset per model; read-only resources use `BaseReadOnlyViewSet`. For PATCH, set `update_schema`. Custom endpoints use `@action`. See `app/domains/organization/views.py`.
+
+```python
+from fastapi import APIRouter
+from fastapi_ronin.decorators import viewset
+from app.core.viewsets import BaseModelViewSet, BaseReadOnlyViewSet
+from app.domains.myapp.filters import MyModelFilterSet, MyOtherFilterSet
+from app.domains.myapp.models import MyModel, MyOtherModel
+from app.domains.myapp.schemas import (
+    MyModelCreateSchema,
+    MyModelReadSchema,
+    MyModelUpdateSchema,
+    MyOtherReadSchema,
+)
+
+my_models_router = APIRouter(prefix='/my-models', tags=['my-models'])
+my_others_router = APIRouter(prefix='/my-others', tags=['my-others'])
+
+
+@viewset(my_models_router)
+class MyModelViewSet(BaseModelViewSet[MyModel]):
+    model = MyModel
+    read_schema = MyModelReadSchema
+    create_schema = MyModelCreateSchema
+    update_schema = MyModelUpdateSchema
+    filterset_class = MyModelFilterSet
+
+
+@viewset(my_others_router)
+class MyOtherViewSet(BaseReadOnlyViewSet[MyOtherModel]):
+    model = MyOtherModel
+    read_schema = MyOtherReadSchema
+    filterset_class = MyOtherFilterSet
+```
+
+## Data scoping (`FilterObjectsManager`)
+
+`BaseGenericViewSet.get_queryset()` applies `FilterObjectsManager` automatically. Register each model in `app/shared/services/filter_objects_manager.py`:
+
+```python
+MyModel: Scope(
+    user='org_users__user_id',      # filter by current user membership
+    organization='organization_id', # filter by current org from auth state
+),
+```
+
+- Models with empty `Scope()` are **not** auto-scoped — override `get_queryset()` when custom logic is needed (see `OrganizationUserViewSet`)
+- Override `perform_create` / `perform_destroy` for extra permission or uniqueness checks
+- Superuser bypass and other exceptions belong in the viewset, not in `FilterObjectsManager`
+
+## Registration
+
+**`app/core/database.py`** — add `'app.domains.myapp.models'` to `MODELS`
+
+**`app/main.py`** — import the router and include it in `api_router`
+
+## Rules
+
+- `BaseModelViewSet` / `BaseReadOnlyViewSet` require `IsAuthenticated` — all endpoints are protected by default
+- Pagination: `page` / `page_size` query params, default `page_size=100`
+- Lookup by UUID (`UUIDLookup`)
+
+## Tests
+
+Place tests inside the domain (or `app/core/tests/` for app-level checks):
+
+```
+app/domains/<name>/tests/test_<subject>.py
+```
+
+Example: `app/domains/organization/tests/test_organization.py`
+
+Shared Tortoise fixture lives in `app/conftest.py` — use the `db` fixture and `@pytest.mark.asyncio` for model tests.

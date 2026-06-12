@@ -1,0 +1,2 @@
+class RollbackTransactionException(Exception):
+    pass

@@ -1,0 +1,229 @@
+---
+description: Pattern for creating feature modules in the frontend (Nuxt 4 + Vue 3 + Pinia + PNPM)
+globs: frontend/app/**/*.{ts}, frontend/app/**/*.{vue}
+alwaysApply: false
+---
+
+# Frontend: feature module structure
+
+Each feature is a folder at `frontend/app/features/<name>/` with three layers.
+
+## models/<name>.ts
+
+```typescript
+type MyModelRaw = DeepPartial<MyModel>
+
+export interface MyModel {
+  id: string | null
+  organization_id: string | null
+  created_at: string | null
+  updated_at: string | null
+  name: string
+}
+
+export const myModelCodec = createCodec<MyModel>({
+  decode: (raw: MyModelRaw) => ({
+    id: raw.id || null,
+    organization_id: raw.organization_id || null,
+    created_at: raw.created_at || null,
+    updated_at: raw.updated_at || null,
+    name: raw.name ?? '',
+  }),
+  encode: (data) => ({
+    organization_id: data.organization_id || null,
+    name: data.name || null,
+  }),
+})
+```
+
+- `id` is `string | null` (UUID from backend)
+- `decode` — API response → typed object (all fields with defaults)
+- `encode` — typed object → API payload (only writable fields, no `id`/`created_at`/`updated_at`)
+- `createCodec`, `DeepPartial`, `AppModel` are auto-imported from `shared/toolkits/repo/`
+
+## repos/<name>Repo.ts
+
+```typescript
+import { myModelCodec } from '../models/myModel'
+
+export const useMyModelRepo = defineStore('myModelRepo', () => {
+  const config = getRepoConfig({ resource: 'my-models', codec: myModelCodec })
+  const { state, actions } = createAppRepo(config)()
+  return { ...state, ...actions }
+})
+```
+
+- `resource` — matches the backend URL prefix (kebab-case, plural)
+- `defineStore`, `getRepoConfig`, `createAppRepo` are auto-imported
+- Register the repo in `app/shared/composables/useRepo.ts`, then use `useRepo('myModel')` in views
+
+## UI building blocks
+
+Templates are built on shared primitives from `shared/ui/app/` and `shared/ui/template/`:
+
+| Component | Role |
+|---|---|
+| `AppSection` | Page/section wrapper with `title`, `description`, optional `backAction` |
+| `AppList` | Table or list with built-in search (`showSearch`) and pagination |
+| `AppListTemplate` | `AppSection` + `AppList` + optional create button + modal detail |
+| `AppDetailTemplate` | `AppSection` + detail form with save/delete actions |
+| `AppModal` | Dialog wrapper with optional `title` / `subtitle` |
+| `AppColumn` | DataTable column with optional `format` callback |
+| `AppSelect` | Select backed by a repo (`:repo="useRepo('user')"`) |
+| `AppTemplateActions` | Row of action buttons with per-action loading and optional toasts |
+
+`AppTemplateActions` accepts `actions: AppTemplateAction[]` (label, icon, `action`, notifications, `hidden`, `mode`). Used inside `AppDetailActions`; can be placed in `#actions` slots for custom toolbars.
+
+`AppSection` uses `description` for the subtitle text under the title (not `subtitle`).
+
+`templateVariant`: `page` (default), `section`, `flat-section` — controls title size and block styling.
+
+## AppListTemplate — universal list component
+
+`AppListTemplate` is the standard way to display any list: in a page view, inside a detail page section, or nested inside a modal. Columns via PrimeVue `Column` or `AppColumn` (for `format`).
+
+### Navigation mode (page list view)
+
+Used in `views/MyModelListView.vue` — clicking a row navigates to the detail page.
+
+```vue
+<template>
+  <AppListTemplate
+    title="My Models"
+    description="Manage models"
+    detail-route-name="settings-my-models-id"
+    :repo="useRepo('myModel')"
+    filter
+  >
+    <Column field="name" header="Name" />
+  </AppListTemplate>
+</template>
+```
+
+### Modal mode (section component or nested list)
+
+Used when a list belongs to a parent entity. The edit form opens in `AppModal` via embedded `AppDetailTemplate` and the `#detail-modal` slot.
+
+```vue
+<template>
+  <AppListTemplate
+    title="My Models"
+    detail-mode="modal"
+    template-variant="section"
+    :extra-params="{ parent_id: props.parentId }"
+    :build-new-item="() => myModelCodec.decode({ parent_id: props.parentId })"
+    :repo="useRepo('myModel')"
+  >
+    <AppColumn header="Name" :format="(row) => row.name || '—'" />
+
+    <template #detail-modal="{ detailItem }">
+      <AppInput v-model="detailItem.name" label="Name" />
+
+      <MyNestedSection v-if="detailItem.id" :parent-id="detailItem.id" />
+    </template>
+  </AppListTemplate>
+</template>
+
+<script setup lang="ts">
+import { myModelCodec } from '../models/myModel'
+
+const props = defineProps<{ parentId: string }>()
+</script>
+```
+
+Key props:
+
+| Prop | Description |
+|---|---|
+| `detail-route-name` | Route name to navigate to on row click (navigation mode, `detail-mode="route"`) |
+| `detail-mode="modal"` | Open detail in a modal instead of navigating |
+| `:extra-params` | Extra query params (e.g. filter by parent id) |
+| `:build-new-item` | Factory for a new item (pre-filled with parent reference) |
+| `filter` | Enable server-side search (sends `search` query param) |
+| `show-search` | Show/hide search input (default `true`) |
+
+## views/MyModelDetailView.vue
+
+```vue
+<template>
+  <AppDetailTemplate
+    :build-new-item="() => myModelCodec.decode({ organization_id: organizationId })"
+    title="My Model"
+    :repo="useRepo('myModel')"
+    :back-action="() => navigateTo({ name: 'settings-my-models' })"
+  >
+    <template #default="{ item, isCreating }">
+      <AppInput v-model="item.name" label="Name" />
+    </template>
+  </AppDetailTemplate>
+</template>
+
+<script setup lang="ts">
+import { myModelCodec } from '../models/myModel'
+
+const { organizationId } = useOrganization()
+</script>
+```
+
+`AppDetailTemplate` props worth knowing:
+
+| Prop | Description |
+|---|---|
+| `mode` | `page` (load from route param) or `inline` (item passed via `:item`) |
+| `:back-action` | Custom back navigation; defaults to `router.back()` in page mode |
+| `:actions-props` | Hide or customize save/delete/cancel actions |
+| `hide-back-button` | Hide back button (used inside modals) |
+
+## Wiring up
+
+**Pages** — create `app/pages/settings/my-models/index.vue` and `[id].vue`:
+```vue
+<template><MyModelListView /></template>
+<script setup lang="ts">
+import MyModelListView from '~/features/my-model/views/MyModelListView.vue'
+</script>
+```
+
+**Layout** (`app/layouts/settings.vue`) — add to `navigationSections`:
+```typescript
+{ to: { name: 'settings-my-models' }, label: 'My Models', icon: 'lucide:box' }
+```
+
+**Repo registry** — add to `app/shared/composables/useRepo.ts`:
+```typescript
+myModel: useMyModelRepo,
+```
+
+## Labels — feature composables
+
+Prefer a feature composable (for example `composables/useMyModelLabels.ts`) with `LabelConfig` maps and `getXxx()` helpers instead of ad hoc `Record<string, string>` maps in components.
+
+## Async actions — `useActionState`
+
+Use `useActionState` from `~/shared/composables/useActionState` for button handlers, modal flows, and other async work that should show loading state and optional toasts. Wire `:loading` to `someState.loading.value` and `@click` to `someState.execute`.
+
+```typescript
+const handleSaveState = useActionState(
+  async () => {
+    if (!props.entity.id) return
+    await repo.update(props.entity.id, payload.value)
+    model.value = false
+  },
+  {
+    successNotification: 'Saved successfully',
+    errorNotification: 'Failed to save',
+  },
+)
+```
+
+- Pass `successNotification` / `errorNotification` when user feedback is required; omit both for silent loads.
+- Do not duplicate manual `ref` loading flags and `try/finally` around the same operation when `useActionState` already manages `loading`.
+
+## Rules
+
+- Nuxt route names are derived from the file path: `settings/my-models/[id].vue` → `settings-my-models-id`
+- `useOrganization()` is auto-imported and provides `organizationId` for the current org
+- `$api` is a pre-configured fetch client with `baseURL: /api/v1` and `Organization-Key` header
+- Never use `useFetch` directly — always go through a repo
+- Prefer `useRepo('key')` in views over importing repo stores directly
+- Use `AppColumn` / `AppSelect` 
