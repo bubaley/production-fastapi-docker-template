@@ -1,4 +1,4 @@
-# Foliera
+# FastAPI + Nuxt Production Template
 
 Full-stack starter for internal apps with multi-organization access: CRUD entities, authentication, drawer navigation, and ready-made UI primitives for lists and forms.
 
