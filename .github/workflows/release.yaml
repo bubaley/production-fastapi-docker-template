@@ -1,92 +1,91 @@
-# name: Release
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: ["main"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # CHANGE IMAGE_NAME
 # SET YC_REGISTRY, YC_KEY_JSON
+env:
+  REGISTRY: cr.yandex
+  # IMAGE_NAME: image-name
 
-# on:
-#   workflow_run:
-#     workflows: ["CI"]
-#     types: [completed]
-#     branches: ["main"]
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    permissions:
+      contents: write
+    outputs:
+      skipped: ${{ steps.changelog.outputs.skipped }}
+      tag: ${{ steps.changelog.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate changelog & version
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v6
+        with:
+          github-token: ${{ secrets.github_token }}
+          git-user-name: "github-actions[bot]"
+          git-user-email: "41898282+github-actions[bot]@users.noreply.github.com"
+          version-file: "./version.json"
+          version-path: "version"
+          preset: "conventionalcommits"
+          tag-prefix: "v"
+          output-file: "false"
 
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.ref }}
-#   cancel-in-progress: true
+      - name: Create Release
+        if: ${{ steps.changelog.outputs.skipped == 'false' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.changelog.outputs.tag }}
+          name: ${{ steps.changelog.outputs.tag }}
+          body: ${{ steps.changelog.outputs.clean_changelog }}
 
-# env:
-#   REGISTRY: cr.yandex
-#   IMAGE_NAME:
-
-# jobs:
-#   release:
-#     name: Release
-#     runs-on: ubuntu-latest
-#     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
-#     permissions:
-#       contents: write
-#     outputs:
-#       skipped: ${{ steps.changelog.outputs.skipped }}
-#       tag: ${{ steps.changelog.outputs.tag }}
-#     steps:
-#       - uses: actions/checkout@v4
-#         with:
-#           fetch-depth: 0
-#       - name: Generate changelog & version
-#         id: changelog
-#         uses: TriPSs/conventional-changelog-action@v6
-#         with:
-#           github-token: ${{ secrets.github_token }}
-#           git-user-name: "github-actions[bot]"
-#           git-user-email: "41898282+github-actions[bot]@users.noreply.github.com"
-#           version-file: "./version.json"
-#           version-path: "version"
-#           preset: "conventionalcommits"
-#           tag-prefix: "v"
-#           output-file: "false"
-
-#       - name: Create Release
-#         if: ${{ steps.changelog.outputs.skipped == 'false' }}
-#         uses: softprops/action-gh-release@v2
-#         with:
-#           tag_name: ${{ steps.changelog.outputs.tag }}
-#           name: ${{ steps.changelog.outputs.tag }}
-#           body: ${{ steps.changelog.outputs.clean_changelog }}
-
-#   docker:
-#     name: Build & Push
-#     runs-on: ubuntu-latest
-#     needs: release
-#     if: ${{ needs.release.outputs.skipped == 'false' }}
-#     steps:
-#       - uses: actions/checkout@v4
-#       - name: Extract version
-#         id: version
-#         run: |
-#           echo "version=${TAG#v}" >> $GITHUB_OUTPUT
-#         env:
-#           TAG: ${{ needs.release.outputs.tag }}
-#       - name: Login to Yandex CR
-#         uses: yc-actions/yc-cr-login@v3
-#         with:
-#           yc-sa-json-credentials: ${{ secrets.YC_KEY_JSON }}
-#       - name: Docker metadata
-#         id: meta
-#         uses: docker/metadata-action@v5
-#         with:
-#           images: ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY }}/${{ env.IMAGE_NAME }}
-#           tags: |
-#             type=raw,value=${{ steps.version.outputs.version }}
-#             type=raw,value=latest
-#       - name: Setup Buildx
-#         uses: docker/setup-buildx-action@v3
-#       - name: Build & Push
-#         uses: docker/build-push-action@v6
-#         with:
-#           context: .
-#           push: true
-#           platforms: linux/amd64
-#           tags: ${{ steps.meta.outputs.tags }}
-#           cache-from: type=gha,scope=buildkit
-#           cache-to: type=gha,mode=max,scope=buildkit
-#           provenance: true
-#           sbom: true
+  # docker:
+  #   name: Build & Push
+  #   runs-on: ubuntu-latest
+  #   needs: release
+  #   if: ${{ needs.release.outputs.skipped == 'false' }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Extract version
+  #       id: version
+  #       run: |
+  #         echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+  #       env:
+  #         TAG: ${{ needs.release.outputs.tag }}
+  #     - name: Login to Yandex CR
+  #       uses: yc-actions/yc-cr-login@v3
+  #       with:
+  #         yc-sa-json-credentials: ${{ secrets.YC_KEY_JSON }}
+  #     - name: Docker metadata
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY }}/${{ env.IMAGE_NAME }}
+  #         tags: |
+  #           type=raw,value=${{ steps.version.outputs.version }}
+  #           type=raw,value=latest
+  #     - name: Setup Buildx
+  #       uses: docker/setup-buildx-action@v3
+  #     - name: Build & Push
+  #       uses: docker/build-push-action@v6
+  #       with:
+  #         context: .
+  #         push: true
+  #         platforms: linux/amd64
+  #         tags: ${{ steps.meta.outputs.tags }}
+  #         cache-from: type=gha,scope=buildkit
+  #         cache-to: type=gha,mode=max,scope=buildkit
+  #         provenance: true
+  #         sbom: true
