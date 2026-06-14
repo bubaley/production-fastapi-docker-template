@@ -282,7 +282,7 @@ const actions = ref<AppTemplateAction[]>([
   {
     label: 'Settings',
     icon: 'lucide:settings',
-    onClick: () => navigateTo({ name: 'settings-organizations' }),
+    onClick: () => navigateTo({ name: 'settings-profile' }),
   },
   {
     label: 'Switch organization',

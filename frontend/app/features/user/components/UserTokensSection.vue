@@ -21,19 +21,20 @@
     />
     <Column header="Последнее использование">
       <template #body="{ data }">
-        <DateLabel
+        <AppDateLabel
           v-if="data.last_used_at"
           :date="data.last_used_at"
         />
         <span
           v-else
           class="text-surface-500"
-        >—</span>
+          >—</span
+        >
       </template>
     </Column>
     <Column header="Создан">
       <template #body="{ data }">
-        <DateLabel
+        <AppDateLabel
           v-if="data.created_at"
           :date="data.created_at"
         />
@@ -60,7 +61,6 @@
 import Column from 'primevue/column'
 import { userTokenCodec } from '../models/userToken'
 import { useUserTokenRepo } from '../repos/userTokenRepo'
-import DateLabel from '~/shared/components/labels/DateLabel.vue'
 
 const props = defineProps<{
   userId: string
