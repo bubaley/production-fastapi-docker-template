@@ -1,0 +1,16 @@
+{
+    "ruff.configuration": "backend/pyproject.toml",
+    "python-envs.pythonProjects": [
+        {
+            "path": "backend",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ],
+    "python.testing.pytestEnabled": true,
+    "python.testing.cwd": "${workspaceFolder}/backend",
+    "python.testing.pytestArgs": [
+        "app"
+    ],
+    "python.testing.autoTestDiscoverOnSaveEnabled": true
+}

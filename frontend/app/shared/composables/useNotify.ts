@@ -10,7 +10,7 @@ const useNotify = () => {
   const notify = ({ severity = 'success', summary, detail, life = 1500 }: NotifyParams) => {
     toast.add({ severity: severity, summary: summary, detail: detail, life: life })
   }
-  return { toast, notify }
+  return { toast, notify, remove: toast.remove }
 }
 
 export default useNotify

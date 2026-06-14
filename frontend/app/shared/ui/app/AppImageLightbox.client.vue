@@ -4,9 +4,9 @@
 import 'viewerjs/dist/viewer.css'
 import { api as viewerApi } from 'v-viewer'
 import type Viewer from 'viewerjs'
-import { useLightboxStore } from '~/shared/stores/lightboxStore'
+import { useAppImageLightboxStore } from './stores/useAppImageLightboxStore'
 
-const store = useLightboxStore()
+const store = useAppImageLightboxStore()
 let viewerInstance: Viewer | null = null
 
 const handleKeyEvent = (e: KeyboardEvent) => {
@@ -40,6 +40,6 @@ watch(
       viewerInstance?.destroy()
       viewerInstance = null
     }
-  }
+  },
 )
 </script>

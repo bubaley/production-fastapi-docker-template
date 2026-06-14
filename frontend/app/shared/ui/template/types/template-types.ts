@@ -5,7 +5,7 @@ import type { AppDetailActionsProps } from '../AppDetailActions.vue'
 import type { ActionDisplayMode } from './template-ui-tokens'
 import type { AppSectionProps } from '../../app/AppSection.vue'
 
-export type AppTemplateAction = AppButtonProps & {
+export type AppTemplateAction = Omit<AppButtonProps, 'hidden'> & {
   action?: () => Promise<void> | void
   hidden?: boolean
   mode?: ActionDisplayMode

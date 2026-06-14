@@ -1,10 +1,10 @@
 <template>
   <NuxtPage />
   <AppNotify />
-  <ImageLightbox />
+  <AppImageLightbox />
 </template>
 
 <script setup lang="ts">
-import ImageLightbox from '~/shared/components/ImageLightbox.client.vue'
+import AppImageLightbox from '~/shared/ui/app/AppImageLightbox.client.vue'
 </script>
 <style></style>

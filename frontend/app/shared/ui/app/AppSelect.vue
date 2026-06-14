@@ -59,7 +59,7 @@
 import type { SelectProps, SelectMethods } from 'primevue/select'
 import type { UseSelectDataProps } from '../../composables/useSelectData'
 
-export type CSelectProps<T> = Omit<SelectProps, 'filterFields' | 'options'> &
+export type AppSelectProps<T> = Omit<SelectProps, 'filterFields' | 'options'> &
   UseSelectDataProps<T> & {
     label?: string
     class?: string
@@ -67,7 +67,7 @@ export type CSelectProps<T> = Omit<SelectProps, 'filterFields' | 'options'> &
 
 const model = defineModel<T>()
 
-const props = withDefaults(defineProps<CSelectProps<T>>(), {
+const props = withDefaults(defineProps<AppSelectProps<T>>(), {
   autoLoad: false,
   filter: true,
   fluid: true,

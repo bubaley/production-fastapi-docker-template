@@ -12,6 +12,7 @@
       v-if="title || subtitle"
       class="mb-4"
       :title="title"
+      :size="titleSize"
       :subtitle="subtitle"
     />
     <slot />
@@ -25,6 +26,7 @@ export interface AppModalProps extends DialogProps {
   title?: string
   subtitle?: string
   width?: string
+  titleSize?: TitleSizeToken
 }
 
 const model = defineModel<boolean>()
@@ -34,5 +36,6 @@ withDefaults(defineProps<AppModalProps>(), {
   showFooter: false,
   showHeader: false,
   dismissableMask: true,
+  titleSize: 'lg',
 })
 </script>

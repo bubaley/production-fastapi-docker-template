@@ -1,4 +1,4 @@
-export const useLightboxStore = defineStore('lightbox', () => {
+export const useAppImageLightboxStore = defineStore('app-image-lightbox', () => {
   const sources = ref<string[]>([])
   const show = ref(false)
   const initialIndex = ref(0)

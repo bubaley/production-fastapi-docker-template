@@ -18,10 +18,12 @@
             :key="color.hex"
             class="color-item"
             :class="{ active: modelValue === color.hex }"
-            :style="{ backgroundColor: color.hex }"
+            :style="{ '--color-picker-color': color.hex }"
             :title="color.name"
             @click="selectColor(color.hex)"
-          />
+          >
+            <div class="color-item-swatch" />
+          </div>
         </div>
       </Popover>
     </div>
@@ -108,26 +110,34 @@ const selectColor = (hex: string) => {
 .color-palette {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .color-item {
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 0.375rem;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  padding: 0.1875rem;
+  transition: border-color 0.1s;
+
+  .color-item-swatch {
+    width: 100%;
+    height: 100%;
+    border-radius: calc(0.375rem - 0.1875rem);
+    background-color: var(--color-picker-color);
+    transition: transform 0.1s;
+  }
 
   &:hover {
-    transform: scale(1.1);
-    border-color: var(--p-content-border-color);
+    .color-item-swatch {
+      transform: scale(1.1);
+    }
   }
 
   &.active {
-    border-color: var(--p-primary-color);
-    border-width: 3px;
-    box-shadow: 0 0 0 2px var(--p-primary-50);
+    border-color: var(--color-picker-color);
   }
 }
 </style>

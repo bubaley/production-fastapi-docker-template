@@ -17,10 +17,10 @@
 
 <script setup lang="ts">
 import { max, min } from 'lodash-es'
-import moment from 'moment'
 import type { CalendarProps } from 'primevue/calendar'
 import { computed } from 'vue'
 import AppLabel from './AppLabel.vue'
+import dayjs from 'dayjs'
 
 export interface CDatePickerProps extends /* @vue-ignore */ Omit<CalendarProps, 'modelValue'> {
   data?: CDatePickerChangeData | null
@@ -100,12 +100,12 @@ const emitValue = () => {
 
 const _formatDate = (val?: Date | null) => {
   if (!val) return null
-  return moment(val).format('YYYY-MM-DD')
+  return dayjs(val).format('YYYY-MM-DD')
 }
 
 const _parseDate = (val: string | null | undefined) => {
   if (!val) return null
-  return moment.utc(val).toDate()
+  return dayjs.utc(val).toDate()
 }
 
 const buildChangeData = (value?: string | (string | null)[] | null): CDatePickerChangeData => {

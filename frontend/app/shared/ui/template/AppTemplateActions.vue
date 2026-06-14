@@ -1,7 +1,7 @@
 <template>
   <div
     class="flex items-center gap-sm"
-    :class="{ 'w-full': fullWidth }"
+    :class="{ 'w-full *:flex-1': fullWidth }"
   >
     <AppButton
       v-for="(action, index) in visibleActions"

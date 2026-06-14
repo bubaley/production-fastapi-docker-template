@@ -16,34 +16,19 @@
         v-else
         class="flex gap-3"
       >
-        <div class="flex-1">
-          <AppButton
-            v-bind="{ ...confirmProps, loading: confirmLoading }"
-            fluid
-            class="flex-1"
-            :label="confirmText"
-            @click="_handleConfirm"
-          />
-        </div>
-        <div class="flex-1">
-          <AppButton
-            v-bind="{ ...confirmProps, loading: declineLoading }"
-            severity="secondary"
-            fluid
-            class="flex-1"
-            :label="declineText"
-            @click="_handleDecline"
-          />
-        </div>
+        <AppTemplateActions
+          :actions="actions"
+          full-width
+        />
       </div>
     </div>
   </AppModal>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import AppButton, { type AppButtonProps } from './AppButton.vue'
+import type { AppButtonProps } from './AppButton.vue'
 import AppModal, { type AppModalProps } from './AppModal.vue'
+import type { AppTemplateAction } from '../template/types/template-types'
 
 const model = defineModel<boolean>()
 
@@ -68,6 +53,29 @@ const props = withDefaults(defineProps<CConfirmModalProps>(), {
 
 const confirmLoading = ref(false)
 const declineLoading = ref(false)
+
+const actions = computed<AppTemplateAction[]>(() => {
+  const { hidden: _declineHidden, ...declineProps } = props.declineProps || {}
+  const { hidden: _confirmHidden, ...confirmProps } = props.confirmProps || {}
+
+  const declineAction: AppTemplateAction = {
+    ...declineProps,
+    severity: 'secondary',
+    fluid: true,
+    label: props.declineText,
+    loading: declineLoading.value,
+    action: _handleDecline,
+  }
+  const confirmAction: AppTemplateAction = {
+    ...confirmProps,
+    fluid: true,
+    label: props.confirmText,
+    loading: confirmLoading.value,
+    action: _handleConfirm,
+  }
+
+  return [declineAction, confirmAction]
+})
 
 const _handleDecline = async () => {
   declineLoading.value = true

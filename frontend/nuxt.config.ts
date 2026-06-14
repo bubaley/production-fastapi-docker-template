@@ -21,7 +21,6 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@nuxtjs/color-mode',
     '@nuxtjs/google-fonts',
-    // '@sidebase/nuxt-auth', // Replaced with custom auth module
     './modules/base-auth',
     'dayjs-nuxt',
   ],
