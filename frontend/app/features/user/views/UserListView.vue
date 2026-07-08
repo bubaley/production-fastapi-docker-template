@@ -1,7 +1,7 @@
 <template>
   <AppListTemplate
     title="Пользователи"
-    subtitle="Учётные записи"
+    description="Учетные записи пользователей"
     detail-route-name="settings-users-id"
     :repo="useRepo('user')"
   >

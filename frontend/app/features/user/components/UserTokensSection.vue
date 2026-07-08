@@ -28,8 +28,7 @@
         <span
           v-else
           class="text-surface-500"
-          >—</span
-        >
+        >—</span>
       </template>
     </Column>
     <Column header="Создан">

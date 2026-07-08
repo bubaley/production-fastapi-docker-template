@@ -46,12 +46,9 @@ export class AuthClient {
     let data: any = null
     let error: AuthError | null = null
     try {
-
       const baseUrl = useRuntimeConfig().public.baseUrl
-      const response = await $fetch.raw(
-        this._normalizeUrl(baseUrl, this.config.apiPrefix, attrs.endpoint),
-        options,
-      )
+      const normalizedUrl = this._normalizeUrl(baseUrl, this.config.apiPrefix, attrs.endpoint)
+      const response = await $fetch.raw(normalizedUrl, options)
       cookies = this.setCookiesFromResponse(attrs.event, response).concat(attrs.cookie || [])
       data = response._data
     } catch (err) {
@@ -60,6 +57,7 @@ export class AuthClient {
         statusCode: e.statusCode,
         statusMessage: e.statusMessage,
         data: e.data,
+        message: e.message,
       }
     }
 

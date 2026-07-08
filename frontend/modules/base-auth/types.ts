@@ -104,6 +104,7 @@ export interface TokenPair {
 
 export interface AuthError {
   data: unknown
+  message?: string
   statusCode?: number
   statusMessage?: string
 }

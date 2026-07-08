@@ -1,5 +1,5 @@
 <template>
-  <div class="c-tab-select flex flex-col gap-md">
+  <div class="app-tabs flex flex-col gap-md">
     <SelectButton
       v-model="model"
       :options="tabs"

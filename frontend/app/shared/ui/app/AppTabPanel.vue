@@ -2,7 +2,7 @@
   <div
     v-if="isActive"
     v-bind="$attrs"
-    class="c-tab-panel"
+    class="app-tab-panel"
   >
     <slot />
   </div>

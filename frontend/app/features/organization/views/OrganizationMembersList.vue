@@ -8,22 +8,22 @@
     title="Участники организации"
   >
     <template #detail-modal="{ detailItem }">
-      <CSelect
+      <AppSelect
         v-model="detailItem.user"
         label="Пользователь"
         :repo="useRepo('user')"
         option-label="email"
       />
     </template>
-    <CColumn
+    <AppColumn
       header="Email"
       :format="(row) => row.user?.email || '—'"
     />
-    <CColumn
+    <AppColumn
       header="Имя"
       :format="(row) => row.user?.first_name || '—'"
     />
-    <CColumn
+    <AppColumn
       header="Фамилия"
       :format="(row) => row.user?.last_name || '—'"
     />
