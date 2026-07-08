@@ -19,7 +19,7 @@ TORTOISE_ORM = {
         'models': {
             'models': MODELS,
             'default_connection': 'default',
-            'migrations': 'migrations.models',
+            'migrations': 'migrations',
         }
     },
 }
@@ -42,7 +42,6 @@ class DatabaseConnection:
     _instance = None
     _tortoise_instance: TortoiseContext | None = None
     _initialized = False
-    TORTOISE_KWARGS = {'config': TORTOISE_ORM, 'use_tz': False}
 
     @property
     def tortoise_instance(self):
@@ -59,7 +58,7 @@ class DatabaseConnection:
 
     async def tortoise_init(self):
         if not self._initialized:
-            self._tortoise_instance = await Tortoise.init(**self.TORTOISE_KWARGS)
+            self._tortoise_instance = await Tortoise.init(config=TORTOISE_ORM, use_tz=False)
             self._initialized = True
 
     def __enter__(self):

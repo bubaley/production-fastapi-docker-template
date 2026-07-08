@@ -27,13 +27,25 @@ def create_superuser():
     asyncio.run(scripts.create_superuser())
 
 
-@app.command(name='test')
-def run_tests(path: str = typer.Argument('app', help='Path to tests or specific test file')):
+@app.command(
+    name='test',
+    context_settings={'allow_extra_args': True, 'ignore_unknown_options': True},
+)
+def run_tests(
+    ctx: typer.Context,
+    path: str = typer.Argument('app', help='Path to tests or specific test file'),
+):
     """
-    Run pytest for the specified path (defaults to 'tests').
+    Run pytest for the specified path (defaults to 'app').
+
+    Extra arguments are forwarded to pytest, e.g.:
+
+        manage.py test app --keepdb
+        manage.py test app/domains/post/tests -x -k test_foo
     """
     typer.echo(f'Running tests in: {path}')
-    result = subprocess.run([sys.executable, '-m', 'pytest', path])  # nosec B603
+    cmd = [sys.executable, '-m', 'pytest', path, '-s', *ctx.args]
+    result = subprocess.run(cmd)  # nosec B603
     sys.exit(result.returncode)
 
 
@@ -68,7 +80,7 @@ def shell():
     loop.run_until_complete(DatabaseConnection().tortoise_init())
 
     try:
-        from IPython import embed
+        from IPython import embed  # type: ignore
 
         embed(banner1=banner, user_ns=shell_locals, using='asyncio')
     except ImportError:
@@ -81,9 +93,9 @@ def shell():
                 self.compile.compiler.flags |= ast.PyCF_ALLOW_TOP_LEVEL_AWAIT
                 self._loop = loop
 
-            def runcode(self, code_obj):
+            def runcode(self, code):
                 try:
-                    result = eval(code_obj, self.locals)  # nosec B307
+                    result = eval(code, self.locals)  # nosec B307
                     if asyncio.iscoroutine(result):
                         self._loop.run_until_complete(result)
                 except SystemExit:

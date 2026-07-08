@@ -69,7 +69,7 @@ run-taskiq-scheduler: ## Run taskiq scheduler
 test: test-backend ## run backend tests
 
 test-backend: ## run backend pytest suite
-	cd $(BACKEND_DIR) && uv run manage.py test
+	cd $(BACKEND_DIR) && uv run manage.py test --keepdb
 
 # ----------- PRODUCTION ----------- #
 
