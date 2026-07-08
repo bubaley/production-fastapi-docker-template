@@ -19,11 +19,11 @@ class Token:
         self.type = token_type
         self.expires = expires
 
-    def remove_cookie(self, response: Response, path: str = '/', httponly: bool = True):
+    def remove_cookie(self, response: Response, path: str = '/', httponly: bool | None = None):
         """Remove the token as an HTTP-only cookie in the response."""
-        response.delete_cookie(key=f'{self.type}_token', path=path, httponly=httponly)
+        response.delete_cookie(key=f'{self.type}_token', path=path, httponly=httponly or settings.cookie_http_only)
 
-    def set_cookie(self, response: Response, path: str = '/', httponly: bool = True):
+    def set_cookie(self, response: Response, path: str = '/', httponly: bool | None = None):
         """Set the token as an HTTP-only cookie in the response."""
         max_age = None
         if self.expires:
@@ -33,7 +33,7 @@ class Token:
             value=self.token,
             max_age=max_age,
             path=path,
-            httponly=httponly,
+            httponly=httponly or settings.cookie_http_only,
             secure=settings.cookie_secure,
             samesite=settings.cookie_samesite,
         )

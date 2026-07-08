@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # cache settings
     cache_redis_url: str | None = None
 
-    # broker / rate-limiter settings
+    # broker settings
     broker_redis_url: str = 'redis://localhost:6379/0'
 
     # JWT settings
@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     # cookie settings
     cookie_secure: bool = False
     cookie_samesite: Literal['lax', 'strict', 'none'] = 'lax'
+    cookie_http_only: bool = True
 
     # CORS settings
     cors_origins: list[str] = [
