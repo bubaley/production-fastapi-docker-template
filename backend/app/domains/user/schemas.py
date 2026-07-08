@@ -40,6 +40,12 @@ class UserUpdateSchema(BaseCreateSchema):
 @schema(model=UserToken)
 class UserTokenCreateSchema(BaseCreateSchema):
     user_id: UUID | None = None
+    name: str
+
+
+@schema(model=UserToken)
+class UserTokenUpdateSchema(BaseCreateSchema):
+    name: str
 
 
 @schema(model=UserToken)
@@ -47,6 +53,7 @@ class UserTokenReadSchema(BaseReadSchema):
     user_id: UUID
     value_preview: str
     last_used_at: datetime | None
+    name: str
 
 
 @schema(model=UserToken)

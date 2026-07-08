@@ -6,15 +6,18 @@
     :detail-modal-props="{
       width: '32rem',
       closeOnSave: false,
-      title: 'Токен интеграции',
       actionsProps: {
-        hideUpdateButton: true,
+        disableRouterAutoResolving: true,
       },
     }"
     :extra-params="{ user_id: props.userId }"
     :build-new-item="() => userTokenCodec.decode({ user_id: props.userId })"
     :repo="repo"
   >
+    <Column
+      field="name"
+      header="Наименование"
+    />
     <Column
       field="value_preview"
       header="Токен"
@@ -28,7 +31,8 @@
         <span
           v-else
           class="text-surface-500"
-        >—</span>
+          >—</span
+        >
       </template>
     </Column>
     <Column header="Создан">
@@ -40,14 +44,28 @@
       </template>
     </Column>
     <template #detail-modal="{ detailItem }">
+      <AppInput
+        v-model="detailItem.name"
+        label="Наименование"
+      />
       <div v-if="detailItem.id">
         <Message
-          v-if="detailItem.value"
-          severity="success"
+          :severity="detailItem.value ? 'success' : undefined"
+          class="w-full"
         >
-          {{ detailItem.value }}
+          <div class="flex items-start gap-2 w-full">
+            <span class="min-w-0 flex-1 break-all whitespace-normal">
+              {{ detailItem.value || detailItem.value_preview }}
+            </span>
+            <AppButton
+              v-if="detailItem.value"
+              severity="success"
+              class="shrink-0 ml-4"
+              icon="lucide:copy"
+              @click="copyToken(detailItem.value)"
+            />
+          </div>
         </Message>
-        <Message v-else>{{ detailItem.value_preview }}</Message>
       </div>
       <Message v-else>
         После сохранения полный токен будет показан в уведомлении. Сохраните его в надёжном месте.
@@ -66,4 +84,14 @@ const props = defineProps<{
 }>()
 
 const repo = useUserTokenRepo()
+const { notify } = useNotify()
+
+const copyToken = async (value: string) => {
+  try {
+    await navigator.clipboard.writeText(value)
+    notify({ summary: 'Скопировано' })
+  } catch {
+    notify({ severity: 'error', summary: 'Не удалось скопировать' })
+  }
+}
 </script>

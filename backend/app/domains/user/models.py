@@ -29,6 +29,7 @@ class User(BaseModel):
 class UserToken(BaseModel):
     user = fields.ForeignKeyField('models.User', related_name='user_tokens', on_delete=fields.CASCADE)
     user_id: UUID
+    name = fields.CharField(max_length=128)
     value_hash = fields.CharField(max_length=64, unique=True, db_index=True)
     value_preview = fields.CharField(max_length=64)
     last_used_at = fields.DatetimeField(null=True)

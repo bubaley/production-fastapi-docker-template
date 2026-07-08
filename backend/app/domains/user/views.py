@@ -63,7 +63,12 @@ class UserViewSet(BaseModelViewSet[User]):
 
 
 @viewset(user_tokens_router)
-class UserTokenViewSet(BaseReadOnlyViewSet[UserToken], mixins.CreateMixin[UserToken], mixins.DestroyMixin[UserToken]):
+class UserTokenViewSet(
+    BaseReadOnlyViewSet[UserToken],
+    mixins.CreateMixin[UserToken],
+    mixins.DestroyMixin[UserToken],
+    mixins.UpdateMixin[UserToken],
+):
     model = UserToken
     filterset_class = UserTokenFilterSet
     read_schema = UserTokenReadSchema
@@ -79,8 +84,14 @@ class UserTokenViewSet(BaseReadOnlyViewSet[UserToken], mixins.CreateMixin[UserTo
 
     @action(methods=['POST'], detail=False)
     async def create(self, data: UserTokenCreateSchema) -> UserTokenCreatedReadSchema:
-        user_token = UserToken().update_from_dict(data.model_dump(exclude_unset=True))
-        value = secrets.token_urlsafe(32)
+        user: User | None = self.user
+        if not user:
+            raise HTTPException(status_code=401, detail='Unauthorized')
+        if not user.is_superuser and data.user_id and user.id != data.user_id:
+            raise HTTPException(status_code=403, detail='Forbidden')
+        data.user_id = data.user_id or user.id
+        user_token = UserToken(user_id=data.user_id, name=data.name)
+        value = secrets.token_urlsafe(64)
         user_token.value_hash = hashlib.sha256(value.encode('utf-8')).hexdigest()
         user_token.value = value
         user_token.value_preview = f'***{value[-6:]}'

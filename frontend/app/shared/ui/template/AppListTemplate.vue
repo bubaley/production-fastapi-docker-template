@@ -169,7 +169,7 @@ const handleCreateClick = () => {
 const handleSave = (event: AppDetailActionsSaveResult<T>) => {
   if (event.item) {
     selectedItem.value = event.item
-    updateListItem(event.item)
+    updateListItem(cloneDeep(event.item))
   }
 
   if (props.detailModalProps?.closeOnSave !== false) {

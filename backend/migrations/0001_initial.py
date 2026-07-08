@@ -54,6 +54,7 @@ class Migration(migrations.Migration):
                 ('created_at', fields.DatetimeField(db_index=True, auto_now=False, auto_now_add=True)),
                 ('updated_at', fields.DatetimeField(auto_now=True, auto_now_add=False)),
                 ('user', fields.ForeignKeyField('models.User', source_field='user_id', db_constraint=True, to_field='id', related_name='user_tokens', on_delete=OnDelete.CASCADE)),
+                ('name', fields.CharField(max_length=128)),
                 ('value_hash', fields.CharField(unique=True, db_index=True, max_length=64)),
                 ('value_preview', fields.CharField(max_length=64)),
                 ('last_used_at', fields.DatetimeField(null=True, auto_now=False, auto_now_add=False)),
