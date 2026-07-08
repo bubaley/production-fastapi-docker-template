@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from tortoise import BaseDBAsyncClient, connections
 from tortoise.models import Model
 
@@ -34,7 +36,7 @@ class BulkManyToManyManager:
     @classmethod
     async def bulk_set(
         cls,
-        relations: list[tuple[Model, list[Model]]],
+        relations: Sequence[tuple[Model, Sequence[Model]]],
         through_table: str | None = None,
         from_field: str | None = None,
         to_field: str | None = None,
@@ -59,8 +61,7 @@ class BulkManyToManyManager:
     async def _add(cls, relations: list[tuple[Model, Model]], **kwargs):
         db: BaseDBAsyncClient = connections.get('default')
 
-        client_name = db.__class__.__name__.lower()
-        is_postgres = 'postgres' in client_name or 'asyncpg' in client_name
+        is_postgres = db.capabilities.dialect == 'postgres'
 
         placeholders = []
         values = []
@@ -93,8 +94,7 @@ class BulkManyToManyManager:
     async def _remove(cls, relations: list[tuple[Model, Model]], **kwargs):
         db: BaseDBAsyncClient = connections.get('default')
 
-        client_name = db.__class__.__name__.lower()
-        is_postgres = 'postgres' in client_name or 'asyncpg' in client_name
+        is_postgres = db.capabilities.dialect == 'postgres'
 
         conditions = []
         values = []
@@ -119,10 +119,11 @@ class BulkManyToManyManager:
     async def _clear_from_objs(cls, from_objs: list[Model], **kwargs):
         db: BaseDBAsyncClient = connections.get('default')
 
-        client_name = db.__class__.__name__.lower()
-        is_postgres = 'postgres' in client_name or 'asyncpg' in client_name
+        is_postgres = db.capabilities.dialect == 'postgres'
 
         from_ids = [obj.pk for obj in from_objs]
+        if not from_ids:
+            return
 
         if is_postgres:
             placeholders = ', '.join(f'${i + 1}' for i in range(len(from_ids)))
@@ -134,7 +135,7 @@ class BulkManyToManyManager:
         await db.execute_query(query, from_ids)
 
     @classmethod
-    def _process_relations(cls, relations: list[tuple[Model, list[Model]]]):
+    def _process_relations(cls, relations: Sequence[tuple[Model, Sequence[Model]]]):
         _values, _tables = [], []
         for from_obj, to_objs in relations:
             for to_obj in to_objs:

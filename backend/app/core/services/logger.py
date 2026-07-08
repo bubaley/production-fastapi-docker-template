@@ -214,7 +214,7 @@ def _init_logger(log_dir: Path, debug: bool, *args, **kwargs):
     logger.add(
         sys.stdout,
         **params,
-    )
+    )  # ty: ignore[no-matching-overload]
 
 
 def _log_exceptions(exc_type, exc_value, exc_traceback):
@@ -267,7 +267,7 @@ class LoggProxy:
     @property
     def context(self):
         if callable(self._context):
-            return self._context() or {}
+            return self._context() or {}  # ty: ignore[call-top-callable]
         return self._context or {}
 
     def info(self, *args, **kwargs):

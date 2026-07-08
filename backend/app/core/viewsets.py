@@ -51,12 +51,12 @@ class BaseGenericViewSet(GenericViewSet[BaseModelT]):
     lookup_class = UUIDLookup
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self) -> QuerySet[BaseModelT]:
+    async def get_queryset(self) -> QuerySet[BaseModelT]:
         result: AuthState = BaseStateManager.get_state().get('auth_state') or AuthState(user=self.user)
         queryset = self.model.all()
         return FilterObjectsManager.filter(queryset=queryset, auth_state=result)
 
-    async def before_save(self, obj: BaseModel) -> None:
+    async def before_save(self, obj: BaseModelT) -> None:
         process_state_to_model(obj)
 
     async def bind_to_existing_object(self, obj: BaseModelT, params: dict[str, Any]) -> BaseModelT:

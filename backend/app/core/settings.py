@@ -4,8 +4,8 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import ConfigDict
-from pydantic_settings import BaseSettings
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_ENV_FILE = Path(__file__).resolve().parents[3] / '.env'
 
@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     sql_port: int = 5432
 
     # encryption settings
-    secret_key: str
-    encryption_key: str
+    secret_key: str = Field(None, validate_default=True, min_length=64)
+    encryption_key: str = Field(None, validate_default=True, min_length=32, max_length=32)
 
     # cache settings
     cache_redis_url: str | None = None
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     def database_url(self) -> str:
         return f'{self.sql_engine}://{self.sql_user}:{self.sql_password}@{self.sql_host}:{self.sql_port}/{self.sql_database}'
 
-    model_config = ConfigDict(
+    model_config = SettingsConfigDict(
         env_file=ROOT_ENV_FILE,
         env_file_encoding='utf-8',
         extra='allow',

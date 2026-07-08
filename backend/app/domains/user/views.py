@@ -39,7 +39,7 @@ class UserViewSet(BaseModelViewSet[User]):
         user_ids = await OrganizationUser.filter(user_id=user.id).values_list('user_id', flat=True)
         return User.filter(id__in=user_ids)
 
-    async def validate_data(self, data: PydanticModel) -> PydanticModel:
+    async def validate_data(self, data: PydanticModel):
         if isinstance(data, UserCreateSchema):
             if data.is_superuser and not self.user.is_superuser:
                 raise HTTPException(status_code=403, detail='Forbidden')
@@ -56,10 +56,10 @@ class UserViewSet(BaseModelViewSet[User]):
             if raw.get('password'):
                 obj.set_password(raw['password'])
 
-    async def perform_destroy(self, instance: User) -> None:
-        if instance.id == self.user.id:
+    async def perform_destroy(self, obj: User) -> None:
+        if obj.id == self.user.id:
             raise HTTPException(status_code=400, detail='Cannot delete yourself')
-        await instance.delete()
+        await obj.delete()
 
 
 @viewset(user_tokens_router)

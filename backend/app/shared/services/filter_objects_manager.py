@@ -9,7 +9,7 @@ from app.core.models import BaseModel
 from app.domains.organization.models import Organization, OrganizationUser
 from app.domains.user.models import User
 
-ScopeFilterType = str | None | Callable[[Any], Q]
+ScopeFilterType = str | Callable[[Any], Q] | None
 
 
 @dataclass
@@ -39,8 +39,8 @@ class FilterObjectsManager:
 
     @classmethod
     def _process_filter(cls, queryset: QuerySet, scope_filter: ScopeFilterType, value: Any) -> QuerySet:
-        if callable(scope_filter):
-            queryset = queryset.filter(scope_filter(value))
+        if scope_filter is None:
+            return queryset
         if isinstance(scope_filter, str):
-            queryset = queryset.filter(**{scope_filter: value})
-        return queryset
+            return queryset.filter(**{scope_filter: value})
+        return queryset.filter(scope_filter(value))

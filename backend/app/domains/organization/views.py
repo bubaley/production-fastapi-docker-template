@@ -56,9 +56,9 @@ class OrganizationUserViewSet(BaseModelViewSet[OrganizationUser]):
             raise HTTPException(status_code=400, detail='User is already in this organization')
         return await super().perform_create(obj)
 
-    async def perform_destroy(self, instance: OrganizationUser) -> None:
+    async def perform_destroy(self, obj: OrganizationUser) -> None:
         if not self.user.is_superuser:
-            allowed = await Organization.filter(id=instance.organization_id, users=self.user).exists()
+            allowed = await Organization.filter(id=obj.organization_id, users=self.user).exists()
             if not allowed:
                 raise HTTPException(status_code=403, detail='Cannot modify this organization')
-        await instance.delete()
+        await obj.delete()
