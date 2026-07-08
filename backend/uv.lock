@@ -466,32 +466,32 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bcrypt", specifier = ">=5.0.0" },
-    { name = "boto3", specifier = ">=1.43.29" },
+    { name = "boto3", specifier = ">=1.43.43" },
     { name = "cryptography", specifier = ">=49.0.0" },
-    { name = "fastapi", specifier = ">=0.136.3" },
-    { name = "fastapi-ronin", specifier = ">=0.5.0" },
+    { name = "fastapi", specifier = ">=0.139.0" },
+    { name = "fastapi-ronin", specifier = ">=1.0.0" },
     { name = "glom", specifier = ">=25.12.0" },
     { name = "gunicorn", specifier = ">=26.0.0" },
-    { name = "httpx2", specifier = ">=2.4.0" },
+    { name = "httpx2", specifier = ">=2.5.0" },
     { name = "loguru", specifier = ">=0.7.3" },
-    { name = "pydantic-settings", specifier = ">=2.14.1" },
+    { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.5.0" },
     { name = "python-multipart", specifier = ">=0.0.32" },
-    { name = "redis", specifier = ">=7.4.1" },
+    { name = "redis", specifier = ">=8.0.1" },
     { name = "taskiq", specifier = ">=0.12.4" },
-    { name = "taskiq-redis", specifier = ">=1.2.2" },
+    { name = "taskiq-redis", specifier = ">=1.2.3" },
     { name = "tortoise-orm", extras = ["asyncpg"], specifier = ">=1.1.7" },
-    { name = "typer", specifier = ">=0.26.7" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.49.0" },
+    { name = "typer", specifier = ">=0.26.8" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.51.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "pre-commit", specifier = ">=4.6.0" },
-    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
-    { name = "ruff", specifier = ">=0.15.17" },
-    { name = "ty", specifier = ">=0.0.56" },
+    { name = "ruff", specifier = ">=0.15.20" },
+    { name = "ty", specifier = ">=0.0.57" },
 ]
 
 [[package]]
