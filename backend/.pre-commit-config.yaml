@@ -4,7 +4,7 @@ default_language_version:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-yaml
       - id: end-of-file-fixer
@@ -18,9 +18,10 @@ repos:
       - id: pyupgrade
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.13
+    rev: v0.15.20
     hooks:
-      - id: ruff
+      - id: ruff-check
+        args: ["--fix"]
       - id: ruff-format
 
   - repo: https://github.com/pycqa/bandit
@@ -30,13 +31,21 @@ repos:
         args: ["--config", "./backend/pyproject.toml"]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.11
+    rev: 0.11.28
     hooks:
       - id: uv-lock
         args: ["--locked"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.6.0
+    rev: v2.25.1
     hooks:
       - id: pyproject-fmt
         args: ["--keep-full-version", "--indent", "4"]
+
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty check
+        entry: uv run ty check ./backend --config-file ./backend/ty.toml
+        language: system
+        pass_filenames: false

@@ -4,42 +4,44 @@ version = "0.1.0"
 description = "Full-stack starter template with FastAPI and Nuxt"
 readme = "README.md"
 requires-python = ">=3.14"
-classifiers = [ "Programming Language :: Python :: 3 :: Only" ]
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.14",
+]
 dependencies = [
     "bcrypt>=5.0.0",
-    "boto3>=1.43.29",
+    "boto3>=1.43.43",
     "cryptography>=49.0.0",
-    "fastapi>=0.136.3",
-    "fastapi-ronin>=0.5.0",
+    "fastapi>=0.139.0",
+    "fastapi-ronin>=1.0.0",
     "glom>=25.12.0",
     "gunicorn>=26.0.0",
-    "httpx2>=2.4.0",
+    "httpx2>=2.5.0",
     "loguru>=0.7.3",
-    "pydantic-settings>=2.14.1",
+    "pydantic-settings>=2.14.2",
     "python-jose[cryptography]>=3.5.0",
     "python-multipart>=0.0.32",
-    "redis>=7.4.1",
+    "redis>=8.0.1",
     "taskiq>=0.12.4",
-    "taskiq-redis>=1.2.2",
+    "taskiq-redis>=1.2.3",
     "tortoise-orm[asyncpg]>=1.1.7",
-    "typer>=0.26.7",
-    "uvicorn[standard]>=0.49.0",
+    "typer>=0.26.8",
+    "uvicorn[standard]>=0.51.0",
 ]
 
 [dependency-groups]
 dev = [
     "pre-commit>=4.6.0",
-    "pytest>=9.0.3",
+    "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
-    "ruff>=0.15.17",
+    "ruff>=0.15.20",
+    "ty>=0.0.57",
 ]
 
 [tool.ruff]
 target-version = "py314"
-
 line-length = 120
 indent-width = 4
-fix = true
 format.quote-style = "single"
 format.line-ending = "auto"
 format.skip-magic-trailing-comma = false
@@ -47,22 +49,17 @@ lint.extend-select = [ "I" ]
 lint.extend-per-file-ignores."core/settings/*.py" = [ "F403", "F405" ]
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = [ "app" ]
-python_files = [ "test_*.py" ]
-
-[tool.pyright]
-typeCheckingMode = "basic"
-reportAssignmentType = false
-
 [tool.bandit]
+exclude_dirs = [ "*/migrations/*", "*/tests/*", "tests" ]
 skips = [ "B101" ]
-exclude_dirs = [ "tests", "*/tests/*", "*/migrations/*" ]
 
-[tool.tortoise]
-tortoise_orm = "app.core.database.TORTOISE_ORM"
-location = "./migrations"
+[tool.pytest]
+ini_options.testpaths = [ "app" ]
+ini_options.python_files = [ "test_*.py" ]
+ini_options.asyncio_mode = "auto"
 
 [tool.pyupgrade]
 py314-plus = true
+
+[tool.tortoise]
+tortoise_orm = "app.core.database.TORTOISE_ORM"
