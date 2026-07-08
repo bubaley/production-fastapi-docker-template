@@ -103,7 +103,6 @@ export const useAuth = () => {
     'base-auth-session',
     async () => {
       const { tokens } = await getTokens()
-      console.log('tokens', tokens, 'shouldRefresh', shouldRefresh(tokens, config.sessionRefresh.beforeExpiry))
       if (shouldRefresh(tokens, config.sessionRefresh.beforeExpiry)) await refresh()
       if (!state.value.tokens.access?.isValid) {
         return {
