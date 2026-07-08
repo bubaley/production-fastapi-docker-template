@@ -19,8 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SECRET_KEY: test-password-64-chars-for-testing-purposes-here-now
-  ENCRYPTION_KEY: test-password-32-chars-for-test
+  SECRET_KEY: apple-banana-cherry-date-elderberry-fig-grape-honeydew-kiwi-lemon
+  ENCRYPTION_KEY: test-password-32-chars-for-tests
   SQL_DATABASE: postgres
   SQL_USER: postgres
   SQL_PASSWORD: postgres
