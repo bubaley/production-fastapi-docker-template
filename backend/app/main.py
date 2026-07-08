@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from app.core.auth import get_auth_state
 from app.core.broker import broker
 from app.core.database import register_database
+from app.core.exceptions import register_exceptions_handlers
 from app.core.settings import settings
 from app.domains.auth.views import auth_router
 from app.domains.organization.services.organization_websocket_service import OrganizationWebSocketService
@@ -28,6 +29,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title='fastapi-nuxt-template', version='0.0.0', dependencies=[], lifespan=lifespan)
+
+register_exceptions_handlers(app)
 
 
 @app.exception_handler(ValidationError)
