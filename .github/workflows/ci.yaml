@@ -21,6 +21,11 @@ concurrency:
 env:
   SECRET_KEY: test-secret-key
   ENCRYPTION_KEY: test-encryption-key-32-chars-minimum
+  SQL_DATABASE: postgres
+  SQL_USER: postgres
+  SQL_PASSWORD: postgres
+  SQL_HOST: localhost
+  SQL_PORT: 5432
 
 jobs:
   lint-and-format:
@@ -62,6 +67,21 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:17
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 10
 
     steps:
       - name: Checkout
