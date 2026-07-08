@@ -67,7 +67,7 @@ export interface BaseAuthModuleOptions {
      */
     beforeExpiry: number
     /**
-     * Refresh interval (in milliseconds), 0 disables auto-refresh
+     * Refresh interval (in seconds), 0 disables auto-refresh
      * @default 0
      */
     interval: number
@@ -92,8 +92,8 @@ export interface BaseAuthModuleOptions {
 export type BaseAuthModuleConfig = _DeepPartial<BaseAuthModuleOptions>
 
 export interface TokenInfo {
-  expiresAt: number
-  expiresIn: number
+  expiresAt: number // in seconds
+  expiresIn: number // in seconds
   isValid: boolean
 }
 

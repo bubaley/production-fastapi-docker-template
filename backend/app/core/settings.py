@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     # cookie settings
     cookie_secure: bool = False
     cookie_samesite: Literal['lax', 'strict', 'none'] = 'lax'
-    cookie_http_only: bool = True
+    cookie_httponly: bool = True
 
     # CORS settings
     cors_origins: list[str] = [

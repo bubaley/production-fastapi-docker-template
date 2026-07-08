@@ -37,7 +37,7 @@ export const updateTokenInfo = (tokenInfo?: TokenInfo | null): TokenInfo | undef
 }
 
 export const shouldRefresh = (tokenPair: TokenPair, refreshBeforeExpiry: number = 300) => {
-  const expiresIn = tokenPair.access?.expiresIn || 0
-  const _refreshBeforeExpiry = refreshBeforeExpiry * 1000
+  const expiresIn = tokenPair.access?.expiresIn || 0 // in seconds
+  const _refreshBeforeExpiry = refreshBeforeExpiry // in seconds
   return expiresIn < _refreshBeforeExpiry && tokenPair.refresh?.isValid
 }

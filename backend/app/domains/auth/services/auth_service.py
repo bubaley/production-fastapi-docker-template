@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Optional
 
 import bcrypt
@@ -11,32 +12,30 @@ if TYPE_CHECKING:
     from app.domains.user.models import User
 
 
+class TokenType(StrEnum):
+    ACCESS = 'access'
+    REFRESH = 'refresh'
+
+
 class Token:
     """Helper class to represent a JWT token with type and expiry."""
 
-    def __init__(self, token: str, token_type: str, expires: Optional[datetime] = None):
+    def __init__(self, token: str, token_type: TokenType, expires: Optional[datetime] = None):
         self.token = token
         self.type = token_type
         self.expires = expires
 
-    def remove_cookie(self, response: Response, path: str = '/', httponly: bool | None = None):
+    def remove_cookie(self, response: Response, path: str = '/'):
         """Remove the token as an HTTP-only cookie in the response."""
-        response.delete_cookie(key=f'{self.type}_token', path=path, httponly=httponly or settings.cookie_http_only)
+        AuthService.remove_cookie(response, self.type, path)
 
-    def set_cookie(self, response: Response, path: str = '/', httponly: bool | None = None):
+    def set_cookie(self, response: Response, path: str = '/'):
         """Set the token as an HTTP-only cookie in the response."""
-        max_age = None
-        if self.expires:
-            max_age = int((self.expires - datetime.now(tz=timezone.utc)).total_seconds())
-        response.set_cookie(
-            key=f'{self.type}_token',
-            value=self.token,
-            max_age=max_age,
-            path=path,
-            httponly=httponly or settings.cookie_http_only,
-            secure=settings.cookie_secure,
-            samesite=settings.cookie_samesite,
-        )
+        AuthService.set_cookie(response, self.type, self.token, self.expires, path)
+
+    @property
+    def cookie_key(self) -> str:
+        return AuthService.get_cookie_key(self.type)
 
 
 class AuthService:
@@ -55,16 +54,16 @@ class AuthService:
     @staticmethod
     def create_access_token(user: 'User') -> Token:
         expire = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
-        payload: dict[str, Any] = {'id': str(user.id), 'type': 'access', 'exp': expire}
+        payload: dict[str, Any] = {'id': str(user.id), 'type': TokenType.ACCESS, 'exp': expire}
         encoded_jwt = jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
-        return Token(token=encoded_jwt, token_type='access', expires=expire)  # nosec B106
+        return Token(token=encoded_jwt, token_type=TokenType.ACCESS, expires=expire)  # nosec B106
 
     @staticmethod
     def create_refresh_token(user: 'User') -> Token:
-        expire = datetime.now(tz=timezone.utc) + timedelta(days=settings.jwt_refresh_token_expire_minutes)
-        payload: dict[str, Any] = {'id': str(user.id), 'type': 'refresh', 'exp': expire}
+        expire = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.jwt_refresh_token_expire_minutes)
+        payload: dict[str, Any] = {'id': str(user.id), 'type': TokenType.REFRESH, 'exp': expire}
         encoded_jwt = jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
-        return Token(token=encoded_jwt, token_type='refresh', expires=expire)  # nosec B106
+        return Token(token=encoded_jwt, token_type=TokenType.REFRESH, expires=expire)  # nosec B106
 
     @staticmethod
     def verify_token(token: str) -> Optional[dict[str, Any]]:
@@ -78,3 +77,30 @@ class AuthService:
     def set_token_cookie(response: Response, token: Token):
         """Set a JWT token in HTTP-only cookie."""
         token.set_cookie(response)
+
+    @staticmethod
+    def remove_cookie(response: Response, token_type: TokenType, path: str = '/'):
+        """Remove the token as an HTTP-only cookie in the response."""
+        response.delete_cookie(key=token_type.value, path=path, httponly=settings.cookie_httponly)
+
+    @staticmethod
+    def set_cookie(
+        response: Response, token_type: TokenType, token: str, expires: Optional[datetime] = None, path: str = '/'
+    ):
+        """Set the token as an HTTP-only cookie in the response."""
+        max_age = None
+        if expires:
+            max_age = int((expires - datetime.now(tz=timezone.utc)).total_seconds())
+        response.set_cookie(
+            key=AuthService.get_cookie_key(token_type),
+            value=token,
+            max_age=max_age,
+            path=path,
+            httponly=settings.cookie_httponly,
+            secure=settings.cookie_secure,
+            samesite=settings.cookie_samesite,
+        )
+
+    @staticmethod
+    def get_cookie_key(token_type: TokenType) -> str:
+        return f'{token_type.value}_token'

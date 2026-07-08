@@ -84,7 +84,8 @@ export default defineNuxtConfig({
   baseAuth: {
     apiPrefix: '/api/v1/auth',
     sessionRefresh: {
-      beforeExpiry: 1300,
+      beforeExpiry: 60 * 30, // 30 minutes
+      interval: 60 * 5, // 5 minutes
     },
   },
   colorMode: {

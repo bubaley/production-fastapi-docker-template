@@ -4,7 +4,7 @@ from fastapi_ronin.permissions import IsAuthenticated
 
 from app.core.viewsets import BaseGenericViewSet
 from app.domains.auth.schemas import LoginRequest, RefreshTokenRequest, TokenResponse
-from app.domains.auth.services.auth_service import AuthService
+from app.domains.auth.services.auth_service import AuthService, TokenType
 from app.domains.user.models import User
 from app.domains.user.schemas import UserReadSchema
 
@@ -37,8 +37,8 @@ class AuthViewSet(BaseGenericViewSet):
     @action(methods=['POST'])
     async def logout(self, response: Response):
         """Logout user by clearing auth cookies."""
-        response.delete_cookie(key='access_token', httponly=True, secure=False, samesite='lax')
-        response.delete_cookie(key='refresh_token', httponly=True, secure=False, samesite='lax')
+        AuthService.remove_cookie(response, TokenType.ACCESS)
+        AuthService.remove_cookie(response, TokenType.REFRESH)
         result = {'success': True}
         return result
 
@@ -64,11 +64,12 @@ class AuthViewSet(BaseGenericViewSet):
     @action(methods=['POST'], response_model=TokenResponse)
     async def refresh(self, request: Request, response: Response, data: RefreshTokenRequest | None = None):
         """Refresh access and refresh tokens using a valid refresh token."""
-        refresh_token = data.refresh_token if data else request.cookies.get('refresh_token')
+        refresh_cookie_key = AuthService.get_cookie_key(TokenType.REFRESH)
+        refresh_token = data.refresh_token if data else request.cookies.get(refresh_cookie_key)
         if not refresh_token:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Refresh token not found')
         payload = AuthService.verify_token(refresh_token)
-        if not payload or payload.get('type') != 'refresh':
+        if not payload or payload.get('type') != TokenType.REFRESH:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid refresh token')
 
         user_id = payload.get('id')
