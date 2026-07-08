@@ -152,7 +152,7 @@ const listBind = computed(
     }) as AppListProps<T>,
 )
 
-const { updateListItem, deleteListItem } = useTemplateListEvents({
+const { updateListItem, deleteListItem } = useListEvents({
   items: computed(() => repoData.items.value),
   key: 'id' as keyof T,
 })

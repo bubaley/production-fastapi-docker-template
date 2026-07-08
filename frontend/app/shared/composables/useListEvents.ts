@@ -3,7 +3,7 @@ export type AppListEventsConfig<T> = {
   key: keyof T
 }
 
-export const useTemplateListEvents = <T>(config: AppListEventsConfig<T>) => {
+export const useListEvents = <T>(config: AppListEventsConfig<T>) => {
   const items = computed(() => (isRef(config.items) ? config.items.value : config.items))
 
   const findListItemIndex = (value: T) => {

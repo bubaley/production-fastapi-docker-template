@@ -3,6 +3,7 @@
     shape="circle"
     :size="size"
     :style="_style"
+    style="overflow: hidden"
   >
     <Image
       v-if="src"
@@ -19,15 +20,15 @@
 </template>
 
 <script lang="ts" setup>
-export type CAvatarSize = 'normal' | 'large' | 'xlarge' | 'small' | 'xsmall'
-export interface CAvatarProps {
+export type AppAvatarSize = 'normal' | 'large' | 'xlarge' | 'small' | 'xsmall'
+export interface AppAvatarProps {
   color?: string | null
   name?: string | null
   src?: string | null
-  size?: CAvatarSize
+  size?: AppAvatarSize
 }
 
-const props = withDefaults(defineProps<CAvatarProps>(), {
+const props = withDefaults(defineProps<AppAvatarProps>(), {
   size: 'normal',
 })
 

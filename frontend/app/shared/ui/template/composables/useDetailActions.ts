@@ -1,5 +1,4 @@
 import { last } from 'lodash-es'
-import { useTemplateListEvents } from './useTemplateListEvents'
 
 export type AppDetailActionsConfig = {
   disableNotification?: boolean
@@ -15,7 +14,7 @@ export const useDetailActions = <T extends AppModel>(repo: AppRepoStore<T>) => {
   const deleteLoading = ref(false)
   const _items = toRef(repo, 'items')
 
-  const { updateListItem, deleteListItem } = useTemplateListEvents({
+  const { updateListItem, deleteListItem } = useListEvents({
     items: _items,
     key: 'id',
   })

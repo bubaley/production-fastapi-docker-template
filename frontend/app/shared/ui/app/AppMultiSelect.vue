@@ -58,13 +58,13 @@ import type { MultiSelectProps } from 'primevue'
 import AppInput from './AppInput.vue'
 import { useSelectData, type UseSelectDataProps } from '../../composables/useSelectData'
 
-export type CMultiSelectProps<T> = Omit<MultiSelectProps, 'filterFields' | 'options'> &
+export type AppMultiSelectProps<T> = Omit<MultiSelectProps, 'filterFields' | 'options'> &
   UseSelectDataProps<T> & {
     label?: string
     class?: string
   }
 
-const props = withDefaults(defineProps<CMultiSelectProps<T>>(), {
+const props = withDefaults(defineProps<AppMultiSelectProps<T>>(), {
   showToggleAll: false,
   autoLoad: false,
   filter: true,
