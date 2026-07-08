@@ -1,6 +1,4 @@
-exclude: .migrations/.*
-default_language_version:
-  python: python3.14
+exclude: backend/migrations/.*
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -28,13 +26,14 @@ repos:
     rev: 1.9.4
     hooks:
       - id: bandit
-        args: ["--config", "./backend/pyproject.toml"]
+        args: ["--config", "backend/pyproject.toml"]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.11.28
     hooks:
       - id: uv-lock
-        args: ["--locked"]
+        files: backend/pyproject.toml
+        args: ["--locked", "--project", "backend"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
     rev: v2.25.1
@@ -46,6 +45,6 @@ repos:
     hooks:
       - id: ty
         name: ty check
-        entry: uv run ty check ./backend --config-file ./backend/ty.toml
+        entry: uv run ty check backend --config-file backend/ty.toml
         language: system
         pass_filenames: false
