@@ -42,6 +42,7 @@ dev = [
 target-version = "py314"
 line-length = 120
 indent-width = 4
+extend-exclude = [ "backend/migrations" ]
 format.quote-style = "single"
 format.line-ending = "auto"
 format.skip-magic-trailing-comma = false
