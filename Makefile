@@ -73,7 +73,10 @@ test-backend: ## run backend pytest suite
 
 # ----------- PRODUCTION ----------- #
 
-run-prod-backend: ## run backend API in prod mode
+run-prod-migrate: ## apply production migrations
+	cd $(BACKEND_DIR) && python -m tortoise migrate
+
+run-prod-backend: run-prod-migrate ## apply migrations, then run gunicorn
 	cd $(BACKEND_DIR) && python -m gunicorn app.main:app --bind 0.0.0.0:8000 --workers $(GUNICORN_WORKERS) -k uvicorn.workers.UvicornWorker --timeout 120
 
 run-prod-frontend: ## run built frontend SSR server
@@ -89,8 +92,8 @@ run-prod-caddy: ## run caddy reverse proxy
 
 lint: lint-backend lint-frontend ## lint backend+frontend
 
-lint-backend: ## run backend checks (ruff)
-	cd $(BACKEND_DIR) && pre-commit run --all-files
+lint-backend: ## run backend checks (ruff, ty)
+	pre-commit run --all-files
 
 lint-frontend: ## run frontend lint
 	$(PNPM) --dir $(FRONTEND_DIR) exec eslint . --fix
