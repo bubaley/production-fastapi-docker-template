@@ -4,9 +4,7 @@ from app.domains.user.models import UserToken
 
 
 class UserTokenFilterSet(filters.FilterSet):
-    fields = [
-        filters.UUIDFilter('user_id'),
-    ]
+    fields = (filters.UUIDFilter('user_id'),)
 
     class Meta:
         model = UserToken

@@ -49,7 +49,7 @@ class BaseGenericViewSet(GenericViewSet[BaseModelT]):
     pagination = LightPageNumberPagination
     list_wrapper = PaginatedResponseDataWrapper
     lookup_class = UUIDLookup
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
 
     async def get_queryset(self) -> QuerySet[BaseModelT]:
         result: AuthState = BaseStateManager.get_state().get('auth_state') or AuthState(user=self.user)

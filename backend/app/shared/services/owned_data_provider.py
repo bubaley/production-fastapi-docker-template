@@ -70,7 +70,7 @@ class OwnedDataProvider:
     @classmethod
     def _parse_request(cls, request: Request) -> OwnedData:
         data = {}
-        for key in OwnedData.model_fields.keys():
+        for key in OwnedData.model_fields:
             value = request.headers.get(f'{key.replace("_", "-")}')
             if value:
                 data[key] = value

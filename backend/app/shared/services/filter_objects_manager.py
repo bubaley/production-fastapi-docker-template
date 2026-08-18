@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet
@@ -20,7 +20,7 @@ class Scope:
 
 
 class FilterObjectsManager:
-    models_data: dict[type[BaseModel], Scope] = {
+    models_data: ClassVar[dict[type[BaseModel], Scope]] = {
         Organization: Scope(
             user='org_users__user_id',
         ),

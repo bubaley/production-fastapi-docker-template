@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any, Generic, TypedDict, TypeVar
+from typing import Any, TypedDict, TypeVar
 
 from fastapi import HTTPException
 from pydantic import BaseModel as PydanticBaseModel
@@ -24,7 +24,7 @@ class EntityResolverKeyData(TypedDict):
 ResolverGetDataType = list[EntityResolverGetData] | EntityResolverGetData
 
 
-class EntityResolver(Generic[BaseModelT]):
+class EntityResolver[BaseModelT: BaseModel]:
     def __init__(
         self,
         model: type[BaseModelT],

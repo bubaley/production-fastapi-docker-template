@@ -34,16 +34,16 @@ class _CryptoService:
                 key = base64.urlsafe_b64encode(key)
 
             return Fernet(key)
-        except Exception:
-            raise
+        except Exception as e:
+            raise RuntimeError(f'Failed to initialize encryption, error: {e}')
 
     def encrypt(self, value: str) -> str:
         """Encrypt bot token"""
         try:
             encrypted = self._fernet.encrypt(value.encode())
             return base64.urlsafe_b64encode(encrypted).decode()
-        except Exception:
-            raise
+        except Exception as e:
+            raise RuntimeError(f'Failed to encrypt value, error: {e}')
 
     def decrypt(self, encrypted_value: str) -> str:
         """Decrypt bot token"""

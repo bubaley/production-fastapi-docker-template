@@ -1,6 +1,5 @@
 import asyncio
 import mimetypes
-from datetime import datetime
 from typing import Any, BinaryIO
 
 import boto3
@@ -9,6 +8,7 @@ from loguru import logger
 from pydantic import BaseModel
 
 from app.core.settings import settings
+from app.core.utils.date_utils import utcnow
 
 
 class S3UploadResult(BaseModel):
@@ -63,7 +63,7 @@ class S3Service:
 
     def _generate_file_key(self, filename: str) -> str:
         """Generate file key for S3 storage using year/month/day/file structure"""
-        now = datetime.now()
+        now = utcnow()
         year = now.strftime('%Y')
         month = now.strftime('%m')
         day = now.strftime('%d')
@@ -82,7 +82,7 @@ class S3Service:
         self, file_content: BinaryIO, filename: str, content_type: str | None = None
     ) -> S3UploadResult:
         if not self.s3_client:
-            raise Exception('S3 client is not initialized. Check AWS credentials and configuration.')
+            raise RuntimeError('S3 client is not initialized. Check AWS credentials and configuration.')
 
         try:
             file_key = self._generate_file_key(filename)
@@ -113,17 +113,17 @@ class S3Service:
 
         except ClientError as e:
             logger.error(f'Failed to upload file to S3: {e!s}')
-            raise Exception(f'File upload failed: {e!s}')
+            raise RuntimeError(f'File upload failed: {e!s}')
         except Exception as e:
             logger.error(f'Unexpected error during file upload: {e!s}')
-            raise Exception(f'File upload failed: {e!s}')
+            raise RuntimeError(f'File upload failed: {e!s}')
 
     async def upload_file_by_key(
         self, file_content: bytes, file_key: str, content_type: str | None = None
     ) -> S3UploadResult:
         """Upload file to S3 by pre-generated key"""
         if not self.s3_client:
-            raise Exception('S3 client is not initialized. Check AWS credentials and configuration.')
+            raise RuntimeError('S3 client is not initialized. Check AWS credentials and configuration.')
 
         try:
             if not content_type:
@@ -149,10 +149,10 @@ class S3Service:
 
         except ClientError as e:
             logger.error(f'Failed to upload file to S3: {e!s}')
-            raise Exception(f'File upload failed: {e!s}')
+            raise RuntimeError(f'File upload failed: {e!s}')
         except Exception as e:
             logger.error(f'Unexpected error during file upload: {e!s}')
-            raise Exception(f'File upload failed: {e!s}')
+            raise RuntimeError(f'File upload failed: {e!s}')
 
 
 _s3_service_instance = None
@@ -166,5 +166,5 @@ def get_s3_service() -> S3Service:
             _s3_service_instance = S3Service()
         except Exception as e:
             logger.error(f'Failed to initialize S3 service: {e}')
-            raise Exception(f'S3 service initialization failed: {e}')
+            raise RuntimeError(f'S3 service initialization failed: {e}')
     return _s3_service_instance

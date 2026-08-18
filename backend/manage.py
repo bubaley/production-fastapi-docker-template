@@ -45,7 +45,7 @@ def run_tests(
     """
     typer.echo(f'Running tests in: {path}')
     cmd = [sys.executable, '-m', 'pytest', path, '-s', *ctx.args]
-    result = subprocess.run(cmd)  # nosec B603
+    result = subprocess.run(cmd)  # nosec B603 # noqa: PLW1510
     sys.exit(result.returncode)
 
 

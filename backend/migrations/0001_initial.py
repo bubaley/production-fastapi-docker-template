@@ -1,8 +1,9 @@
-from tortoise import migrations
-from tortoise.migrations import operations as ops
-from tortoise.fields.base import OnDelete
 from uuid import uuid4
-from tortoise import fields
+
+from tortoise import fields, migrations
+from tortoise.fields.base import OnDelete
+from tortoise.migrations import operations as ops
+
 
 class Migration(migrations.Migration):
     initial = True

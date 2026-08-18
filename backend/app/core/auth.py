@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
@@ -80,7 +80,7 @@ async def get_user(request: Request):
     return user
 
 
-async def get_auth_state(request: Request, user: User = Depends(get_user)):
+async def get_auth_state(request: Request, user: Annotated[User | None, Depends(get_user)]):
     data = OwnedDataResult()
     if user:
         try:

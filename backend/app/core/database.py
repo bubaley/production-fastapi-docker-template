@@ -46,7 +46,7 @@ class DatabaseConnection:
     @property
     def tortoise_instance(self):
         if not self._initialized:
-            raise Exception(
+            raise RuntimeError(
                 'Tortoise ORM is not initialized. Use "async with DatabaseConnection():" or call "await DatabaseConnection().tortoise_init()" first.'
             )
         return self._tortoise_instance

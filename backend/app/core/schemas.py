@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, Field, computed_field
 
@@ -32,7 +32,7 @@ class ErrorData(BaseModel):
         )
 
 
-class ResultData(BaseModel, Generic[T]):
+class ResultData[T](BaseModel):
     data: T | None = None
     error: ErrorData | None = None
 

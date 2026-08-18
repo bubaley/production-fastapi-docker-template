@@ -6,8 +6,6 @@ from app.domains.user.models import User
 
 
 class IsSuperUser(BasePermission):
-    async def has_permission(self, request: Request, view: GenericViewSet):
+    async def has_permission(self, request: Request, view: GenericViewSet) -> bool:
         user: User | None = view.user
-        if user and user.is_superuser:
-            return True
-        return False
+        return bool(user and user.is_superuser)

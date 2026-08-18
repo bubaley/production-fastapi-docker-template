@@ -22,7 +22,7 @@ class User(BaseModel):
         return AuthService.verify_password(password, self.password)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ('-created_at',)
         table = 'user'
 
 
@@ -36,4 +36,4 @@ class UserToken(BaseModel):
 
     class Meta:
         table = 'user_token'
-        ordering = ['created_at']
+        ordering = ('created_at',)

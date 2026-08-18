@@ -47,6 +47,7 @@ format.quote-style = "single"
 format.line-ending = "auto"
 format.skip-magic-trailing-comma = false
 lint.extend-select = [ "I" ]
+lint.ignore = [ "BLE001" ]
 lint.extend-per-file-ignores."core/settings/*.py" = [ "F403", "F405" ]
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 

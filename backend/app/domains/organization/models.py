@@ -18,7 +18,7 @@ class OrganizationUser(BaseModel):
     class Meta:
         table = 'organization_user'
         unique_together = (('organization', 'user'),)
-        ordering = ['created_at']
+        ordering = ('created_at',)
 
 
 class Organization(BaseModel):
@@ -26,5 +26,5 @@ class Organization(BaseModel):
     key = fields.CharField(max_length=128, unique=True, db_index=True)
 
     class Meta:
-        ordering = ['created_at']
+        ordering = ('created_at',)
         table = 'organization'
