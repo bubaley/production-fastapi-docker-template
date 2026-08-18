@@ -41,13 +41,16 @@ install-frontend: ## install frontend dependencies via pnpm
 	$(PNPM) --dir $(FRONTEND_DIR) install
 
 make-migrations: ## run migrations
-	cd $(BACKEND_DIR) && tortoise makemigrations
+	cd $(BACKEND_DIR) && python -m tortoise makemigrations
 
 migrate: ## run migrations
-	cd $(BACKEND_DIR) && tortoise migrate
+	cd $(BACKEND_DIR) && python -m tortoise migrate
 
 prepare: ## prepare project
 	cd $(FRONTEND_DIR) && pnpm nuxt prepare
+
+shell: ## run backend shell
+	cd $(BACKEND_DIR) && python -m manage shell
 
 # ----------- DEVELOPMENT ----------- #
 
@@ -73,10 +76,7 @@ test-backend: ## run backend pytest suite
 
 # ----------- PRODUCTION ----------- #
 
-run-prod-migrate: ## apply production migrations
-	cd $(BACKEND_DIR) && python -m tortoise migrate
-
-run-prod-backend: run-prod-migrate ## apply migrations, then run gunicorn
+run-prod-backend: migrate ## apply migrations, then run gunicorn
 	cd $(BACKEND_DIR) && python -m gunicorn app.main:app --bind 0.0.0.0:8000 --workers $(GUNICORN_WORKERS) -k uvicorn.workers.UvicornWorker --timeout 120
 
 run-prod-frontend: ## run built frontend SSR server

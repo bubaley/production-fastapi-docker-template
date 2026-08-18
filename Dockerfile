@@ -17,7 +17,7 @@ WORKDIR /app
 RUN corepack enable
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN --mount=type=cache,target=/root/.pnpm-store \
-    pnpm install
+    pnpm install --ignore-scripts --frozen-lockfile
 COPY frontend/ ./
 RUN pnpm run build
 

@@ -10,32 +10,32 @@ classifiers = [
 ]
 dependencies = [
     "bcrypt>=5.0.0",
-    "boto3>=1.43.43",
-    "cryptography>=49.0.0",
-    "fastapi>=0.139.0",
+    "boto3>=1.43.73",
+    "cryptography>=50.0.0",
+    "fastapi>=0.141.1",
     "fastapi-ronin>=1.0.0",
     "glom>=25.12.0",
-    "gunicorn>=26.0.0",
-    "httpx2>=2.5.0",
+    "gunicorn>=26.1.0",
+    "httpx2>=2.12.0",
     "loguru>=0.7.3",
-    "pydantic-settings>=2.14.2",
+    "pydantic-settings>=2.15.0",
     "python-jose[cryptography]>=3.5.0",
     "python-multipart>=0.0.32",
-    "redis>=8.0.1",
+    "redis>=8.1.0",
     "taskiq>=0.12.4",
     "taskiq-redis>=1.2.3",
-    "tortoise-orm[asyncpg]>=1.1.7",
-    "typer>=0.26.8",
-    "uvicorn[standard]>=0.51.0",
+    "tortoise-orm[asyncpg]>=1.1.8",
+    "typer>=0.27.1",
+    "uvicorn[standard]>=0.52.3",
 ]
 
 [dependency-groups]
 dev = [
-    "pre-commit>=4.6.0",
+    "pre-commit>=4.6.2",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
-    "ruff>=0.15.20",
-    "ty>=0.0.57",
+    "ruff>=0.16.3",
+    "ty>=0.0.72",
 ]
 
 [tool.ruff]

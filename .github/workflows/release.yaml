@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 # CHANGE IMAGE_NAME
-# SET YC_REGISTRY, YC_KEY_JSON
+# SET YC_REGISTRY, YC_KEY_JSON TO SECRETS IN REPO SETTINGS
 env:
   REGISTRY: cr.yandex
   # IMAGE_NAME: image-name
@@ -87,5 +87,5 @@ jobs:
   #         tags: ${{ steps.meta.outputs.tags }}
   #         cache-from: type=gha,scope=buildkit
   #         cache-to: type=gha,mode=max,scope=buildkit
-  #         provenance: true
-  #         sbom: true
+  #         provenance: false
+  #         sbom: false

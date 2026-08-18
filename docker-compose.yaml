@@ -12,18 +12,27 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fastapi-nuxt-template
+    container_name: "${COMPOSE_PROJECT_NAME:-app}"
     ports:
       - "${APP_ENTRY_PORT:-8080}:8080"
     env_file:
       - .env
+    environment:
+      SQL_HOST: db
+      SQL_PORT: "5432"
+      CACHE_REDIS_URL: redis://redis:6379/0
+      BROKER_REDIS_URL: redis://redis:6379/1
+      COOKIE_SECURE: True
+      DEBUG: False
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
   redis:
     <<: *restart_policy
     image: redis:8.6.2-alpine
-    container_name: fastapi-nuxt-template-redis
+    container_name: "${COMPOSE_PROJECT_NAME:-app}-redis"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -32,7 +41,7 @@ services:
   db:
     <<: *restart_policy
     image: postgres:18.3-alpine
-    container_name: fastapi-nuxt-template-db
+    container_name: "${COMPOSE_PROJECT_NAME:-app}-db"
     environment:
       POSTGRES_DB: ${SQL_DATABASE:-postgres}
       POSTGRES_USER: ${SQL_USER:-postgres}
