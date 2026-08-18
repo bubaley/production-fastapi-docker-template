@@ -1,4 +1,5 @@
-from typing import Any, Callable, Generic, TypedDict, TypeVar
+from collections.abc import Callable
+from typing import Any, Generic, TypedDict, TypeVar
 
 from fastapi import HTTPException
 from pydantic import BaseModel as PydanticBaseModel

@@ -30,7 +30,7 @@ class LightPageNumberPagination(Pagination[BaseModelT]):
         cls,
         page: int = Query(1, ge=1, description='Page number'),
         page_size: int = Query(100, ge=1, le=500, description='Number of records per page'),
-    ) -> 'LightPageNumberPagination':
+    ) -> LightPageNumberPagination:
         return cls(page=page, page_size=page_size)
 
     def _get_offset(self):

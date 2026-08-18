@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from tortoise.expressions import Q
 from tortoise.queryset import QuerySet

@@ -22,11 +22,11 @@ class AppException(Exception):
         self.status_code = status_code or status_code_map.get(error_data.code, 400)
 
     @classmethod
-    def from_attrs(cls, code: ErrorCode, message: str, details: dict[str, Any] | None = None) -> 'AppException':
+    def from_attrs(cls, code: ErrorCode, message: str, details: dict[str, Any] | None = None) -> AppException:
         return cls(error_data=ErrorData(code=code, message=message, details=details or {}))
 
     @classmethod
-    def from_exception(cls, code: ErrorCode, message: str, exception: Exception) -> 'AppException':
+    def from_exception(cls, code: ErrorCode, message: str, exception: Exception) -> AppException:
         return cls(error_data=ErrorData.from_exception(code=code, message=message, exception=exception))
 
 

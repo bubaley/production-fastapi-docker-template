@@ -16,7 +16,7 @@ repos:
       - id: pyupgrade
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.16.3
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -29,14 +29,14 @@ repos:
         args: ["--config", "backend/pyproject.toml"]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.28
+    rev: 0.12.5
     hooks:
       - id: uv-lock
         files: backend/pyproject.toml
         args: ["--locked", "--project", "backend"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.25.1
+    rev: v2.28.0
     hooks:
       - id: pyproject-fmt
         args: ["--keep-full-version", "--indent", "4"]
@@ -45,6 +45,6 @@ repos:
     hooks:
       - id: ty
         name: ty check
-        entry: uv run ty check backend --config-file backend/ty.toml
+        entry: uv run --directory backend ty check
         language: system
         pass_filenames: false

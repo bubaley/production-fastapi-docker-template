@@ -1,6 +1,7 @@
 import asyncio
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 
 def async_task(func: Callable[..., Any]):
@@ -12,6 +13,5 @@ def async_task(func: Callable[..., Any]):
     @wraps(func)
     async def wrapper(*args, **kwargs):
         asyncio.create_task(func(*args, **kwargs))
-        return None
 
     return wrapper

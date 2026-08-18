@@ -21,7 +21,7 @@ class OwnedData(PydanticBaseModel):
     organization_key: str | None = None
 
     @model_validator(mode='after')
-    def validate_resolutions(self) -> 'OwnedData':
+    def validate_resolutions(self) -> OwnedData:
         if self.organization_id is not None and self.organization_key is not None:
             raise PydanticCustomError('customer_error', 'Cannot provide both organization_key and organization_id')
         return self

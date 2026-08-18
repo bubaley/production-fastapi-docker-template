@@ -1,6 +1,6 @@
 import sys
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import asyncpg
 import pytest
@@ -27,7 +27,7 @@ def _get_config():
 
 
 @asynccontextmanager
-async def _postgres_admin() -> AsyncGenerator[asyncpg.Connection, None]:
+async def _postgres_admin() -> AsyncGenerator[asyncpg.Connection]:
     conn: asyncpg.Connection = await asyncpg.connect(
         user=settings.sql_user,
         password=settings.sql_password,

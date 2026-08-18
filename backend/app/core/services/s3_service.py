@@ -1,7 +1,7 @@
 import asyncio
 import mimetypes
 from datetime import datetime
-from typing import Any, BinaryIO, Optional
+from typing import Any, BinaryIO
 
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
@@ -59,7 +59,7 @@ class S3Service:
         except NoCredentialsError:
             logger.warning('AWS credentials not found. S3 functionality will be disabled.')
         except Exception as e:
-            logger.error(f'Failed to initialize S3 client: {str(e)}')
+            logger.error(f'Failed to initialize S3 client: {e!s}')
 
     def _generate_file_key(self, filename: str) -> str:
         """Generate file key for S3 storage using year/month/day/file structure"""
@@ -79,7 +79,7 @@ class S3Service:
         return f'{self.endpoint_url}/{self.bucket_name}/{file_key}'
 
     async def upload_file(
-        self, file_content: BinaryIO, filename: str, content_type: Optional[str] = None
+        self, file_content: BinaryIO, filename: str, content_type: str | None = None
     ) -> S3UploadResult:
         if not self.s3_client:
             raise Exception('S3 client is not initialized. Check AWS credentials and configuration.')
@@ -112,14 +112,14 @@ class S3Service:
             return S3UploadResult(url=file_url, key=file_key)
 
         except ClientError as e:
-            logger.error(f'Failed to upload file to S3: {str(e)}')
-            raise Exception(f'File upload failed: {str(e)}')
+            logger.error(f'Failed to upload file to S3: {e!s}')
+            raise Exception(f'File upload failed: {e!s}')
         except Exception as e:
-            logger.error(f'Unexpected error during file upload: {str(e)}')
-            raise Exception(f'File upload failed: {str(e)}')
+            logger.error(f'Unexpected error during file upload: {e!s}')
+            raise Exception(f'File upload failed: {e!s}')
 
     async def upload_file_by_key(
-        self, file_content: bytes, file_key: str, content_type: Optional[str] = None
+        self, file_content: bytes, file_key: str, content_type: str | None = None
     ) -> S3UploadResult:
         """Upload file to S3 by pre-generated key"""
         if not self.s3_client:
@@ -148,11 +148,11 @@ class S3Service:
             return S3UploadResult(url=file_url, key=file_key)
 
         except ClientError as e:
-            logger.error(f'Failed to upload file to S3: {str(e)}')
-            raise Exception(f'File upload failed: {str(e)}')
+            logger.error(f'Failed to upload file to S3: {e!s}')
+            raise Exception(f'File upload failed: {e!s}')
         except Exception as e:
-            logger.error(f'Unexpected error during file upload: {str(e)}')
-            raise Exception(f'File upload failed: {str(e)}')
+            logger.error(f'Unexpected error during file upload: {e!s}')
+            raise Exception(f'File upload failed: {e!s}')
 
 
 _s3_service_instance = None

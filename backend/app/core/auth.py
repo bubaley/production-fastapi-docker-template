@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
@@ -28,18 +28,18 @@ class AuthState(BaseModel):
         return self.organization.id if self.organization else None
 
 
-async def _user_from_api_token(value: str) -> Optional[User]:
+async def _user_from_api_token(value: str) -> User | None:
     digest = CryptoService.hash_value(value)
     token = await UserToken.filter(value_hash=digest).select_related('user').first()
     if not token:
         return None
-    token.last_used_at = datetime.now(timezone.utc)
+    token.last_used_at = datetime.now(UTC)
     await token.save(update_fields=['last_used_at'])
     return token.user
 
 
-async def _user_from_jwt_token(value: str) -> Optional[User]:
-    payload: Optional[dict[str, Any]] = AuthService.verify_token(token=value)
+async def _user_from_jwt_token(value: str) -> User | None:
+    payload: dict[str, Any] | None = AuthService.verify_token(token=value)
     if not payload:
         return None
     try:

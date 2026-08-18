@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import bcrypt
 from fastapi import Response
@@ -20,7 +20,7 @@ class TokenType(StrEnum):
 class Token:
     """Helper class to represent a JWT token with type and expiry."""
 
-    def __init__(self, token: str, token_type: TokenType, expires: Optional[datetime] = None):
+    def __init__(self, token: str, token_type: TokenType, expires: datetime | None = None):
         self.token = token
         self.type = token_type
         self.expires = expires
@@ -52,21 +52,21 @@ class AuthService:
         return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
     @staticmethod
-    def create_access_token(user: 'User') -> Token:
-        expire = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
+    def create_access_token(user: User) -> Token:
+        expire = datetime.now(tz=UTC) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
         payload: dict[str, Any] = {'id': str(user.id), 'type': TokenType.ACCESS, 'exp': expire}
         encoded_jwt = jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
         return Token(token=encoded_jwt, token_type=TokenType.ACCESS, expires=expire)  # nosec B106
 
     @staticmethod
-    def create_refresh_token(user: 'User') -> Token:
-        expire = datetime.now(tz=timezone.utc) + timedelta(minutes=settings.jwt_refresh_token_expire_minutes)
+    def create_refresh_token(user: User) -> Token:
+        expire = datetime.now(tz=UTC) + timedelta(minutes=settings.jwt_refresh_token_expire_minutes)
         payload: dict[str, Any] = {'id': str(user.id), 'type': TokenType.REFRESH, 'exp': expire}
         encoded_jwt = jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
         return Token(token=encoded_jwt, token_type=TokenType.REFRESH, expires=expire)  # nosec B106
 
     @staticmethod
-    def verify_token(token: str) -> Optional[dict[str, Any]]:
+    def verify_token(token: str) -> dict[str, Any] | None:
         try:
             payload = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
             return payload
@@ -85,12 +85,12 @@ class AuthService:
 
     @staticmethod
     def set_cookie(
-        response: Response, token_type: TokenType, token: str, expires: Optional[datetime] = None, path: str = '/'
+        response: Response, token_type: TokenType, token: str, expires: datetime | None = None, path: str = '/'
     ):
         """Set the token as an HTTP-only cookie in the response."""
         max_age = None
         if expires:
-            max_age = int((expires - datetime.now(tz=timezone.utc)).total_seconds())
+            max_age = int((expires - datetime.now(tz=UTC)).total_seconds())
         response.set_cookie(
             key=AuthService.get_cookie_key(token_type),
             value=token,

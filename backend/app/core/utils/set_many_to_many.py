@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from tortoise import BaseDBAsyncClient, connections
 from tortoise.models import Model

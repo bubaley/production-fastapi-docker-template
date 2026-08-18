@@ -50,9 +50,10 @@ import inspect
 import json
 import logging
 import sys
+from collections.abc import Callable
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Callable, Literal, Optional
+from typing import Literal
 
 from loguru import logger
 
@@ -68,10 +69,10 @@ LOG_LEVEL = Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
 
 
 def set_request_context(
-    request_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    method: Optional[str] = None,
-    url: Optional[str] = None,
+    request_id: str | None = None,
+    user_id: str | None = None,
+    method: str | None = None,
+    url: str | None = None,
     **kwargs,
 ):
     """Set context variables for the current request in FastAPI."""

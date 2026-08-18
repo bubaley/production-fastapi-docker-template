@@ -1,7 +1,7 @@
 import json
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -18,7 +18,7 @@ class WebSocketMessage:
     channel: ChannelConfig
     message_type: str
     data: Any
-    recipient_id: Optional[str] = None
+    recipient_id: str | None = None
 
 
 class BaseWebSocketService:
@@ -27,7 +27,7 @@ class BaseWebSocketService:
         self.connections: dict[str, dict[str, WebSocket]] = defaultdict(dict)
         self.channel_map = {channel.name: channel for channel in channels}
 
-    async def check_access(self, websocket: WebSocket, channel: str, recipient_id: Optional[str] = None) -> bool:
+    async def check_access(self, websocket: WebSocket, channel: str, recipient_id: str | None = None) -> bool:
         """
         Check if user has access to the channel.
         Override this method to implement custom access control.
@@ -46,9 +46,8 @@ class BaseWebSocketService:
         Process incoming message from WebSocket connection.
         Override this method to handle incoming messages.
         """
-        pass
 
-    def _get_channel_key(self, channel: str, recipient_id: Optional[str] = None) -> str:
+    def _get_channel_key(self, channel: str, recipient_id: str | None = None) -> str:
         if recipient_id:
             return f'{channel}/{recipient_id}'
         return channel
@@ -56,7 +55,7 @@ class BaseWebSocketService:
     def _get_connection_id(self, websocket: WebSocket) -> str:
         return str(id(websocket))
 
-    def has_connection(self, channel: str, recipient_id: Optional[str] = None) -> bool:
+    def has_connection(self, channel: str, recipient_id: str | None = None) -> bool:
         """
         Check if there are active WebSocket connections for the given channel and recipient_id.
 
@@ -71,7 +70,7 @@ class BaseWebSocketService:
         connections = self.connections.get(channel_key, {})
         return len(connections) > 0
 
-    async def _handle_connection(self, websocket: WebSocket, channel: str, recipient_id: Optional[str] = None):
+    async def _handle_connection(self, websocket: WebSocket, channel: str, recipient_id: str | None = None):
         channel_config = self.channel_map.get(channel)
         if not channel_config:
             await websocket.close(code=1008, reason='Channel not found')
@@ -157,7 +156,7 @@ class BaseWebSocketService:
         channel: str,
         message_type: str,
         data: Any,
-        recipients: Optional[list[str]] = None,
+        recipients: list[str] | None = None,
     ) -> None:
         """
         Send message to WebSocket connections.
