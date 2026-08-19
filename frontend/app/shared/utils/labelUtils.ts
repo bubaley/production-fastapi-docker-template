@@ -1,4 +1,4 @@
-import type { LabelConfig } from "../types/label-types"
+import type { LabelConfig } from "../ui/app/types/label-types"
 
 export type LabelConfigWithValues<T extends string | number | symbol> = LabelConfig & { value: T }
 

@@ -1,5 +1,5 @@
 <template>
-  <AppLabel :label="label">
+  <AppFloatLabel :label="label">
     <DatePicker
       :class="props.class"
       :date-format="dateFormat"
@@ -12,14 +12,14 @@
       @hide="handleHide"
       @update:model-value="handleDateChange"
     />
-  </AppLabel>
+  </AppFloatLabel>
 </template>
 
 <script setup lang="ts">
 import { max, min } from 'lodash-es'
 import type { CalendarProps } from 'primevue/calendar'
 import { computed } from 'vue'
-import AppLabel from './AppLabel.vue'
+import AppFloatLabel from './AppFloatLabel.vue'
 import dayjs from 'dayjs'
 
 export interface CDatePickerProps extends /* @vue-ignore */ Omit<CalendarProps, 'modelValue'> {

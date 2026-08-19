@@ -3,6 +3,7 @@ from uuid import UUID
 from tortoise import fields
 
 from app.core.models import BaseModel
+from app.core.settings import settings
 from app.domains.auth.services.auth_service import AuthService
 
 
@@ -13,13 +14,14 @@ class User(BaseModel):
     last_name = fields.CharField(max_length=128)
     is_superuser = fields.BooleanField(default=False)
 
+    def _password_extra_salt(self) -> str:
+        return f'{self.id}{settings.secret_key}'
+
     def set_password(self, password: str) -> None:
-        """Hash and set the user's password."""
-        self.password = AuthService.hash_password(password)
+        self.password = AuthService.hash_password(password, extra_salt=self._password_extra_salt())
 
     def verify_password(self, password: str) -> bool:
-        """Verify the user's password against the stored hash."""
-        return AuthService.verify_password(password, self.password)
+        return AuthService.verify_password(password, self.password, extra_salt=self._password_extra_salt())
 
     class Meta:
         ordering = ('-created_at',)

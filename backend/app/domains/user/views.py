@@ -1,7 +1,8 @@
 import hashlib
 import secrets
+from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from fastapi_ronin import mixins
 from fastapi_ronin.decorators import action, viewset
 from fastapi_ronin.types import PydanticModel
@@ -12,6 +13,7 @@ from app.domains.organization.models import OrganizationUser
 from app.domains.user.filters import UserTokenFilterSet
 from app.domains.user.models import User, UserToken
 from app.domains.user.schemas import (
+    UserChangePasswordSchema,
     UserCreateSchema,
     UserReadSchema,
     UserTokenCreatedReadSchema,
@@ -60,6 +62,19 @@ class UserViewSet(BaseModelViewSet[User]):
         if obj.id == self.user.id:
             raise HTTPException(status_code=400, detail='Cannot delete yourself')
         await obj.delete()
+
+    @action(methods=['POST'], detail=True)
+    async def change_password(self, item_id: UUID, data: UserChangePasswordSchema) -> UserReadSchema:
+        actor: User = self.user
+        user = await self.get_object(item_id)
+        if not actor.is_superuser:
+            if actor.id != user.id:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Forbidden')
+            if not data.current_password or not user.verify_password(data.current_password):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid current password')
+        user.set_password(data.new_password)
+        await user.save()
+        return await UserReadSchema.from_tortoise_orm(user)
 
 
 @viewset(user_tokens_router)

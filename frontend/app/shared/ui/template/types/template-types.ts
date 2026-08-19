@@ -61,5 +61,6 @@ export type AppListTemplateProps<T extends AppModel> = AppListTemplateBaseProps<
   Omit<AppListProps<T>, AppListTemplateRepoManagedProps> & {
     detailRouteId?: (item: T) => string | number
     reloadAfterSave?: boolean
+    retrieveOnOpen?: boolean
     detailModalProps?: AppListTemplateDetailModalProps<T>
   }

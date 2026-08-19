@@ -59,7 +59,7 @@ export const createAuthAppRepo = <T extends AppModel>(options: AuthOptions<T>) =
         return user.value
       } catch (e) {
         console.error(e)
-        throw new Error('Failed to load user')
+        throw new Error('Failed to load user', { cause: e })
       } finally {
         loading.value = false
       }

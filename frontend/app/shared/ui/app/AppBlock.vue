@@ -156,6 +156,15 @@ const _class = computed(() => {
     }
   }
 
+  &.variant-filled.color-contrast {
+    background-color: var(--fg-base);
+    color: var(--bg-base);
+
+    &.button:hover {
+      background-color: color-mix(in srgb, var(--fg-base) 85%, var(--bg-base));
+    }
+  }
+
   @each $size, $value in $radius-map {
     &.radius-#{$size} {
       border-radius: $value;
@@ -171,7 +180,7 @@ const _class = computed(() => {
       height: $height;
 
       .app-block-icon {
-        font-size: $height / 2.5;
+        font-size: $height / 2.2;
       }
     }
   }

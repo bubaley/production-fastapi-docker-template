@@ -1,10 +1,12 @@
 <template>
   <AppSection v-bind="sectionBind">
     <template
-      v-if="!hideCreateButton && !hideHeader"
+      v-if="!hideHeader"
       #actions
     >
+      <slot name="actions" />
       <AppButton
+        v-if="!hideCreateButton && !$slots.actions"
         severity="secondary"
         @click="handleCreateClick"
       >
@@ -21,6 +23,27 @@
       @page-change="handlePageChange"
       @update:selection="$emit('update:selection', $event)"
     >
+      <template
+        v-if="$slots.empty"
+        #empty
+      >
+        <slot
+          name="empty"
+          :loading="Boolean(listBind.loading)"
+        />
+      </template>
+      <template
+        v-if="$slots['search-actions']"
+        #search-actions
+      >
+        <slot name="search-actions" />
+      </template>
+      <template
+        v-if="$slots.filters"
+        #filters
+      >
+        <slot name="filters" />
+      </template>
       <slot />
       <template
         v-if="$slots['list-item']"
@@ -43,6 +66,7 @@
   <AppModal
     v-model="detailModal"
     :width="detailModalProps?.width || '30rem'"
+    :class="detailModalProps?.class"
   >
     <AppDetailTemplate
       v-if="selectedItem && repo"
@@ -53,7 +77,7 @@
       :item="selectedItem"
       template-variant="flat-section"
       v-bind="detailModalProps"
-      :actions-props="detailModalActionsProps"
+      :actions-props="{ ...detailModalActionsProps, reverseActions: true }"
       :title="detailModalProps?.title || (selectedItem?.id ? 'Обновление' : 'Создание')"
       @cancel="detailModal = false"
       @delete="handleDetailAction"
@@ -85,6 +109,7 @@ const props = withDefaults(defineProps<AppListTemplateProps<T>>(), {
   templateVariant: 'page',
   detailMode: 'route',
   reloadAfterSave: false,
+  retrieveOnOpen: true,
   filter: false,
   showSearch: true,
 })
@@ -106,12 +131,12 @@ const sectionBind = useSectionBind(props)
 const repoData = useRepoData<T>({
   ...props,
   items: itemsRef,
-  autoLoad: props.autoLoad,
   storeInRepo: props.storeInRepo,
 })
 
 const detailModalActionsProps = computed(() => ({
   hideHeaderActions: true,
+  disableRouterAutoResolving: props.detailMode === 'modal',
   ...props.detailModalProps?.actionsProps,
 }))
 
@@ -146,7 +171,7 @@ const listBind = computed(
       loading: props.repo?.loading.list,
       pagination: props.repo?.pagination,
       paginationLoading: props.repo?.loading.list,
-      searchLoading: repoData.loadItemsState.loading.value,
+      searchLoading: Boolean(props.repo?.loading.list || repoData.loadItemsState.loading.value),
       hasNextPage: hasNextPage.value,
       showSearch: props.showSearch,
     }) as AppListProps<T>,
@@ -193,6 +218,14 @@ const _openItem = (item: T | null) => {
     if (item) selectedItem.value = cloneDeep(item)
     else selectedItem.value = props.buildNewItem?.() || props.repo?.decode({})
     detailModal.value = true
+    if (item?.id && props.retrieveOnOpen && props.repo) {
+      const openedId = item.id
+      void props.repo.retrieve(openedId).then((retrieved) => {
+        if (!retrieved || !detailModal.value) return
+        if (String(selectedItem.value?.id) !== String(openedId)) return
+        selectedItem.value = cloneDeep(retrieved)
+      })
+    }
     return
   }
 

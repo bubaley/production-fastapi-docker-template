@@ -1,5 +1,5 @@
 <template>
-  <AppLabel :label="label">
+  <AppFloatLabel :label="label">
     <Select
       v-bind="{ ...props, filterFields: undefined }"
       ref="selectRef"
@@ -52,7 +52,7 @@
         </slot>
       </template>
     </Select>
-  </AppLabel>
+  </AppFloatLabel>
 </template>
 
 <script setup generic="T extends any" lang="ts">

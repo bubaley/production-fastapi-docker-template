@@ -3,21 +3,66 @@
 </template>
 
 <script setup lang="ts">
+export type DurationFormat = 'clock' | 'parts' | 'value'
+export type DurationUnit = 'hours' | 'minutes' | 'seconds'
+
+const UNIT_ORDER: DurationUnit[] = ['hours', 'minutes', 'seconds']
+
+const UNIT_LABEL: Record<DurationUnit, string> = {
+  hours: 'ч',
+  minutes: 'м',
+  seconds: 'с',
+}
+
+const UNIT_SECONDS: Record<DurationUnit, number> = {
+  hours: 3600,
+  minutes: 60,
+  seconds: 1,
+}
+
 const props = withDefaults(
   defineProps<{
-    date: string
+    date?: string | null
+    format?: DurationFormat
+    /** One unit: `value` mode, or a shorthand for `units: [unit]`. */
+    unit?: DurationUnit
+    /** Which segments to show, largest first. Clock: `['hours', 'minutes']` → `00:23`, `['minutes', 'seconds']` → `23:45`. */
+    units?: DurationUnit[]
     hideZero?: boolean
-    accuracy?: 'minutes' | 'seconds'
-    onlyAccuracy?: boolean
   }>(),
   {
+    format: 'parts',
     hideZero: true,
-    accuracy: 'minutes',
-    onlyAccuracy: false,
-  }
+  },
 )
 
 const { parseDate, now } = useDate()
+
+const pad = (value: number) => String(value).padStart(2, '0')
+
+const resolvedUnits = computed<DurationUnit[]>(() => {
+  if (props.format === 'value') {
+    const unit = props.unit ?? props.units?.[0] ?? 'seconds'
+    return [unit]
+  }
+  if (props.units?.length) {
+    const unique = new Set(props.units)
+    return UNIT_ORDER.filter((unit) => unique.has(unit))
+  }
+  if (props.unit) return [props.unit]
+  return [...UNIT_ORDER]
+})
+
+const splitDuration = (totalSeconds: number, units: DurationUnit[]) => {
+  let remaining = totalSeconds
+  return units.map((unit, index) => {
+    const size = UNIT_SECONDS[unit]
+    if (index === units.length - 1) return Math.floor(remaining / size)
+    const value = Math.floor(remaining / size)
+    remaining %= size
+    return value
+  })
+}
 
 const formattedDuration = computed(() => {
   if (!props.date) return ''
@@ -25,48 +70,23 @@ const formattedDuration = computed(() => {
   const date = parseDate(props.date)
   if (!date) return ''
 
-  const currentTime = now()
-  const diffInSeconds = Math.abs(date.diff(currentTime, 'seconds'))
-  const diffInMinutes = Math.floor(diffInSeconds / 60)
-  const diffInHours = Math.floor(diffInMinutes / 60)
+  const totalSeconds = Math.abs(date.diff(now(), 'seconds'))
+  const units = resolvedUnits.value
+  if (!units.length) return ''
 
-  if (props.onlyAccuracy) {
-    if (props.accuracy === 'seconds') {
-      if (diffInSeconds === 0 && props.hideZero) return ''
-      return `${diffInSeconds}с`
-    }
+  const values = splitDuration(totalSeconds, units)
+  if (props.hideZero && values.every((value) => value === 0)) return ''
 
-    if (props.accuracy === 'minutes') {
-      if (diffInMinutes === 0 && props.hideZero) return ''
-      return `${diffInMinutes}м`
-    }
-
-    return ''
+  if (props.format === 'clock') {
+    return values.map((value) => pad(value)).join(':')
   }
 
-  if (props.accuracy === 'seconds') {
-    if (diffInSeconds < 60) {
-      if (diffInSeconds === 0 && props.hideZero) return ''
-      return `${diffInSeconds}с`
-    }
-  }
-
-  if (diffInHours > 0) {
-    const remainingMinutes = diffInMinutes % 60
-    if (remainingMinutes === 0 && props.hideZero) {
-      return `${diffInHours}ч`
-    }
-    return remainingMinutes > 0 ? `${diffInHours}ч ${remainingMinutes}м` : `${diffInHours}ч`
-  }
-
-  if (diffInMinutes > 0) {
-    return `${diffInMinutes}м`
-  }
-
-  if (props.accuracy === 'seconds' && diffInSeconds > 0) {
-    return `${diffInSeconds}с`
-  }
-
-  return ''
+  return units
+    .flatMap((unit, index) => {
+      const value = values[index]
+      if (props.hideZero && value === 0) return []
+      return [`${value}${UNIT_LABEL[unit]}`]
+    })
+    .join(' ')
 })
 </script>

@@ -32,15 +32,11 @@ export const userCodec = createCodec<User>({
         is_superuser: data.is_superuser,
       }
     }
-    const payload: Record<string, unknown> = {
+    return {
       email: data.email || null,
       first_name: data.first_name || null,
       last_name: data.last_name || null,
       is_superuser: data.is_superuser,
     }
-    if (data.password) {
-      payload.password = data.password
-    }
-    return payload
   },
 })

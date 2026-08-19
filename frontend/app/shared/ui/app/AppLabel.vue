@@ -1,18 +1,20 @@
 <template>
-  <FloatLabel :variant="variant">
-    <slot />
-    <label for="on_label">{{ label }}</label>
-  </FloatLabel>
+  <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+    <AppIcon
+      v-if="mode !== 'label'"
+      :icon="icon"
+      :color="color"
+    />
+    <span v-if="mode !== 'icon'">{{ label }}</span>
+  </span>
 </template>
 
 <script setup lang="ts">
-import type { FloatLabelProps } from 'primevue/floatlabel'
+import type { AppLabelConfig } from '~/shared/ui/app/types/label-types'
 
-export type AppLabelProps = FloatLabelProps & {
-  label?: string
-  variant?: 'in' | 'on' | 'over'
-}
-withDefaults(defineProps<AppLabelProps>(), {
-  variant: 'on',
-})
+defineProps<
+  Pick<AppLabelConfig, 'icon' | 'label' | 'color'> & {
+    mode?: 'icon' | 'label'
+  }
+>()
 </script>

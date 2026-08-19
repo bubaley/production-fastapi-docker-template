@@ -16,17 +16,20 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
     '@nuxt/icon',
-    '@primevue/nuxt-module',
     '@nuxt/fonts',
     '@pinia/nuxt',
     '@nuxtjs/color-mode',
     '@nuxtjs/google-fonts',
     './modules/base-auth',
     'dayjs-nuxt',
+    '@primevue/nuxt-module',
   ],
   components: [
     {
       path: '~/shared/ui/app',
+    },
+    {
+      path: '~/shared/ui/app/smartDatePicker',
     },
     {
       path: '~/shared/ui/template',

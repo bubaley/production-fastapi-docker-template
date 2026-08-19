@@ -3,17 +3,20 @@
     shape="circle"
     :size="size"
     :style="_style"
-    style="overflow: hidden"
+    class="app-avatar"
   >
-    <Image
-      v-if="src"
-      :src="src"
-    />
-    <span
-      v-else
-      class="text-white font-semibold"
+    <img
+      v-if="showImage"
+      class="app-avatar__img"
+      :src="src!"
+      :alt="initial"
+      @error="imageFailed = true"
     >
-      {{ name?.slice(0, 1) }}
+    <span
+      v-else-if="!hasDefaultSlot"
+      class="app-avatar__initial text-white font-semibold"
+    >
+      {{ initial }}
     </span>
     <slot />
   </Avatar>
@@ -32,12 +35,48 @@ const props = withDefaults(defineProps<AppAvatarProps>(), {
   size: 'normal',
 })
 
+const slots = useSlots()
+const hasDefaultSlot = computed(() => Boolean(slots.default?.().length))
+const imageFailed = ref(false)
+
+watch(
+  () => props.src,
+  () => {
+    imageFailed.value = false
+  },
+)
+
+const AVATAR_SIZE: Record<AppAvatarSize, string> = {
+  xsmall: '20px',
+  small: '24px',
+  normal: '2rem',
+  large: '3rem',
+  xlarge: '4rem',
+}
+
+const showImage = computed(() => Boolean(props.src) && !imageFailed.value)
+const initial = computed(() => (props.name || '').trim().slice(0, 1).toUpperCase() || '?')
+
 const _style = computed(() => {
-  const values = []
-  if (props.src) values.push('background: transparent')
+  const size = AVATAR_SIZE[props.size]
+  const values = [`width: ${size}`, `height: ${size}`, `min-width: ${size}`, `min-height: ${size}`]
+  if (showImage.value) values.push('background: transparent')
   else if (props.color) values.push(`background: ${props.color}`)
-  if (props.size === 'small') values.push(`height: 24px; width: 24px`)
-  if (props.size === 'xsmall') values.push(`height: 20px; width: 20px`)
   return values.join('; ')
 })
 </script>
+
+<style lang="scss" scoped>
+.app-avatar {
+  overflow: hidden;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+}
+
+.app-avatar__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+</style>

@@ -1,14 +1,21 @@
 <template>
   <div>
     <div class="flex flex-col gap-4">
-      <AppInput
-        v-if="showSearch"
-        v-model="search"
-        icon="lucide:search"
-        class="max-w-xs"
-        :loading="searchLoading"
-        placeholder="Поиск"
-      />
+      <div
+        v-if="showSearch || $slots['search-actions']"
+        class="flex flex-wrap items-center gap-2"
+      >
+        <AppInput
+          v-if="showSearch"
+          v-model="search"
+          icon="lucide:search"
+          class="max-w-xs flex-1"
+          :loading="searchLoading"
+          placeholder="Поиск"
+        />
+        <slot name="search-actions" />
+      </div>
+      <slot name="filters" />
 
       <div
         v-if="items.length"
@@ -64,7 +71,27 @@
         v-else
         class="flex items-center"
       >
-        <div class="fg-secondary">{{ emptyText }}</div>
+        <slot
+          name="empty"
+          :loading="loading"
+        >
+          <div
+            v-if="loading"
+            class="flex justify-center w-full p-5"
+          >
+            <AppIcon
+              loading
+              :size="28"
+              icon="spinner"
+            />
+          </div>
+          <div
+            v-else
+            class="fg-secondary"
+          >
+            {{ emptyText }}
+          </div>
+        </slot>
       </div>
     </div>
 
@@ -154,8 +181,11 @@ const emit = defineEmits<{
 
 defineSlots<{
   default?: () => any
+  filters?: () => any
+  'search-actions'?: () => any
   'list-item'?: (props: { item: T; index: number }) => any
   footer?: () => any
+  empty?: (props: { loading: boolean }) => any
 }>()
 
 const slots = useSlots()

@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi_ronin.decorators import schema
 from pydantic import Field
 
-from app.core.models import BaseCreateSchema, BaseReadSchema
+from app.core.models import BaseCreateSchema, BaseReadSchema, BaseSchema
 from app.domains.user.models import User, UserToken
 
 
@@ -30,8 +30,12 @@ class UserUpdateSchema(BaseCreateSchema):
     email: str | None = None
     first_name: str | None = None
     last_name: str | None = None
-    password: str | None = Field(default=None, max_length=128)
     is_superuser: bool | None = None
+
+
+class UserChangePasswordSchema(BaseSchema):
+    current_password: str | None = None
+    new_password: str = Field(min_length=1, max_length=128)
 
 
 # USER_TOKEN_SCHEMAS

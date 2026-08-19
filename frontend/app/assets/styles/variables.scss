@@ -37,33 +37,10 @@ $weight-map: (
   'bold': 700,
 );
 
+// Keep in sync with `colorTokens` in template-ui-tokens.ts
 $colors-map: (
-  'primary': (
-    var(--p-primary-500),
-    true
-  ),
-  'cloud': (
-    var(--p-cloud-500),
-    true
-  ),
-  'info': (
-    #1b76d3,
-    true
-  ),
-  'danger': (
-    var(--p-danger-500),
-    true
-  ),
-  'pink': (
-    #e91e64,
-    true
-  ),
-  'success': (
-    var(--p-success-500),
-    true
-  ),
-  'accent': (
-    var(--p-accent-500),
+  'red': (
+    var(--p-red-500),
     true
   ),
   'orange': (
@@ -71,15 +48,55 @@ $colors-map: (
     true
   ),
   'yellow': (
-    #ffc107,
+    var(--p-yellow-500),
     false
   ),
+  'green': (
+    var(--p-green-500),
+    true
+  ),
   'teal': (
-    #009688,
+    var(--p-teal-500),
+    true
+  ),
+  'blue': (
+    var(--p-blue-500),
+    true
+  ),
+  'purple': (
+    var(--p-purple-500),
+    true
+  ),
+  'pink': (
+    var(--p-pink-500),
+    true
+  ),
+  'primary': (
+    var(--p-primary-500),
     true
   ),
   'secondary': (
     var(--p-surface-500),
     false
+  ),
+  'info': (
+    var(--p-sky-500),
+    true
+  ),
+  'success': (
+    var(--p-green-500),
+    true
+  ),
+  'warn': (
+    var(--p-orange-500),
+    true
+  ),
+  'danger': (
+    var(--p-red-500),
+    true
+  ),
+  'contrast': (
+    var(--fg-base),
+    true
   )
 );

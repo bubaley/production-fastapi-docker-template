@@ -1,5 +1,5 @@
 <template>
-  <AppLabel :label="label">
+  <AppFloatLabel :label="label">
     <MultiSelect
       v-bind="{ ...props, filterFields: undefined }"
       ref="selectRef"
@@ -47,11 +47,11 @@
         </div>
       </template>
     </MultiSelect>
-  </AppLabel>
+  </AppFloatLabel>
 </template>
 
 <script setup generic="T extends any" lang="ts">
-import AppLabel from './AppLabel.vue'
+import AppFloatLabel from './AppFloatLabel.vue'
 import { ref } from 'vue'
 import type { SelectMethods } from 'primevue/select'
 import type { MultiSelectProps } from 'primevue'

@@ -1,5 +1,5 @@
 <template>
-  <AppLabel :label="label">
+  <AppFloatLabel :label="label">
     <IconField>
       <InputText
         ref="inputRef"
@@ -24,12 +24,12 @@
         <Icon :name="_icon" />
       </InputIcon>
     </IconField>
-  </AppLabel>
+  </AppFloatLabel>
 </template>
 
 <script setup lang="ts">
 import type { InputTextProps } from 'primevue/inputtext'
-import AppLabel from './AppLabel.vue'
+import AppFloatLabel from './AppFloatLabel.vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 

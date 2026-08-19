@@ -49,7 +49,7 @@ export const useAuth = () => {
     state.value.isLoading = true
     state.value.error = null
 
-    let response: AuthResponse<T> | null = null
+    let response: AuthResponse<T> | null
     try {
       const rawResponse = await $fetch.raw<AuthResponse<T>>(`${config.nuxtApiPrefix}${endpoint}`, {
         method: 'POST',

@@ -1,5 +1,5 @@
 <template>
-  <AppLabel :label="label">
+  <AppFloatLabel :label="label">
     <IconField>
       <Textarea
         ref="inputRef"
@@ -15,12 +15,12 @@
         <Icon :name="_icon" />
       </InputIcon>
     </IconField>
-  </AppLabel>
+  </AppFloatLabel>
 </template>
 
 <script setup lang="ts">
 import type { TextareaProps } from 'primevue/textarea'
-import AppLabel from './AppLabel.vue'
+import AppFloatLabel from './AppFloatLabel.vue'
 import { computed, nextTick, onMounted, ref } from 'vue'
 
 export interface CTextareaProps extends /* @vue-ignore */ TextareaProps {

@@ -30,6 +30,7 @@ export type AppDetailActionsProps<T extends AppModel> = {
   saveMode?: ActionDisplayMode
   deleteMode?: ActionDisplayMode
   disableRouterAutoResolving?: boolean
+  reverseActions?: boolean
   beforeSave?: (item: T) => Promise<void> | void
   beforeDelete?: (item: T) => Promise<void> | void
 }
@@ -83,6 +84,10 @@ const actions = computed<AppTemplateAction[]>(() => {
       action: () => emit('cancel'),
     },
   ]
+
+  if (props.reverseActions) {
+    values.reverse()
+  }
 
   return values
 })

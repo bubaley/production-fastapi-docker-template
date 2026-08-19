@@ -466,45 +466,45 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bcrypt", specifier = ">=5.0.0" },
-    { name = "boto3", specifier = ">=1.43.43" },
-    { name = "cryptography", specifier = ">=49.0.0" },
-    { name = "fastapi", specifier = ">=0.139.0" },
+    { name = "boto3", specifier = ">=1.43.73" },
+    { name = "cryptography", specifier = ">=50.0.0" },
+    { name = "fastapi", specifier = ">=0.141.1" },
     { name = "fastapi-ronin", specifier = ">=1.0.0" },
     { name = "glom", specifier = ">=25.12.0" },
-    { name = "gunicorn", specifier = ">=26.0.0" },
-    { name = "httpx2", specifier = ">=2.5.0" },
+    { name = "gunicorn", specifier = ">=26.1.0" },
+    { name = "httpx2", specifier = ">=2.12.0" },
     { name = "loguru", specifier = ">=0.7.3" },
-    { name = "pydantic-settings", specifier = ">=2.14.2" },
+    { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.5.0" },
     { name = "python-multipart", specifier = ">=0.0.32" },
-    { name = "redis", specifier = ">=8.0.1" },
+    { name = "redis", specifier = ">=8.1.0" },
     { name = "taskiq", specifier = ">=0.12.4" },
     { name = "taskiq-redis", specifier = ">=1.2.3" },
-    { name = "tortoise-orm", extras = ["asyncpg"], specifier = ">=1.1.7" },
-    { name = "typer", specifier = ">=0.26.8" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.51.0" },
+    { name = "tortoise-orm", extras = ["asyncpg"], specifier = ">=1.1.8" },
+    { name = "typer", specifier = ">=0.27.1" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.52.3" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pre-commit", specifier = ">=4.6.0" },
+    { name = "pre-commit", specifier = ">=4.6.2" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
-    { name = "ruff", specifier = ">=0.15.20" },
-    { name = "ty", specifier = ">=0.0.57" },
+    { name = "ruff", specifier = ">=0.16.3" },
+    { name = "ty", specifier = ">=0.0.72" },
 ]
 
 [[package]]
 name = "fastapi-ronin"
-version = "1.0.0"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastapi" },
     { name = "tortoise-orm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2b/8e/adfe71d7040b84a5568de88d631e50924e5118fb71c27be222ff27fb270a/fastapi_ronin-1.0.0.tar.gz", hash = "sha256:d23b10fba976e4f6bac843a33ecb50a7ab8a14af5cc71c98fccc84f750cc6c03", size = 571145, upload-time = "2026-07-08T12:09:20.584Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/85/eb/a0e0e2c5ea78353d5716a1c9c3c6df774ad737de8ef303e53fa2a4d6c270/fastapi_ronin-1.0.1.tar.gz", hash = "sha256:981d7981583d22a562663f67826e2176b77a7f9eda82ebf82138266443400a7b", size = 571211, upload-time = "2026-08-18T20:54:40.305Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/ef/9afe81dc515ea49a959e1c0d20b6141642ebc3c4a48c6a7f62b37ae94296/fastapi_ronin-1.0.0-py3-none-any.whl", hash = "sha256:90fff7b7af91f6194e9d5833672cba93d03be70e2599090e7737a87ae24fafbf", size = 30510, upload-time = "2026-07-08T12:09:18.909Z" },
+    { url = "https://files.pythonhosted.org/packages/87/78/17c66e6b99cc4a7137999c8dbb54f7c77e49b12f0f148ad5002b72632fe9/fastapi_ronin-1.0.1-py3-none-any.whl", hash = "sha256:b8bd25c3851c4ef4b86ab95b839026cec3485653b90e46298fdadd56422a72f2", size = 30543, upload-time = "2026-08-18T20:54:39.303Z" },
 ]
 
 [[package]]

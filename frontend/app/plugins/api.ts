@@ -15,15 +15,16 @@ export default defineNuxtPlugin(() => {
   const apiFetch = $fetch.create({
     credentials: 'include',
     baseURL: baseUrl,
-    async onRequest({options}) {
-      const {state} = useSetupStore()
-      if(state.organization?.key) options.headers.append('Organization-Key', state.organization?.key)
+    retryDelay: 2000,
+    async onRequest({ options }) {
+      const { state } = useSetupStore()
+      const headers = new Headers(options.headers)
+      if (state.organization?.key) headers.set('Organization-Key', state.organization.key)
       if (import.meta.server) {
         const cookieHeader = useRequestHeaders(['cookie']).cookie
-        if (cookieHeader) {
-          options.headers.append('Cookie', cookieHeader)
-        }
+        if (cookieHeader) headers.set('Cookie', cookieHeader)
       }
+      options.headers = headers
     },
   })
 

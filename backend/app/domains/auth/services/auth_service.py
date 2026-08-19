@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
@@ -42,14 +44,22 @@ class AuthService:
     """Service for handling authentication operations including password hashing and JWT tokens."""
 
     @staticmethod
-    def hash_password(password: str) -> str:
+    def _password_digest(password: str, extra_salt: str) -> bytes:
+        digest = hmac.new(extra_salt.encode('utf-8'), password.encode('utf-8'), hashlib.sha256).hexdigest()
+        return digest.encode('utf-8')
+
+    @staticmethod
+    def hash_password(password: str, extra_salt: str) -> str:
         salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+        hashed = bcrypt.hashpw(AuthService._password_digest(password, extra_salt), salt)
         return hashed.decode('utf-8')
 
     @staticmethod
-    def verify_password(plain_password: str, hashed_password: str) -> bool:
-        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    def verify_password(plain_password: str, hashed_password: str, extra_salt: str) -> bool:
+        return bcrypt.checkpw(
+            AuthService._password_digest(plain_password, extra_salt),
+            hashed_password.encode('utf-8'),
+        )
 
     @staticmethod
     def create_access_token(user: User) -> Token:

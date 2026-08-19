@@ -1,5 +1,3 @@
-import 'dayjs/locale/ru'
-
 import type { Dayjs } from "dayjs"
 
 // import Dayjs from 'dayjs-nuxt'
