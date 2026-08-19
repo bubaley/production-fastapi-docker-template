@@ -4,7 +4,7 @@ How to add and grow a domain. Folder roles: [architecture.md](architecture.md). 
 
 A domain is `backend/app/domains/<name>/` with `models.py`, `schemas.py`, `filters.py`, `views.py`. Add `services/` when logic does not belong in the viewset. Add `tests/` next to the domain.
 
-Viewsets stay thin: CRUD, permissions, queryset tweaks. Non-CRUD workflows go into a **service class**.
+Viewsets stay thin: HTTP only — schema, permissions, queryset. **Almost no business logic in `views.py`.** Named workflows go into a **service class**.
 
 ---
 
@@ -103,7 +103,7 @@ class ProjectViewSet(BaseModelViewSet[Project]):
     filterset_class = ProjectFilterSet
 ```
 
-Custom create/destroy/queryset: `perform_create`, `perform_destroy`, `get_queryset` — see `OrganizationViewSet` / `OrganizationUserViewSet`. Superuser exceptions live on the viewset, not in `FilterObjectsManager`.
+Custom create/destroy/queryset: `perform_create`, `perform_destroy`, `get_queryset` — see `OrganizationViewSet` / `OrganizationUserViewSet`. Superuser exceptions live on the viewset, not in `FilterObjectsManager`. If an action does more than wire CRUD, call a service — do not grow the viewset.
 
 `BaseModelViewSet` requires `IsAuthenticated`. Lookup is UUID. Pagination: `page` / `page_size` (default `page_size=100`).
 
@@ -128,11 +128,39 @@ Empty `Scope()` means **no** auto-filter — override `get_queryset()` when the 
 
 | Put it here | When |
 |---|---|
-| Viewset | HTTP: which schema, who may CRUD, queryset shape |
-| `services/` class | Named workflow: resolve org from request, talk to S3, fan out websocket |
+| Viewset | HTTP: which schema, who may CRUD, queryset shape. Keep this thin |
+| `services/` class | Business workflow: validate, load related objects, persist, S3, websocket |
 | `utils/` function | 5–20 lines, no identity as a “thing” (`round_number`, `date_utils`) |
 
 Example: `OrganizationService` is a class in `domains/organization/services/organization_service.py`. If that class later needs several private helpers, turn it into `services/organization_service/organization_service.py` plus sibling modules — not a pile of functions in `utils/`.
+
+### Service method shape
+
+- **Main methods take model instances**, not ids (`invoice: Invoice`, not `invoice_id: UUID`). Resolve ids before the workflow runs.
+- **More than three parameters** → a Pydantic schema **in the service file** (not `schemas.py` unless it is the HTTP DTO). Pass that schema in.
+- **Heavy validation / loading** → a `validate_*` method: HTTP schema in → fetch objects, check rules → return a service schema of instances. The main method only receives that.
+
+```python
+class IssueInvoiceData(BaseModel):
+    organization: Organization
+    customer: Customer
+    lines: list[InvoiceLine]
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class InvoiceService:
+    async def validate_issue(self, data: InvoiceCreateSchema) -> IssueInvoiceData:
+        organization = await Organization.get(id=data.organization_id)
+        customer = await Customer.get(id=data.customer_id)
+        # rules that can fail go here
+        return IssueInvoiceData(organization=organization, customer=customer, lines=...)
+
+    async def issue(self, data: IssueInvoiceData) -> Invoice:
+        ...
+```
+
+The viewset calls `validate_issue` then `issue`. It does not load models or encode business rules.
 
 ---
 

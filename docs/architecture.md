@@ -24,7 +24,7 @@ Same change, all of this (skip a row only if it does not apply):
 
 | Layer | Done when |
 |---|---|
-| Backend | Domain files (`models`, `schemas`, `filters`, `views`). Register in `core/database.py` (`MODELS`), `main.py` (`include_router`), **`FilterObjectsManager`** (`Scope` or empty `Scope()` + custom `get_queryset`) |
+| Backend | Domain files (`models`, `schemas`, `filters`, `views`). Register in `core/database.py` (`MODELS`), `main.py` (`include_router`), **`FilterObjectsManager`**. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
 | Tests | Non-trivial rules get pytest next to the domain (`domains/<name>/tests/`). See [backend-concept.md](backend-concept.md#tests). Canonical: `domains/organization/tests/test_organization.py` |
 | Frontend | Feature: model + codec, repo, `useRepo` registry, views on `AppListTemplate` / `AppDetailTemplate`, thin page, drawer item if needed. User-facing copy in **Russian** |
 | Realtime | Org events go through **`OrganizationWebSocketService`**, not a new websocket stack |
