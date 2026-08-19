@@ -10,7 +10,7 @@ Pages stay thin. Views talk to data only through `useRepo('key')` — never `use
 
 ## Models — one entity, one file, type + codec
 
-`models/project.ts` holds **only** `Project`: the interface and `projectCodec`. Another entity (`ProjectMember`) gets `models/projectMember.ts`, not a second type in the same file.
+`models/project.ts` holds **only** `Project`: the interface and `projectCodec`. Another entity (`ProjectMember`) gets `models/projectMember.ts`, not a second model in the same file.
 
 ```typescript
 type ProjectRaw = DeepPartial<Project>
