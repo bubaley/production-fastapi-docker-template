@@ -1,7 +1,7 @@
 <template>
   <UiShowcaseSection
     title="Overlays & feedback"
-    description="Modals, menus, popovers, lightbox and toast notifications."
+    description="Modals, menus, lightbox and toast notifications."
   >
     <UiShowcaseItem label="AppModal">
       <AppButton
@@ -16,22 +16,6 @@
       />
     </UiShowcaseItem>
 
-    <UiShowcaseItem label="AppPopover">
-      <AppButton
-        label="Open popover"
-        icon="lucide:message-circle"
-        severity="secondary"
-      >
-        <AppPopover
-          title="AppPopover"
-          subtitle="Click the button to toggle"
-          class="p-3"
-        >
-          <div class="mt-3 text-sm fg-secondary">Popover content is rendered inside the trigger component.</div>
-        </AppPopover>
-      </AppButton>
-    </UiShowcaseItem>
-
     <UiShowcaseItem label="AppMenu">
       <AppButton
         label="Parent trigger"
@@ -41,7 +25,7 @@
         <AppMenu :actions="menuActions" />
       </AppButton>
       <AppMenu
-        title="Custom content"
+        label="Custom content"
         subtitle="Trigger slot + default slot"
       >
         <template #trigger>
@@ -55,6 +39,7 @@
       </AppMenu>
       <AppMenu
         v-model="menuOpen"
+        label="Actions"
         :actions="menuActions"
       >
         <template #trigger>

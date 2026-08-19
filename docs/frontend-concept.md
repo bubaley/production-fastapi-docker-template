@@ -101,10 +101,25 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 | `AppListTemplate` | List page or nested list: search, pagination, create, detail as route or modal |
 | `AppDetailTemplate` | Form + save/delete (`AppDetailActions`) |
 | `AppTemplateActions` | **Two or more buttons in a row.** Do not put several `AppButton`s side by side |
-| `AppMenu` | Overflow or context menu (`:actions`). Live: `/home/ui` → Overlays |
+| `AppTabs` / `AppTabPanel` | Sections on a screen. `v-model` is the active tab `value`. `query-key` writes it to the URL. Live: `/home/ui` |
+| `AppMenu` | Overflow, context menu, or custom overlay (`:actions`, `label` for heading). Live: `/home/ui` → Overlays |
 | `AppModal` / `AppColumn` / `AppSelect` | Dialog, formatted column, repo-backed select (`:repo="useRepo('user')"`) |
 
 `templateVariant`: `page` \| `section` \| `flat-section`.
+
+```vue
+<AppTabs
+  v-model="tab"
+  query-key="tab"
+  :tabs="[
+    { label: 'Список', value: 'list' },
+    { label: 'Карта', value: 'map' },
+  ]"
+>
+  <AppTabPanel tab-value="list">…</AppTabPanel>
+  <AppTabPanel tab-value="map">…</AppTabPanel>
+</AppTabs>
+```
 
 **List, navigate to detail**
 

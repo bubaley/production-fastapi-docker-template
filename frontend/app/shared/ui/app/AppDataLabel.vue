@@ -23,16 +23,18 @@
             v-if="$slots['label-tooltip']"
             class="ml-1 inline-flex cursor-help align-middle"
           >
-            <AppIcon
-              icon="lucide:circle-help"
-              :size="14"
-              color="secondary"
-            />
-            <AppPopover>
-              <div class="max-w-xs p-1 text-sm">
+            <AppMenu>
+              <template #trigger>
+                <AppIcon
+                  icon="lucide:circle-help"
+                  :size="14"
+                  color="secondary"
+                />
+              </template>
+              <div class="max-w-xs px-2 py-1.5 text-sm">
                 <slot name="label-tooltip" />
               </div>
-            </AppPopover>
+            </AppMenu>
           </span>
         </span>
         <slot name="label-append" />

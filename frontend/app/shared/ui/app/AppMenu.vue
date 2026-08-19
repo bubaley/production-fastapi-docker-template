@@ -16,10 +16,10 @@
     @hide="onHide"
   >
     <AppTitle
-      v-if="title || subtitle"
+      v-if="heading || subtitle"
       class="px-2 py-1.5"
       size="md"
-      :title="title"
+      :title="heading"
       :subtitle="subtitle"
     />
     <AppListActions
@@ -41,6 +41,7 @@ export type AppMenuMode = 'popover' | 'cursor'
 const props = withDefaults(
   defineProps<{
     actions?: AppListAction[]
+    label?: string
     title?: string
     subtitle?: string
     mode?: AppMenuMode
@@ -60,6 +61,7 @@ const triggerRef = ref<HTMLElement | null>(null)
 const cursorEl = ref<HTMLSpanElement | null>(null)
 const syncing = ref(false)
 
+const heading = computed(() => props.label || props.title)
 const hasActions = computed(() => props.actions.some((action) => !action.hidden))
 
 const hostEl = () => triggerRef.value || popoverRef.value?.$el?.parentElement || null
