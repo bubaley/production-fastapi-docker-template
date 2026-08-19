@@ -103,7 +103,9 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 | `AppTemplateActions` | **Two or more buttons in a row.** Do not put several `AppButton`s side by side |
 | `AppTabs` / `AppTabPanel` | Sections on a screen. `v-model` is the active tab `value`. `query-key` writes it to the URL. Live: `/home/ui` |
 | `AppMenu` | Overflow, context menu, or custom overlay (`:actions`, `label` for heading). Live: `/home/ui` → Overlays |
-| `AppModal` / `AppColumn` / `AppSelect` | Dialog, formatted column, repo-backed select (`:repo="useRepo('user')"`) |
+| `AppModal` | Custom dialog: `v-model`, `title`, `subtitle`, `width`. Do not use PrimeVue `Dialog` directly |
+| `AppConfirmModal` | Confirm/Decline dialog: `:confirm` / `:decline`. Built on `AppModal` + `AppTemplateActions`. Live: `/home/ui` → Overlays |
+| `AppColumn` / `AppSelect` | Formatted column; repo-backed select (`:repo="useRepo('user')"`) |
 
 `templateVariant`: `page` \| `section` \| `flat-section`.
 
@@ -119,6 +121,18 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
   <AppTabPanel tab-value="list">…</AppTabPanel>
   <AppTabPanel tab-value="map">…</AppTabPanel>
 </AppTabs>
+```
+
+```vue
+<AppModal v-model="open" title="Фильтры">
+  …
+</AppModal>
+
+<AppConfirmModal
+  v-model="confirmOpen"
+  title="Удалить?"
+  :confirm="remove"
+/>
 ```
 
 **List, navigate to detail**
