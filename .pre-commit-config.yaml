@@ -1,5 +1,9 @@
 exclude: backend/migrations/.*
 
+# Hooks parse backend code, which uses Python 3.14 syntax.
+default_language_version:
+  python: python3.14
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
