@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi_ronin.decorators import schema
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from app.core.models import BaseCreateSchema, BaseReadSchema, BaseSchema
 from app.domains.user.models import User, UserToken
@@ -50,6 +50,8 @@ class UserTokenCreateSchema(BaseCreateSchema):
 @schema(model=UserToken)
 class UserTokenUpdateSchema(BaseCreateSchema):
     name: str
+
+    model_config = ConfigDict(extra='forbid')
 
 
 @schema(model=UserToken)

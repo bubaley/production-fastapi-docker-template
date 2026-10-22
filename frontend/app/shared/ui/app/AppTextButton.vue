@@ -1,7 +1,7 @@
 <template>
   <component
-    :is="to ? 'router-link' : 'div'"
-    :type="to ? undefined : 'div'"
+    :is="to ? 'router-link' : 'button'"
+    :type="to ? undefined : 'button'"
     :to="to"
     class="inline-flex items-center gap-1.5"
     :class="classes"
@@ -41,7 +41,7 @@ const emit = defineEmits<{
   click: [event: MouseEvent]
 }>()
 const { copy } = useClipboard()
-const { notify } = useNotify()
+const toast = useToast()
 
 const classes = computed(() => {
   return [
@@ -64,13 +64,14 @@ const handleClick = (event: MouseEvent) => {
 const copyValue = () => {
   if (props.label || props.value) {
     copy(props.value || props.label)
-    notify({ severity: 'success', summary: 'Cкопировано' })
+    toast.default('Скопировано')
   }
 }
 </script>
 
 <style lang="scss" scoped>
-@import '~/assets/styles/variables.scss';
+@use 'sass:list';
+@use '~/assets/styles/variables.scss' as *;
 
 .text-btn {
   background: none;
@@ -83,7 +84,7 @@ const copyValue = () => {
   transition: filter 0.2s;
 
   @each $name, $entry in $colors-map {
-    $color: nth($entry, 1);
+    $color: list.nth($entry, 1);
 
     &.color-#{$name} {
       color: $color;

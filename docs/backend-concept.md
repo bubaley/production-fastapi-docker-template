@@ -84,6 +84,11 @@ class ProjectFilterSet(filters.FilterSet):
 
 One `APIRouter` + viewset per resource. Read-only → `BaseReadOnlyViewSet`. PATCH → set `update_schema`. Extra endpoints → `@action`.
 
+Always declare a separate update schema for resources with immutable ownership.
+Ronin falls back to the create schema when `update_schema` is missing. For example,
+`UserTokenUpdateSchema` accepts only `name` and rejects extra fields; `user_id`
+belongs only to creation. Do not let a PATCH/PUT payload change a token's owner.
+
 ```python
 from fastapi import APIRouter
 from fastapi_ronin.decorators import viewset
@@ -134,6 +139,11 @@ Empty `Scope()` means **no** auto-filter — override `get_queryset()` when the 
 
 Example: `OrganizationService` is a class in `domains/organization/services/organization_service.py`. If that class later needs several private helpers, turn it into `services/organization_service/organization_service.py` plus sibling modules — not a pile of functions in `utils/`.
 
+`OrganizationService.create` saves the organization and the actor's membership in
+one transaction. Membership addition/removal validates access through
+`OrganizationUser`; duplicate membership uses the database uniqueness constraint.
+The viewsets only delegate these workflows to the service.
+
 ### Service method shape
 
 - **Main methods take model instances**, not ids (`invoice: Invoice`, not `invoice_id: UUID`). Resolve ids before the workflow runs.
@@ -183,6 +193,14 @@ app/core/tests/test_<subject>.py          # health, auth, kernel
 ```
 
 Shared Tortoise fixture: `app/conftest.py` (`db`) + `@pytest.mark.asyncio`. Prefer `TestClient` without DB when persistence is not required.
+
+The default suite uses a separate PostgreSQL database and applies its migrations.
+For local checks that must not run migrations, use
+`cd backend && uv run manage.py test --sqlite`. Each `db` fixture gets a fresh
+in-memory SQLite schema; production/test PostgreSQL databases are not touched.
+SQLite checks cover API behavior and permissions, not PostgreSQL migration or
+engine compatibility. `api_client` uses the real ASGI app without starting external
+services; `user_factory` creates test identities in the selected test database.
 
 Canonical example: `app/domains/organization/tests/test_organization.py`. Also `app/core/tests/test_health.py`.
 

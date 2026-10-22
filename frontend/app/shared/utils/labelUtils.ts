@@ -1,26 +1,16 @@
-import type { LabelConfig } from "../ui/app/types/label-types"
+import { semanticColorClasses, type AppLabelConfig } from "../ui/app/types/label-types"
 
-export type LabelConfigWithValues<T extends string | number | symbol> = LabelConfig & { value: T }
+export type AppLabelConfigWithValues<T extends string | number | symbol> = AppLabelConfig & { value: T }
 
-/** Класс цвета для иконки по семантике `LabelConfig.color` (Prime / Tailwind). */
-export const labelColorToIconClass = (color: LabelConfig['color']): string => {
-  const map: Record<LabelConfig['color'], string> = {
-    primary: 'text-primary-500',
-    secondary: 'fg-secondary',
-    success: 'text-green-500',
-    info: 'text-sky-500',
-    warn: 'text-amber-500',
-    help: 'text-violet-500',
-    danger: 'text-red-500',
-    contrast: 'text-surface-950 dark:text-surface-0',
-  }
-  return map[color]
+
+export const labelColorToIconClass = (color: AppLabelConfig['color']): string => {
+  return color ? semanticColorClasses[color] : 'text-muted-foreground'
 }
 
-export const getLabelConfigsWithValues = <T extends string | number | symbol>(values: Record<T, LabelConfig>) => {
-  const result: LabelConfigWithValues<T>[] = Object.entries(values).map(([value, labelConfig]) => {
+export const getLabelConfigsWithValues = <T extends string | number | symbol>(values: Record<T, AppLabelConfig>) => {
+  const result: AppLabelConfigWithValues<T>[] = Object.entries(values).map(([value, labelConfig]) => {
     return {
-      ...labelConfig as LabelConfig,
+      ...labelConfig as AppLabelConfig,
       value: value as T,
     }
   })

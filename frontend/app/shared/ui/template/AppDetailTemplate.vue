@@ -1,5 +1,8 @@
 <template>
-  <AppSection v-bind="sectionBind">
+  <component
+    :is="templateVariant === 'page' ? AppPageView : AppSection"
+    v-bind="sectionBind"
+  >
     <template
       v-if="currentItem && showHeaderActions"
       #actions
@@ -19,6 +22,23 @@
       />
     </template>
 
+    <AppLoadingIndicator
+      v-if="loading && !currentItem"
+      label="Загрузка записи…"
+    />
+    <div
+      v-else-if="error && !currentItem"
+      role="alert"
+      class="flex flex-col items-start gap-3"
+    >
+      <p>Не удалось загрузить запись. Проверьте доступ и попробуйте ещё раз.</p>
+      <AppButton
+        variant="outline"
+        @click="loadItem"
+      >
+        Повторить
+      </AppButton>
+    </div>
     <div
       v-if="currentItem"
       class="flex flex-col gap-4"
@@ -37,10 +57,12 @@
         @save="handleSave"
       />
     </div>
-  </AppSection>
+  </component>
 </template>
 
 <script setup generic="T extends AppModel" lang="ts">
+import AppPageView from '../app/AppPageView.vue'
+import AppSection from '../app/AppSection.vue'
 import type { AppDetailTemplateProps } from './types/template-types'
 
 export type { AppDetailTemplateActionsProps, AppDetailTemplateProps } from './types/template-types'
@@ -67,7 +89,7 @@ const sectionBind = useSectionBind(props, {
   },
 })
 
-const { item: detailItem, loading } = useTemplateDetail(
+const { item: detailItem, loading, error, loadItem } = useTemplateDetail(
   props.repo,
   props.detailRouteParam,
   props.buildNewItem,
@@ -86,6 +108,7 @@ const showFooterActions = computed(() => {
 })
 
 const handleSave = (event: AppDetailActionsSaveResult<T>) => {
+  if (event.item) detailItem.value = event.item
   emit('save', event)
 }
 

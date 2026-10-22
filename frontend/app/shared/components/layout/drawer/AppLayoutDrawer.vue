@@ -1,7 +1,7 @@
 <template>
   <aside class="sticky top-0 flex h-full min-h-0 max-h-full flex-col self-start overflow-hidden">
     <nav
-      class="bg-secondary radius-md flex min-h-0 flex-1 flex-col overflow-y-auto border-base border px-2 py-4 dark:border-none"
+      class="bg-card radius-md flex min-h-0 flex-1 flex-col overflow-y-auto border-base border px-2 py-4 dark:border-none"
     >
       <div
         v-for="section in sections"
@@ -15,6 +15,8 @@
           >
             <AppButton
               :to="item.to"
+              :aria-label="item.label"
+              :title="item.label"
               :icon="item.icon"
               :severity="isActiveRoute(item.to) ? 'primary' : 'secondary'"
               :text="!isActiveRoute(item.to)"

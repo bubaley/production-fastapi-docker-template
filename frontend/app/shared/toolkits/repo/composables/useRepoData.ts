@@ -1,3 +1,5 @@
+import { computed, onMounted, onScopeDispose, ref, shallowRef, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue'
+
 export interface UseRepoDataProps<T> {
   repo?: AppRepo<T extends AppModel ? T : never>
   items?: T[]
@@ -6,7 +8,7 @@ export interface UseRepoDataProps<T> {
   onlyClientSearch?: boolean
   filterFields?: (keyof T)[]
   filter?: boolean
-  extraParams?: Record<string, any>
+  extraParams?: MaybeRefOrGetter<Record<string, unknown>>
   autoLoad?: boolean
   storeInRepo?: boolean
   itemLabel?: string | ((v: T) => string)
@@ -14,127 +16,86 @@ export interface UseRepoDataProps<T> {
 }
 
 export const useRepoData = <T>(params: Omit<UseRepoDataProps<T>, 'items'> & { items?: Ref<T[] | undefined> }) => {
-  const {
-    repo,
-    items,
-    debounce,
-    onlyClientSearch = false,
-    filterFields = [],
-    autoLoad = true,
-    storeInRepo = false,
-    searchParam = 'search',
-    extraParams = {},
-  } = params
-  const itemLabel = params.itemLabel
-  const itemValue = params.itemValue
-
   const search = ref('')
-
-  const computedDebounce = computed(() => {
-    return repo && !onlyClientSearch ? (debounce ?? 400) : 0
-  })
-
-  const getItemLabel = (item?: T | null) => {
-    if (!item) return null
-    if (typeof itemLabel === 'function') return itemLabel(item)
-    return itemLabel ? (item as any)[itemLabel as keyof T] : item
+  const data = ref(params.items?.value ?? []) as Ref<T[]>
+  const pagination = ref<AppPagination>(paginationFromServer())
+  const loading = ref(false)
+  const error = shallowRef<Error | null>(null)
+  const debounce = computed(() => params.repo && !params.onlyClientSearch ? (params.debounce ?? 400) : 0)
+  let generation = 0
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const access = (item: T | null | undefined, accessor?: string | ((v: T) => string)) => {
+    if (item == null) return null
+    return typeof accessor === 'function' ? accessor(item) : accessor ? (item as Record<string, unknown>)[accessor] : item
   }
-
-  const getItemValue = (item?: T | null) => {
-    if (!item) return null
-    if (typeof itemValue === 'function') return itemValue(item)
-    return itemValue ? (item as any)[itemValue as keyof T] : item
+  const getItemLabel = (item?: T | null) => access(item, params.itemLabel)
+  const getItemValue = (item?: T | null) => access(item, params.itemValue)
+  const clientFilter = (items: T[], term: string) => {
+    if (!term.trim()) return items
+    const fields = params.filterFields?.length ? params.filterFields : [params.itemLabel]
+    return filterBySearch(term, items, (item) => fields.map(field => String(access(item, field as string) ?? '')).join(' ').toLowerCase())
   }
-
-  // ?????
-  const _getFieldValue = (item: T, field: keyof T | string | ((v: T) => string)): string => {
-    if (!item) return ''
-    if (typeof field === 'function') return field(item)
-    return String((item as any)[field] || '')
+  const invalidate = () => {
+    generation++
+    clearTimeout(timer)
+    loading.value = false
+    error.value = null
   }
-
-  const clientFilter = (items: T[], searchTerm: string): T[] => {
-    if (!searchTerm.trim()) return items as T[]
-    const fieldsToSearch = filterFields.length > 0 ? filterFields : [itemLabel as keyof T]
-    return filterBySearch<T>(searchTerm, items, (item) => {
-      // Combine all searchable fields into one string
-      return fieldsToSearch
-        .map((field) => _getFieldValue(item, field))
-        .join(' ')
-        .toLowerCase()
-    })
-  }
-
-  const _loadItems = async (params: Record<string, any> = {}, config: RepoListConfig = {}) => {
-    if (!repo) return items?.value || []
-    const searchParams = search.value ? { [searchParam]: search.value } : {}
-    const result = await repo.list({ ...searchParams, ...params, ...extraParams }, { storeInRepo, ...config })
-    return result?.items || []
-  }
-
-  const loadItems = async (params: Record<string, any> = {}, config: RepoListConfig = {}) => {
-    loadItemsState.data.value = await _loadItems(params, config)
-  }
-
-  const loadItemsState = useActionState<T[]>(
-    async () => {
-      if (repo && !onlyClientSearch) {
-        return await _loadItems()
-      } else {
-        return clientFilter(items?.value || [], search.value)
+  const loadItems = async (query: Record<string, unknown> = {}, config: RepoListConfig = {}) => {
+    invalidate()
+    const request = generation
+    loading.value = true
+    error.value = null
+    try {
+      if (!params.repo || params.onlyClientSearch) {
+        data.value = clientFilter(params.items?.value ?? [], search.value)
+        return data.value
       }
-    },
-    { debounce: computedDebounce.value },
-  )
-
-  const itemsComputed = computed<T[]>(() => {
-    return (loadItemsState.data.value || []) as T[]
-  })
-
-  watch(search, () => {
-    void loadItemsState.execute()
-  })
-
-  watch(
-    () => items?.value,
-    (v) => {
-      _setInitialItems(v || [])
-    },
-  )
-
-  const _setInitialItems = (items: T[]) => {
-    loadItemsState.data.value = items
+      const page = config.pagination ?? pagination.value
+      const result = await params.repo.list(
+        { ...(search.value ? { [params.searchParam ?? 'search']: search.value } : {}), ...query, ...toValue(params.extraParams ?? {}) },
+        { ...config, pagination: { ...page }, storeInRepo: false },
+      )
+      if (request !== generation) return data.value
+      if (!result) throw new Error('Не удалось загрузить данные')
+      pagination.value = { ...result.pagination }
+      data.value = config.mode === 'append' ? [...data.value, ...result.items] : result.items
+      if (params.storeInRepo) {
+        params.repo.items = data.value as typeof params.repo.items
+        params.repo.pagination = { ...result.pagination }
+      }
+      return data.value
+    } catch (reason) {
+      if (request !== generation) return data.value
+      error.value = reason instanceof Error ? reason : new Error(String(reason))
+      throw reason
+    } finally {
+      if (request === generation) loading.value = false
+    }
   }
-
-  onMounted(async () => {
-    if (items?.value?.length) {
-      _setInitialItems(items?.value)
-    }
-    if (repo && storeInRepo) {
-      _setInitialItems(repo.items || [])
-    }
-    if (autoLoad && repo) {
-      _setInitialItems((await _loadItems()) || [])
-    }
-  })
-
-  return {
-    // Data
-    items: itemsComputed,
-    search,
-    loadItemsState,
-
-    // Computed properties
-    debounce: computedDebounce,
-
-    // Methods
-    loadItems,
-    getItemLabel,
-    getItemValue,
-    clientFilter,
-
-    // Default properties
-    itemLabel,
-    itemValue,
+  const reload = () => {
+    invalidate()
+    pagination.value = paginationFromServer({ size: pagination.value.size })
+    const run = () => { void loadItems().catch(() => {}) }
+    if (debounce.value) timer = setTimeout(run, debounce.value)
+    else run()
   }
+  watch(search, reload, { flush: 'sync' })
+  watch(() => params.repo?.revision, () => {
+    invalidate()
+    data.value = []
+    pagination.value = paginationFromServer()
+  }, { flush: 'sync' })
+  watch(() => toValue(params.extraParams ?? {}), () => {
+    data.value = []
+    if (params.storeInRepo && params.repo) params.repo.items = []
+    reload()
+  }, { deep: true, flush: 'sync' })
+  watch(() => params.items?.value, value => { data.value = clientFilter(value ?? [], search.value) })
+  onMounted(() => {
+    if (params.autoLoad !== false && params.repo) void loadItems().catch(() => {})
+  })
+  onScopeDispose(invalidate)
+  const loadItemsState = { data, loading, error, execute: loadItems }
+  return { items: data, search, pagination, loading, error, loadItemsState, debounce, loadItems, getItemLabel, getItemValue, clientFilter, itemLabel: params.itemLabel, itemValue: params.itemValue }
 }

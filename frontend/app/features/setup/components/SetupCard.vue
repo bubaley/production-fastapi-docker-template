@@ -1,8 +1,8 @@
 <template>
-  <AppBlock
+  <AppCard
     variant="outlined"
+    interactive
     class="mb-4 flex w-full p-4"
-    radius="md"
   >
     <div class="flex items-center gap-4 w-full">
       <Icon
@@ -22,7 +22,7 @@
         />
       </div>
     </div>
-  </AppBlock>
+  </AppCard>
 </template>
 
 <script setup lang="ts">

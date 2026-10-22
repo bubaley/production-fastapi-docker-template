@@ -14,15 +14,15 @@
     :build-new-item="() => userTokenCodec.decode({ user_id: props.userId })"
     :repo="repo"
   >
-    <Column
+    <AppColumn
       field="name"
       header="Наименование"
     />
-    <Column
+    <AppColumn
       field="value_preview"
       header="Токен"
     />
-    <Column header="Последнее использование">
+    <AppColumn header="Последнее использование">
       <template #body="{ data }">
         <AppDateLabel
           v-if="data.last_used_at"
@@ -30,26 +30,26 @@
         />
         <span
           v-else
-          class="text-surface-500"
+          class="text-muted-foreground"
         >—</span>
       </template>
-    </Column>
-    <Column header="Создан">
+    </AppColumn>
+    <AppColumn header="Создан">
       <template #body="{ data }">
         <AppDateLabel
           v-if="data.created_at"
           :date="data.created_at"
         />
       </template>
-    </Column>
+    </AppColumn>
     <template #detail-modal="{ detailItem }">
       <AppInput
         v-model="detailItem.name"
         label="Наименование"
       />
       <div v-if="detailItem.id">
-        <Message
-          :severity="detailItem.value ? 'success' : undefined"
+        <AppCard
+          :color="detailItem.value ? 'success' : 'neutral'"
           class="w-full"
         >
           <div class="flex items-start gap-2 w-full">
@@ -64,17 +64,16 @@
               @click="copyToken(detailItem.value)"
             />
           </div>
-        </Message>
+        </AppCard>
       </div>
-      <Message v-else>
+      <AppCard v-else>
         После сохранения полный токен будет показан в уведомлении. Сохраните его в надёжном месте.
-      </Message>
+      </AppCard>
     </template>
   </AppListTemplate>
 </template>
 
 <script setup lang="ts">
-import Column from 'primevue/column'
 import { userTokenCodec } from '../models/userToken'
 import { useUserTokenRepo } from '../repos/userTokenRepo'
 
@@ -83,14 +82,14 @@ const props = defineProps<{
 }>()
 
 const repo = useUserTokenRepo()
-const { notify } = useNotify()
+const toast = useToast()
 
 const copyToken = async (value: string) => {
   try {
     await navigator.clipboard.writeText(value)
-    notify({ summary: 'Скопировано' })
+    toast.default('Скопировано')
   } catch {
-    notify({ severity: 'error', summary: 'Не удалось скопировать' })
+    toast.error('Не удалось скопировать')
   }
 }
 </script>

@@ -7,7 +7,7 @@ What the app does (purpose, scenarios): [product.md](product.md).
 | Layer | Stack |
 |---|---|
 | Backend | Python 3.14, FastAPI, Tortoise ORM, fastapi-ronin, Taskiq, Redis, PostgreSQL |
-| Frontend | Nuxt 4, Vue 3, Pinia, PrimeVue, Tailwind CSS |
+| Frontend | Nuxt 4, Vue 3, Pinia, shadcn-vue / Reka UI, Tailwind CSS |
 | Infra | Docker Compose, Caddy (prod), Makefile |
 
 **Where to put new code**
@@ -16,7 +16,9 @@ What the app does (purpose, scenarios): [product.md](product.md).
 - Cross-cutting infrastructure (auth kernel, S3, base viewset) → `backend/app/core/` or `frontend/app/shared/`.
 - Pages are thin: they only mount a feature view. Layouts own navigation.
 
-Canonical examples: `backend/app/domains/organization/`, `frontend/app/features/organization/`. Live UI primitives: `/home/ui`.
+Canonical examples: `backend/app/domains/organization/`, `frontend/app/features/organization/`. Live UI primitives: `/ui` (public static catalogue); `/home/ui` redirects there. The catalogue uses local sample data and does not expose organization resources.
+
+`AppPageView` combines `AppPage` and `PageHeader` for one page heading and a bounded scrolling body. The fixed regions are header, subheader before the divider, controls after the divider, and footer; HomeView demonstrates them. `AppSection` groups content structurally; use `AppCard` for a visible surface. App controls share the Tasker control sizes and semantic light/dark tokens. Feature data still goes through the existing repo/codec toolkit.
 
 ### New capability — definition of done
 
@@ -63,6 +65,12 @@ Owns process-wide wiring. Do not put organization/user business rules here.
 | `utils/` | Small **functions** (dates, exception details, M2M helpers) |
 | `fields/` | Reusable Tortoise/Pydantic fields |
 | `tests/` | App-level tests (health, auth smoke) — not domain tests |
+
+`core/services/websocket_service.py` is the single websocket transport. Secure
+channels deny access until a domain supplies an explicit policy.
+`OrganizationWebSocketService` reuses `core/auth.py` credential resolution and
+checks membership before accepting a connection. Business membership workflows
+live in `domains/organization/services/organization_service.py`.
 
 ### `domains/<name>/` — business module
 
@@ -144,7 +152,7 @@ components/member-list/                    # one concern, several files
 composables/useOrganization.ts             # shared across the whole feature
 ```
 
-Same idea already exists in the UI kit: `shared/ui/app/smartDatePicker/` (components + local composables).
+Same idea already exists in the UI kit: `shared/ui/app/date-picker/` (components + local composables).
 
 ### `pages/` and `layouts/`
 
@@ -158,9 +166,10 @@ Same idea already exists in the UI kit: `shared/ui/app/smartDatePicker/` (compon
 | Path | Why it exists |
 |---|---|
 | `ui/app/` | Primitives (`AppButton`, `AppInput`, `AppModal`, …). Extend these before adding a new kit component |
-| `ui/template/` | List/detail page templates and their composables |
-| `ui/app/<cluster>/` | A primitive that needs several files (see `smartDatePicker`) |
-| `composables/` | App-wide composables (`useRepo`, `useActionState`, `useNotify`) |
+| `ui/template/` | List/detail page templates, `PageHeader`, actions and their composables |
+| `ui/shadcn/` | Local shadcn primitives built on Reka UI; consumed through App components |
+| `ui/app/<cluster>/` | A primitive that needs several files (`select`, `date-picker`, `filters`) |
+| `composables/` | App-wide composables (`useRepo`, `useActionState`, `useToast`) |
 | `toolkits/repo/` | Generic repo/codec/pagination — do not fork this per feature |
 | `toolkits/authentication/` | Token storage and auth client |
 | `utils/` | Small frontend helpers |
@@ -179,3 +188,5 @@ Router (domains/*/views.py) → ViewSet → FilterObjectsManager → Model
 ```
 
 Frontend never calls `useFetch` for business resources — always a repo.
+
+`AppListToolbar` is the shared search/filter composition: fixed in page list controls, sticky in nested lists. `UserProfileView` owns profile presentation; `pages/settings/profile.vue` only mounts the view.

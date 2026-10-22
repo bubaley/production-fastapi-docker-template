@@ -1,14 +1,14 @@
 import type { $Fetch } from 'ofetch'
 import { createCookieCodec } from '~/shared/toolkits/authentication/authTokenPairCodec'
 
-export interface User {
+interface AuthUser {
   id: number | null
   email: string
   is_staff: boolean
 }
 
 export const useAuthRepo = defineStore('authRepo', () => {
-  const { state, actions } = createAuthAppRepo<User>({
+  const { state, actions } = createAuthAppRepo<AuthUser>({
     urls: {
       login: 'users/login',
       register: 'users/register',

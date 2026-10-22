@@ -9,7 +9,7 @@ What the template can do today (purpose, scenarios): [docs/product.md](docs/prod
 | Layer | Technologies |
 |---|---|
 | Backend | Python 3.14, FastAPI, Tortoise ORM, fastapi-ronin, Taskiq, Redis, PostgreSQL |
-| Frontend | Nuxt 4, Vue 3, Pinia, PrimeVue, Tailwind CSS |
+| Frontend | Nuxt 4, Vue 3, Pinia, shadcn-vue / Reka UI, Tailwind CSS |
 | Infra | Docker Compose, Caddy (prod), Makefile |
 
 The backend exposes a REST API (`/api/v1`); the frontend is an SPA with a repo layer on top of `$api`. Data is scoped by user and current organization.
@@ -70,3 +70,25 @@ Other useful commands: `make mm` (create migrations), `make help`.
 | `make rt` | Run Taskiq scheduler + worker |
 | `make lint` | Backend pre-commit (ruff, …) + frontend ESLint |
 | `make test` / `make t` | Run backend tests (pytest) |
+
+## UI catalogue and frontend checks
+
+Open `http://localhost:9001/ui` (or your configured frontend port) to inspect the public catalogue with local sample data. `/home/ui` redirects to `/ui`. App components use shadcn/Reka primitives, Tasker control sizes, semantic light/dark tokens, and `Modal` naming. Screen composition and repo/codec patterns are documented in [docs/frontend-concept.md](docs/frontend-concept.md).
+
+Run frontend checks from `frontend/`:
+
+```bash
+pnpm test           # Vitest: repo/query and UI behavior
+pnpm typecheck      # Nuxt + Vue TypeScript checks
+pnpm build         # production build
+```
+
+Run `make lint` from the repository root. For UI changes, also inspect `/ui` and affected screens in a browser, including mobile width, both themes, empty/loading/error states and nested overlays. Passing automated checks does not substitute for that visual review.
+
+## CI and releases
+
+CI checks backend lint and tests, plus frontend ESLint, TypeScript, Vitest and production build with locked dependencies. `All Checks Passed` requires every backend and frontend job to succeed. A successful `push` run on `main` starts the release workflow: `prepare` generates the version/tag and changelog from the exact tested commit, `docker` gates the final build, and `release` publishes the GitHub Release only after both jobs succeed. A failed or skipped build prevents publication. Release runs are serialized; a stale CI commit cannot prepare a release after `main` has advanced.
+
+The Docker build steps are intentionally commented out in this template. The active `docker` job contains a placeholder, so template releases require no container registry credentials. For a real project, set `IMAGE_NAME` in the workflow and repository secrets `YC_REGISTRY` and `YC_KEY_JSON`; replace the placeholder by uncommenting the steps inside `docker`. Keep `release.needs: [prepare, docker]`. The build checks out the generated tag, builds the final runtime image and pushes its version and `latest` tags before release publication. Deployment is not configured here.
+
+The version commit and Git tag are prepared before the build. If a production build fails, rerun its failed jobs after fixing the cause; do not restart the whole workflow to generate a second version. GitHub Release publication remains the last step.

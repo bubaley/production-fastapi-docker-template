@@ -56,7 +56,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('backend/.pre-commit-config.yaml') }}
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: |
             pre-commit-${{ runner.os }}-
 
@@ -104,17 +104,56 @@ jobs:
         working-directory: backend
         run: uv run manage.py test
 
+  frontend:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install packages
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm exec eslint .
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Production build
+        run: pnpm build
+
   all-checks:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint-and-format, test]
+    needs: [lint-and-format, test, frontend]
     if: always()
 
     steps:
       - name: Check all jobs
         run: |
           if [[ "${{ needs.lint-and-format.result }}" != "success" ||
-                "${{ needs.test.result }}" != "success" ]]; then
+                "${{ needs.test.result }}" != "success" ||
+                "${{ needs.frontend.result }}" != "success" ]]; then
             echo "One or more checks failed"
             exit 1
           fi

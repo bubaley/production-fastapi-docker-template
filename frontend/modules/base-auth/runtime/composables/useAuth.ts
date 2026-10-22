@@ -19,6 +19,7 @@ export const useAuth = () => {
     error: null,
     _tokensInitialized: false,
   }))
+  const generation = useState('baseAuthGeneration', () => 0)
 
   const isAuthenticated = computed(() => !!state.value.session)
 
@@ -35,7 +36,7 @@ export const useAuth = () => {
   const startAutoRefresh = () => {
     if (intervalId || !config.sessionRefresh.interval) return
     intervalId = setInterval(async () => {
-      await refresh()
+      if (isAuthenticated.value) await refresh().catch(() => {})
     }, config.sessionRefresh.interval * 1000)
   }
 
@@ -46,6 +47,7 @@ export const useAuth = () => {
 
   // Base request
   const request = async <T = any>(endpoint: string, body?: any): Promise<AuthActionResult<T>> => {
+    const requestGeneration = generation.value
     state.value.isLoading = true
     state.value.error = null
 
@@ -66,8 +68,9 @@ export const useAuth = () => {
       }
 
     } finally {
-      state.value.isLoading = false
+      if (requestGeneration === generation.value) state.value.isLoading = false
     }
+    if (requestGeneration !== generation.value) return { data: null, error: null, tokens: {} }
     if (!response) {
       return {
         data: null,
@@ -102,7 +105,9 @@ export const useAuth = () => {
   const getSessionAsyncData = useAsyncData(
     'base-auth-session',
     async () => {
+      const requestGeneration = generation.value
       const { tokens } = await getTokens()
+      if (requestGeneration !== generation.value) return { data: null, error: null, tokens: {} }
       if (shouldRefresh(tokens, config.sessionRefresh.beforeExpiry)) await refresh()
       if (!state.value.tokens.access?.isValid) {
         return {
@@ -112,7 +117,7 @@ export const useAuth = () => {
         }
       }
       const response = await request<Session>('/session')
-      if (response.data) {
+      if (response.data && requestGeneration === generation.value) {
         state.value.session = response.data
       }
       return response
@@ -154,8 +159,11 @@ export const useAuth = () => {
   const logout = async () => {
     const response = await request('/logout')
     if (response.error) return response
+    generation.value++
     state.value.session = null
     state.value.tokens = {}
+    state.value._tokensInitialized = false
+    state.value.error = null
     return response
   }
 

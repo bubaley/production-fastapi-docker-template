@@ -28,7 +28,7 @@ const props = withDefaults(defineProps<AppTemplateActionsProps>(), {
 })
 
 const actionsLoading = ref<number[]>([])
-const { notify } = useNotify()
+const toast = useToast()
 
 const visibleActions = computed(() => props.actions.filter((action) => !action.hidden))
 
@@ -51,11 +51,11 @@ const executeAction = async (action: AppTemplateAction, index: number) => {
   try {
     await action.action()
     if (action.successNotification) {
-      notify({ summary: action.successNotification })
+      toast.default(action.successNotification)
     }
   } catch (error) {
     if (action.errorNotification) {
-      notify({ severity: 'error', summary: action.errorNotification })
+      toast.error(action.errorNotification)
     }
     throw error
   } finally {

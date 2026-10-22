@@ -1,12 +1,14 @@
 import { last } from 'lodash-es'
 
 export type AppDetailActionsConfig = {
+  successMessage?: string
+  errorMessage?: string
   disableNotification?: boolean
   changeRouteParam?: boolean
 }
 
 export const useDetailActions = <T extends AppModel>(repo: AppRepoStore<T>) => {
-  const { notify } = useNotify()
+  const toast = useToast()
 
   const saveLoading = ref(false)
   const route = useRoute()
@@ -21,7 +23,7 @@ export const useDetailActions = <T extends AppModel>(repo: AppRepoStore<T>) => {
 
   const _handleError = (error: any, summary: string, config?: AppDetailActionsConfig) => {
     if (!config?.disableNotification) {
-      notify({ severity: 'error', summary: summary })
+      toast.error(summary)
     }
     console.error({
       error: error?.toString(),
@@ -43,12 +45,13 @@ export const useDetailActions = <T extends AppModel>(repo: AppRepoStore<T>) => {
         created = true
         if (config?.changeRouteParam && result) changeRouteParam(result)
       }
+      if (!result) throw new Error('Сервер не вернул сохранённую запись')
       updateListItem(result)
       if (!config?.disableNotification) {
-        notify({ summary: 'Сохранено' })
+        toast.default(config?.successMessage || 'Сохранено')
       }
     } catch (error: any) {
-      _handleError(error, 'Ошибка сохранения', config)
+      _handleError(error, config?.errorMessage || 'Ошибка сохранения', config)
       success = false
     } finally {
       saveLoading.value = false
@@ -70,15 +73,15 @@ export const useDetailActions = <T extends AppModel>(repo: AppRepoStore<T>) => {
     }
   }
 
-  const deleteItem = async (item: T): Promise<AppDetailActionsDeleteResult<T>> => {
+  const deleteItem = async (item: T, config?: AppDetailActionsConfig): Promise<AppDetailActionsDeleteResult<T>> => {
     let success = true
     try {
       deleteLoading.value = true
       await repo.delete(item)
       deleteListItem(item)
-      notify({ summary: 'Удалено' })
+      if (!config?.disableNotification) toast.default(config?.successMessage || 'Удалено')
     } catch (error) {
-      _handleError(error, 'Ошибка удаления')
+      _handleError(error, config?.errorMessage || 'Ошибка удаления', config)
       success = false
     } finally {
       deleteLoading.value = false

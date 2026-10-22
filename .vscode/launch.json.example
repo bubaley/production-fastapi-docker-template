@@ -14,7 +14,7 @@
                 "app.main:app",
                 "--reload",
                 "--port",
-                 "${BACKEND_PORT:-9000}"
+                 "9000"
             ],
             "jinja": true
         }

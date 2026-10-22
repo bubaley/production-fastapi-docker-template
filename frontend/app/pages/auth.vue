@@ -1,9 +1,5 @@
-<template>
-  <NuxtLayout name="auth">
-    <AuthView />
-  </NuxtLayout>
-</template>
-
+<template><AuthView /></template>
 <script setup lang="ts">
 import AuthView from '~/features/auth/views/AuthView.vue'
+definePageMeta({ layout: 'auth' })
 </script>

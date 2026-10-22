@@ -5,30 +5,30 @@
     detail-route-name="settings-users-id"
     :repo="useRepo('user')"
   >
-    <Column
+    <AppColumn
       field="email"
       header="Email"
     />
-    <Column
+    <AppColumn
       field="first_name"
       header="Имя"
     />
-    <Column
+    <AppColumn
       field="last_name"
       header="Фамилия"
     />
-    <Column
+    <AppColumn
       field="is_superuser"
       header="Суперпользователь"
     >
       <template #body="{ data }">
-        <Checkbox
+        <AppCheckbox
           v-model="data.is_superuser"
           readonly
           binary
         />
       </template>
-    </Column>
+    </AppColumn>
   </AppListTemplate>
 </template>
 

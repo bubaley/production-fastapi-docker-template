@@ -20,6 +20,7 @@ export const useSetupStore = defineStore('setup', () => {
   })
 
   const isRestoring = ref(false)
+  let generation = 0
 
   const repoMap = {
     organization: useRepo('organization'),
@@ -66,7 +67,7 @@ export const useSetupStore = defineStore('setup', () => {
 
   const restore = async () => {
     if (!import.meta.client) return
-
+    const request = ++generation
     isRestoring.value = true
     try {
       const raw = localStorage.getItem(setupStorageKey)
@@ -85,7 +86,7 @@ export const useSetupStore = defineStore('setup', () => {
           repoTasks.push(
             (async () => {
               const item = await repoMap[key].retrieve(String(storedValue))
-              ;(state.value as any)[key] = item || null
+              if (request === generation) (state.value as any)[key] = item || null
             })(),
           )
           continue
@@ -95,15 +96,24 @@ export const useSetupStore = defineStore('setup', () => {
       }
 
       await Promise.all(repoTasks)
-      state.value.restored = true
+      if (request === generation) state.value.restored = true
     } finally {
-      isRestoring.value = false
-      persistState()
+      if (request === generation) {
+        isRestoring.value = false
+        persistState()
+      }
     }
   }
 
   return {
     state,
     restore,
+    reset: () => {
+      generation++
+      isRestoring.value = false
+      state.value.organization = null
+      state.value.restored = false
+      persistState()
+    },
   }
 })

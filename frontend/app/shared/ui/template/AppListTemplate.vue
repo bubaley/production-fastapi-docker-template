@@ -1,5 +1,8 @@
 <template>
-  <AppSection v-bind="sectionBind">
+  <component
+    :is="templateVariant === 'page' ? AppPageView : AppSection"
+    v-bind="sectionBind"
+  >
     <template
       v-if="!hideHeader"
       #actions
@@ -7,17 +10,48 @@
       <slot name="actions" />
       <AppButton
         v-if="!hideCreateButton && !$slots.actions"
-        severity="secondary"
+        variant="default"
         @click="handleCreateClick"
       >
-        Создать
+        {{ createLabel || 'Создать' }}
       </AppButton>
+    </template>
+
+    <template
+      v-if="templateVariant === 'page' && (showSearch || filterSpec || $slots['search-actions'] || $slots.filters)"
+      #controls
+    >
+      <AppListToolbar
+        v-model:search="repoData.search.value"
+        v-model:filters="filters"
+        :filter-spec="filterSpec"
+        :fixed-fields="fixedFields"
+        :available-filters="availableFilters"
+        class="py-2"
+        :show-search="showSearch"
+        :search-loading="repoData.loading.value"
+        :search-placeholder="searchPlaceholder"
+      >
+        <template
+          v-if="$slots['search-actions']"
+          #search-actions
+        >
+          <slot name="search-actions" />
+        </template>
+        <template
+          v-if="$slots.filters"
+          #filters
+        >
+          <slot name="filters" />
+        </template>
+      </AppListToolbar>
     </template>
 
     <AppList
       v-bind="listBind"
       v-model:page="page"
       v-model:search="repoData.search.value"
+      :class="templateVariant === 'page' && mode === 'table' && tableBleed && '-mx-3 md:-mx-4'"
       @item-click="onItemClick"
       @load-more="handleLoadMore"
       @page-change="handlePageChange"
@@ -33,16 +67,23 @@
         />
       </template>
       <template
-        v-if="$slots['search-actions']"
+        v-if="templateVariant !== 'page' && $slots['search-actions']"
         #search-actions
       >
         <slot name="search-actions" />
       </template>
       <template
-        v-if="$slots.filters"
+        v-if="templateVariant !== 'page' && (filterSpec || $slots.filters)"
         #filters
       >
-        <slot name="filters" />
+        <AppListToolbar
+          v-model:filters="filters"
+          :filter-spec="filterSpec"
+          :fixed-fields="fixedFields"
+          :available-filters="availableFilters"
+        >
+          <template #filters><slot name="filters" /></template>
+        </AppListToolbar>
       </template>
       <slot />
       <template
@@ -61,24 +102,27 @@
         <slot name="footer" />
       </template>
     </AppList>
-  </AppSection>
+  </component>
 
   <AppModal
     v-model="detailModal"
+    :close-label="detailModalProps?.closeLabel"
+    :title="detailModalProps?.title || (selectedItem?.id ? 'Обновление' : 'Создание')"
     :width="detailModalProps?.width || '30rem'"
     :class="detailModalProps?.class"
   >
+    <!-- @vue-generic {T} -->
     <AppDetailTemplate
-      v-if="selectedItem && repo"
+      v-if="selectedItem && detailRepo"
       class="mb-0!"
       hide-back-button
       mode="inline"
-      :repo="repo"
+      :repo="detailRepo"
       :item="selectedItem"
       template-variant="flat-section"
       v-bind="detailModalProps"
-      :actions-props="{ ...detailModalActionsProps, reverseActions: true }"
-      :title="detailModalProps?.title || (selectedItem?.id ? 'Обновление' : 'Создание')"
+      :actions-props="{ ...detailModalActionsProps }"
+      hide-header
       @cancel="detailModal = false"
       @delete="handleDetailAction"
       @save="handleSave"
@@ -92,15 +136,21 @@
 </template>
 
 <script setup generic="T extends AppModel" lang="ts">
+import { toValue, watch } from 'vue'
+import type { ViewFilters } from '../app/filters/types'
 import { cloneDeep } from 'lodash-es'
+import AppListToolbar from '../app/AppListToolbar.vue'
+import AppPageView from '../app/AppPageView.vue'
+import AppSection from '../app/AppSection.vue'
 import type { AppListTemplateProps } from './types/template-types'
 import type { AppListProps, ItemClickEvent } from '../app/AppList.vue'
 import type { AppPaginationEvent } from './AppPagination.vue'
 
 const props = withDefaults(defineProps<AppListTemplateProps<T>>(), {
   mode: 'table',
+  tableBleed: true,
   showPagination: true,
-  infiniteScroll: false,
+  infiniteScroll: true,
   detailRouteParam: 'id',
   contentClass: '',
   searchParam: 'search',
@@ -121,16 +171,28 @@ const emit = defineEmits<{
   'update:selection': any
 }>()
 
+const filters = defineModel<ViewFilters>('filters', { default: () => ({}) })
+
 const router = useRouter()
-const itemsRef = toRef(props, 'items')
-const selectedItem = ref<T | null>(null)
+const itemsRef = computed<T[] | undefined>(() => props.items)
+const selectedItem = shallowRef<T | null>(null)
 const detailModal = ref(false)
+const detailRepo = computed(() => props.repo as AppRepoStore<T> | undefined)
+watch(
+  () => props.repo?.revision,
+  () => {
+    selectedItem.value = null
+    detailModal.value = false
+  },
+  { flush: 'sync' },
+)
 
 const sectionBind = useSectionBind(props)
 
 const repoData = useRepoData<T>({
   ...props,
   items: itemsRef,
+  extraParams: () => ({ ...filters.value, ...toValue(props.extraParams ?? {}) }),
   storeInRepo: props.storeInRepo,
 })
 
@@ -141,18 +203,12 @@ const detailModalActionsProps = computed(() => ({
 }))
 
 const page = computed({
-  get: () => props.repo?.pagination.page ?? 1,
+  get: () => repoData.pagination.value.page,
   set: (value: number) => {
-    if (props.repo) {
-      props.repo.pagination.page = value
-    }
+    repoData.pagination.value.page = value
   },
 })
-
-const hasNextPage = computed(() => {
-  if (!props.repo) return false
-  return props.repo.pagination.has_next
-})
+const hasNextPage = computed(() => repoData.pagination.value.has_next)
 
 const listBind = computed(
   () =>
@@ -162,18 +218,22 @@ const listBind = computed(
       selection: props.selection,
       scrollable: props.scrollable,
       scrollHeight: props.scrollHeight,
+      searchPlaceholder: props.searchPlaceholder,
+      tableVariant: props.tableVariant,
       emptyText: props.emptyText,
-      infiniteScroll: props.infiniteScroll,
+      infiniteScroll: props.infiniteScroll && Boolean(props.repo) && !props.onlyClientSearch,
       showPagination: props.showPagination,
       handleItemClick: props.handleItemClick,
       itemKey: 'id' as keyof T,
       items: repoData.items.value,
-      loading: props.repo?.loading.list,
-      pagination: props.repo?.pagination,
-      paginationLoading: props.repo?.loading.list,
-      searchLoading: Boolean(props.repo?.loading.list || repoData.loadItemsState.loading.value),
+      loading: repoData.loading.value,
+      pagination: repoData.pagination.value,
+      paginationLoading: repoData.loading.value,
+      searchLoading: repoData.loading.value,
+      error: repoData.error.value ? 'Не удалось загрузить данные' : undefined,
       hasNextPage: hasNextPage.value,
       showSearch: props.showSearch,
+      hideToolbar: props.templateVariant === 'page',
     }) as AppListProps<T>,
 )
 
@@ -192,6 +252,7 @@ const handleCreateClick = () => {
 }
 
 const handleSave = (event: AppDetailActionsSaveResult<T>) => {
+  if (!event.success) return
   if (event.item) {
     selectedItem.value = event.item
     updateListItem(cloneDeep(event.item))
@@ -202,11 +263,12 @@ const handleSave = (event: AppDetailActionsSaveResult<T>) => {
   }
 
   if (props.reloadAfterSave) {
-    void repoData.loadItems()
+    void reload().catch(() => {})
   }
 }
 
 const handleDetailAction = (event: AppDetailActionsDeleteResult<T>) => {
+  if (!event.success) return
   if (event.item) {
     deleteListItem(event.item)
   }
@@ -220,11 +282,18 @@ const _openItem = (item: T | null) => {
     detailModal.value = true
     if (item?.id && props.retrieveOnOpen && props.repo) {
       const openedId = item.id
-      void props.repo.retrieve(openedId).then((retrieved) => {
-        if (!retrieved || !detailModal.value) return
-        if (String(selectedItem.value?.id) !== String(openedId)) return
-        selectedItem.value = cloneDeep(retrieved)
-      })
+      void props.repo
+        .retrieve(openedId, undefined, undefined, { storeInRepo: false })
+        .then((retrieved) => {
+          if (!retrieved || !detailModal.value) return
+          if (String(selectedItem.value?.id) !== String(openedId)) return
+          selectedItem.value = cloneDeep(retrieved)
+        })
+        .catch(() => {
+          if (detailModal.value && String(selectedItem.value?.id) === String(openedId)) {
+            useToast().error('Не удалось загрузить запись')
+          }
+        })
     }
     return
   }
@@ -257,18 +326,27 @@ const handlePageChange = async (event: AppPaginationEvent) => {
   }
 }
 
-const handleLoadMore = () => {
-  if (!props.repo) return
+const reload = () =>
+  repoData.loadItems(undefined, {
+    pagination: paginationFromServer({ size: repoData.pagination.value.size }),
+  })
 
-  handlePageChange({
+const handleLoadMore = () => {
+  if (!props.repo || repoData.loading.value) return
+  if (!hasNextPage.value) {
+    if (repoData.error.value) void repoData.loadItems().catch(() => {})
+    return
+  }
+
+  void handlePageChange({
     append: true,
-    pagination: { ...props.repo.pagination, page: props.repo.pagination.page + 1 },
+    pagination: { ...repoData.pagination.value, page: repoData.pagination.value.page + 1 },
   })
 }
 
 defineExpose({
   openItem,
-  reload: () => repoData.loadItems(),
+  reload,
   getItems: () => repoData.items.value,
 })
 </script>

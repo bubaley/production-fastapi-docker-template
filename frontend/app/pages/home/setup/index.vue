@@ -4,10 +4,11 @@
       <AppListTemplate
         ref="organizationListRef"
         title="Выбрать организацию"
-        subtitle="Выберите организацию для продолжения"
+        description="Выберите организацию для продолжения"
         detail-mode="modal"
         mode="list"
         :repo="useRepo('organization')"
+        search-param="name"
         filter
       >
         <template #list-item="{ item }">

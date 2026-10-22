@@ -4,7 +4,10 @@ from app.domains.organization.models import Organization, OrganizationUser
 
 
 class OrganizationFilterSet(filters.FilterSet):
-    fields = (filters.CharFilter('name', default_lookup='icontains'),)
+    fields = (
+        filters.CharFilter('name', default_lookup='icontains'),
+        filters.CharFilter('key', lookups=['exact', 'icontains']),
+    )
 
     class Meta:
         model = Organization

@@ -24,7 +24,7 @@ export const userTokenCodec = createCodec<UserToken>({
     value: raw.value ?? null,
   }),
   encode: (data) => ({
-    user_id: data.user_id || null,
+    ...(!data.id ? { user_id: data.user_id || null } : {}),
     name: data.name || '',
   }),
 })

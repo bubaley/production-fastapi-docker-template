@@ -1,3 +1,4 @@
+import type { ViewFilterSpec, ViewFixedField } from '../../app/filters/types'
 import type { UseRepoDataProps } from '../../../toolkits/repo/composables/useRepoData'
 import type { AppButtonProps } from '../../app/AppButton.vue'
 import type { AppListProps } from '../../app/AppList.vue'
@@ -6,6 +7,7 @@ import type { ActionDisplayMode } from './template-ui-tokens'
 import type { AppSectionProps } from '../../app/AppSection.vue'
 
 export type AppTemplateAction = Omit<AppButtonProps, 'hidden'> & {
+  class?: string
   action?: () => Promise<void> | void
   hidden?: boolean
   mode?: ActionDisplayMode
@@ -32,6 +34,11 @@ export type AppDetailTemplateProps<T extends AppModel> = AppSectionProps & {
 }
 
 export type AppListTemplateBaseProps<T> = AppSectionProps & {
+  filterSpec?: ViewFilterSpec
+  fixedFields?: ViewFixedField[]
+  availableFilters?: string[]
+  tableBleed?: boolean
+  createLabel?: string
   hideCreateButton?: boolean
   hideHeader?: boolean
   detailMode?: 'modal' | 'route'
@@ -53,6 +60,7 @@ export type AppListTemplateDetailModalProps<T extends AppModel> = Omit<
   'repo' | 'item'
 > & {
   width?: string
+  closeLabel?: string
   closeOnSave?: boolean
 }
 

@@ -1,9 +1,68 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
-@import 'tailwindcss-primeui';
+@source '../../**/*.{vue,ts,js}';
 
-/* @custom-variant dark (&:where(.darkasd, .darkasd *)); */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
-@source inline("{!,}font-{normal,medium,semibold,bold,black}");
-@source inline("{!,}text-{normal,sm,md,lg,xl,2xl,3xl}");
+:root {
+  --background: var(--ds-canvas);
+  --foreground: var(--ds-text);
+  --card: var(--ds-surface);
+  --card-foreground: var(--ds-text);
+  --popover: var(--ds-overlay);
+  --popover-foreground: var(--ds-text);
+  --primary: var(--ds-accent);
+  --primary-foreground: var(--ds-accent-foreground, #ffffff);
+  --secondary: var(--ds-surface-raised);
+  --secondary-foreground: var(--ds-text);
+  --muted: var(--ds-surface-raised);
+  --muted-foreground: var(--ds-text-muted);
+  --accent: var(--ds-control-hover);
+  --accent-foreground: var(--ds-text);
+  --positive: var(--ds-positive);
+  --destructive: var(--ds-danger);
+  --border: var(--ds-border);
+  --input: var(--ds-border);
+  --ring: var(--ds-accent-hover);
+  --radius: var(--ds-radius-md);
+}
+
+@theme inline {
+  --font-sans: var(--app-font-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-positive: var(--positive);
+  --color-info: var(--ds-info);
+  --color-warning: var(--ds-warning);
+  --color-border: var(--border);
+  --color-overlay-border: var(--ds-border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: var(--ds-radius-sm);
+  --radius-md: var(--ds-radius-md);
+  --radius-lg: var(--ds-radius-lg);
+  --radius-xl: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -10,8 +10,8 @@ import type { NavigationSection } from '~/shared/components/layout/drawer/AppLay
 
 const navigationSections = ref<NavigationSection[]>([
   {
-    title: 'Menu',
-    items: [{ to: { name: 'home' }, label: 'Home', icon: 'lucide:home' }],
+    title: 'Меню',
+    items: [{ to: { name: 'home' }, label: 'Главная', icon: 'lucide:home' }],
   },
 ])
 </script>

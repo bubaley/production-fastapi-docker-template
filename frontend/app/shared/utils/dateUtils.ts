@@ -1,4 +1,6 @@
-import moment from 'moment'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+dayjs.extend(utc)
 
 
 const formats = {
@@ -22,5 +24,5 @@ export const formatDate = (date?: string | null, config?: FormatDateConfig) => {
   if (!variant) {
     variant = date.includes(' ') || date.includes('T') ? 'dateTime' : 'date'
   }
-  return moment.utc(date).format(formats[variant])
+  return (config.utc ? dayjs.utc(date) : dayjs(date)).format(formats[variant])
 }

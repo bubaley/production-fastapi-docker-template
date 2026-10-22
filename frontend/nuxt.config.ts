@@ -22,17 +22,17 @@ export default defineNuxtConfig({
     '@nuxtjs/google-fonts',
     './modules/base-auth',
     'dayjs-nuxt',
-    '@primevue/nuxt-module',
   ],
   components: [
     {
       path: '~/shared/ui/app',
-    },
-    {
-      path: '~/shared/ui/app/smartDatePicker',
+      pathPrefix: false,
+      extensions: ['vue'],
     },
     {
       path: '~/shared/ui/template',
+      pathPrefix: false,
+      extensions: ['vue'],
     }
   ],
   imports: {
@@ -56,33 +56,6 @@ export default defineNuxtConfig({
       'shared/ui/template/types/**',
       'shared/ui/template/composables/**',
     ],
-  },
-  primevue: {
-    importTheme: { from: '~/shared/ui/preset.ts' },
-    options: {
-      locale: {
-        dayNames: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
-        dayNamesShort: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
-        dayNamesMin: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
-        monthNames: [
-          'Январь',
-          'Февраль',
-          'Март',
-          'Апрель',
-          'Май',
-          'Июнь',
-          'Июль',
-          'Август',
-          'Сентябрь',
-          'Октябрь',
-          'Ноябрь',
-          'Декабрь',
-        ],
-        monthNamesShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
-        fileSizeTypes: ['B', 'KB', 'MB', 'GB', 'TB'],
-        firstDayOfWeek: 1,
-      },
-    },
   },
   baseAuth: {
     apiPrefix: '/api/v1/auth',

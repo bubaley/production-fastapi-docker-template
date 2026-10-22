@@ -22,12 +22,14 @@ export const createAppRepo = <T extends AppModel>(config: AppRepoConfig<T>) => {
       action: false,
     })
     const pagination: Ref<AppPagination> = ref(_paginationCodec.decode({}))
+    const revision = ref(0)
 
     // --- COMPUTED ---
     const isLoading = computed(() => Object.values(loading.value).some(Boolean))
 
     // --- HELPERS ---
     const resetStore = () => {
+      revision.value++
       item.value = null
       // items.value = []
       items.value = []
@@ -40,11 +42,12 @@ export const createAppRepo = <T extends AppModel>(config: AppRepoConfig<T>) => {
     }
 
     const withLoading = async <R>(key: keyof LoadingState, fn: () => Promise<R>): Promise<R> => {
+      const requestRevision = revision.value
       loading.value[key] = true
       try {
         return await fn()
       } finally {
-        loading.value[key] = false
+        if (requestRevision === revision.value) loading.value[key] = false
       }
     }
 
@@ -64,12 +67,15 @@ export const createAppRepo = <T extends AppModel>(config: AppRepoConfig<T>) => {
       onError?: RepoOnError,
     ): Promise<R | undefined> => {
       return withLoading(key, async () => {
+        const requestRevision = revision.value
         try {
           const response = await api.send(sendConfig)
+          if (requestRevision !== revision.value) return undefined
           const parsed = parseFn ? parseFn(response) : (response as R)
           if (storeFn) storeFn(parsed)
           return parsed
         } catch (error) {
+          if (requestRevision !== revision.value) return undefined
           handleError(error, onError)
         }
       })
@@ -106,12 +112,12 @@ export const createAppRepo = <T extends AppModel>(config: AppRepoConfig<T>) => {
         onError,
       )
 
-    const retrieve = (id: string | number, params?: Record<string, unknown>, onError?: RepoOnError) =>
+    const retrieve = (id: string | number, params?: Record<string, unknown>, onError?: RepoOnError, options: RepoRetrieveConfig = {}) =>
       _request<T>(
         'retrieve',
         { method: 'get', id, params },
         (raw) => (config.parseResponse ? config.parseResponse(raw, 'retrieve') : _codec.decode(raw)),
-        (parsed) => (item.value = parsed),
+        (parsed) => { if (options.storeInRepo !== false) item.value = parsed },
         onError,
       )
 
@@ -157,6 +163,7 @@ export const createAppRepo = <T extends AppModel>(config: AppRepoConfig<T>) => {
       loading,
       pagination,
       isLoading,
+      revision,
     }
 
     const actions = {

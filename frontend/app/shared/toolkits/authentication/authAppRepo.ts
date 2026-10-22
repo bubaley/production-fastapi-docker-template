@@ -18,7 +18,7 @@ export type AuthOptions<T extends AppModel> = {
 
 export const createAuthAppRepo = <T extends AppModel>(options: AuthOptions<T>) => {
   return () => {
-    const api = new BaseApi({ resource: '', client: options.apiClient })
+    const api = new AppApi({ resource: '', client: options.apiClient })
 
     const user: Ref<T | null> = ref(null)
     const loading: Ref<boolean> = ref(false)

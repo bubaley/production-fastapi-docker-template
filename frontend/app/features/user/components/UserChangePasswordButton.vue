@@ -42,7 +42,7 @@ const props = defineProps<{
 }>()
 
 const { session } = useAuth()
-const { notify } = useNotify()
+const toast = useToast()
 const repo = useRepo('user')
 
 const visible = ref(false)
@@ -66,15 +66,15 @@ const open = () => {
 const submitState = useActionState(
   async () => {
     if (!newPassword.value) {
-      notify({ severity: 'error', summary: 'Укажите новый пароль' })
+      toast.error('Укажите новый пароль')
       throw new Error('empty')
     }
     if (newPassword.value !== newPasswordRepeat.value) {
-      notify({ severity: 'error', summary: 'Пароли не совпадают' })
+      toast.error('Пароли не совпадают')
       throw new Error('mismatch')
     }
     if (requireCurrentPassword.value && !currentPassword.value) {
-      notify({ severity: 'error', summary: 'Укажите текущий пароль' })
+      toast.error('Укажите текущий пароль')
       throw new Error('current')
     }
     try {
@@ -83,7 +83,7 @@ const submitState = useActionState(
         new_password: newPassword.value,
       })
     } catch (error) {
-      notify({ severity: 'error', summary: 'Не удалось сменить пароль' })
+      toast.error('Не удалось сменить пароль')
       throw error
     }
   },

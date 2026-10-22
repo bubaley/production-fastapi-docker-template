@@ -1,7 +1,4 @@
-<template>
-  <NuxtLayout name="settings">
-    <NuxtPage />
-  </NuxtLayout>
-</template>
-
-<script setup lang="ts"></script>
+<template><NuxtPage /></template>
+<script setup lang="ts">
+definePageMeta({ layout: 'settings' })
+</script>

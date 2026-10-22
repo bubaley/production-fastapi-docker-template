@@ -1,171 +1,166 @@
-<template>
-  <div
-    v-if="$slots.trigger"
-    ref="triggerRef"
-    class="inline-flex shrink-0"
-    @click="onTriggerClick"
-    @contextmenu="onTriggerContextMenu"
-  >
-    <slot name="trigger" />
-  </div>
-  <Popover
-    ref="popoverRef"
-    class="min-w-52 overflow-hidden"
-    :pt="{ content: { class: '!p-1' } }"
-    @show="onShow"
-    @hide="onHide"
-  >
-    <AppTitle
-      v-if="heading || subtitle"
-      class="px-2 py-1.5"
-      size="md"
-      :title="heading"
-      :subtitle="subtitle"
-    />
-    <AppListActions
-      v-if="hasActions"
-      :actions="actions"
-      @select="hide"
-    />
-    <slot v-else />
-  </Popover>
-</template>
-
 <script setup lang="ts">
-import type { PopoverMethods } from 'primevue/popover'
-import type { AppListAction } from './AppListActions.vue'
+import { useOverlayStack } from './useOverlayStack'
+import { computed, ref, watch, type Component, type HTMLAttributes } from 'vue'
+import AppIcon from './AppIcon.vue'
+import { Check } from '@lucide/vue'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '~/shared/ui/shadcn/dropdown-menu'
+import AppTitle from './AppTitle.vue'
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator
+} from '~/shared/ui/shadcn/context-menu'
 
-export type { AppListAction }
-export type AppMenuMode = 'popover' | 'cursor'
+export type AppMenuAction = {
+  label: string
+  value?: string
+  key?: string
+  hidden?: boolean
+  loading?: boolean
+  severity?: string
+  action?: () => void | Promise<void>
+  icon?: Component | string
+  checked?: boolean
+  disabled?: boolean
+  destructive?: boolean
+  separatorBefore?: boolean
+}
 
 const props = withDefaults(
   defineProps<{
-    actions?: AppListAction[]
+    actions?: AppMenuAction[]
+    context?: boolean
+    modal?: boolean
+    preventOpenAutoFocus?: boolean
+    passiveTrigger?: boolean
     label?: string
+    mode?: 'popover' | 'cursor'
     title?: string
     subtitle?: string
-    mode?: AppMenuMode
-    context?: boolean
+    align?: 'start' | 'center' | 'end'
+    side?: 'top' | 'right' | 'bottom' | 'left'
+    sideOffset?: number
+    contentClass?: HTMLAttributes['class']
+    disabled?: boolean
   }>(),
   {
     actions: () => [],
-    mode: 'popover',
-    context: false,
-  },
+    modal: true,
+    align: 'end',
+    side: 'bottom',
+    sideOffset: 6
+  }
 )
 
-const visible = defineModel<boolean>({ default: false })
-const slots = useSlots()
-const popoverRef = ref<(PopoverMethods & { $el?: HTMLElement }) | null>(null)
-const triggerRef = ref<HTMLElement | null>(null)
-const cursorEl = ref<HTMLSpanElement | null>(null)
-const syncing = ref(false)
-
-const heading = computed(() => props.label || props.title)
-const hasActions = computed(() => props.actions.some((action) => !action.hidden))
-
-const hostEl = () => triggerRef.value || popoverRef.value?.$el?.parentElement || null
-
-const cursorTarget = (event: MouseEvent) => {
-  if (!cursorEl.value) {
-    const el = document.createElement('span')
-    el.setAttribute('aria-hidden', 'true')
-    Object.assign(el.style, {
-      position: 'fixed',
-      width: '0px',
-      height: '0px',
-      pointerEvents: 'none',
-    })
-    document.body.appendChild(el)
-    cursorEl.value = el
-  }
-  cursorEl.value.style.left = `${event.clientX}px`
-  cursorEl.value.style.top = `${event.clientY}px`
-  return cursorEl.value
+const open = defineModel<boolean>('open', { default: false })
+const model = defineModel<boolean>({ default: false })
+watch(model, value => { open.value = value })
+watch(open, value => { model.value = value })
+const visibleActions = computed(() => props.actions.filter(action => !action.hidden))
+const loading = ref(false)
+const { contentStyle: overlayStyle } = useOverlayStack(open)
+const emit = defineEmits<{ select: [action: AppMenuAction] }>()
+const close = () => (open.value = false)
+async function selectAction(action: AppMenuAction) {
+  if (loading.value || action.disabled || action.loading) return
+  loading.value = true
+  try { await action.action?.(); emit('select', action) } finally { loading.value = false }
 }
-
-const popoverTarget = (event?: Event) => {
-  const mouse = event as MouseEvent | undefined
-  if (props.mode === 'cursor' && mouse && Number.isFinite(mouse.clientX) && Number.isFinite(mouse.clientY)) {
-    return cursorTarget(mouse)
-  }
-  return hostEl()
-}
-
-const show = (event?: Event) => {
-  const target = popoverTarget(event)
-  const ev = { currentTarget: target } as Event
-  const wasVisible = visible.value
-  popoverRef.value?.show(ev, target || undefined)
-  if (!wasVisible) return
-  nextTick(() => popoverRef.value?.alignOverlay())
-}
-
-const hide = () => popoverRef.value?.hide()
-
-const toggle = (event?: Event) => {
-  const target = popoverTarget(event)
-  const ev = { currentTarget: target } as Event
-  popoverRef.value?.toggle(ev, target || undefined)
-}
-
-const onShow = () => {
-  syncing.value = true
-  visible.value = true
-  window.addEventListener('scroll', hide, true)
-  nextTick(() => {
-    syncing.value = false
-  })
-}
-
-const onHide = () => {
-  syncing.value = true
-  visible.value = false
-  window.removeEventListener('scroll', hide, true)
-  nextTick(() => {
-    syncing.value = false
-  })
-}
-
-const onHostEvent = (event: Event) => {
-  if (props.context) event.preventDefault()
-  toggle(event)
-}
-
-const onTriggerClick = (event: MouseEvent) => {
-  if (props.context) return
-  toggle(event)
-}
-
-const onTriggerContextMenu = (event: MouseEvent) => {
-  if (!props.context) return
-  event.preventDefault()
-  toggle(event)
-}
-
-watch(visible, (isVisible) => {
-  if (syncing.value) return
-  if (isVisible) {
-    window.setTimeout(() => {
-      if (visible.value) show()
-    })
-    return
-  }
-  hide()
-})
-
-onMounted(() => {
-  if (slots.trigger) return
-  if (props.mode === 'cursor' && !props.context) return
-  hostEl()?.addEventListener(props.context ? 'contextmenu' : 'click', onHostEvent)
-})
-
-onBeforeUnmount(() => {
-  hostEl()?.removeEventListener(props.context ? 'contextmenu' : 'click', onHostEvent)
-  window.removeEventListener('scroll', hide, true)
-  cursorEl.value?.remove()
-  cursorEl.value = null
-})
-
-defineExpose({ show, hide, toggle })
+defineExpose({ hide: close, show: () => { open.value = true }, toggle: () => { open.value = !open.value } })
 </script>
+
+<template>
+  <component
+    :is="context || mode === 'cursor' ? ContextMenu : DropdownMenu"
+    v-model:open="open"
+    v-bind="context || mode === 'cursor' ? {} : { modal }"
+  >
+    <component
+      :is="context || mode === 'cursor' ? ContextMenuTrigger : DropdownMenuTrigger"
+      as-child
+      :disabled="disabled || passiveTrigger"
+    >
+      <slot
+        name="trigger"
+        :open="open"
+      />
+    </component>
+    <component
+      :is="context || mode === 'cursor' ? ContextMenuContent : DropdownMenuContent"
+      :style="overlayStyle"
+      v-bind="context || mode === 'cursor' ? {} : { align, side, sideOffset }"
+      :class="['border-border bg-background text-foreground', contentClass]"
+      @open-auto-focus="preventOpenAutoFocus && $event.preventDefault()"
+    >
+      <component
+        :is="context || mode === 'cursor' ? ContextMenuLabel : DropdownMenuLabel"
+        v-if="title || label || subtitle || $slots.title"
+        class="px-2 py-2 font-normal"
+      >
+        <slot name="title">
+          <AppTitle
+            :title="title || label"
+            :subtitle="subtitle"
+            size="sm"
+          />
+        </slot>
+      </component>
+      <component
+        :is="context || mode === 'cursor' ? ContextMenuSeparator : DropdownMenuSeparator"
+        v-if="(title || label || subtitle || $slots.title) && actions.length"
+        class="-mx-1 my-1 h-px bg-border"
+      />
+      <template
+        v-for="action in visibleActions"
+        :key="action.value || action.key || action.label"
+      >
+        <component
+          :is="context || mode === 'cursor' ? ContextMenuSeparator : DropdownMenuSeparator"
+          v-if="action.separatorBefore"
+          class="-mx-1 my-1 h-px bg-border"
+        />
+        <component
+          :is="context || mode === 'cursor' ? ContextMenuItem : DropdownMenuItem"
+          :disabled="action.disabled || action.loading || loading"
+          :role="action.checked !== undefined ? 'menuitemradio' : 'menuitem'"
+          :aria-checked="action.checked"
+          :class="
+            (action.destructive || action.severity === 'danger')
+              ? 'text-destructive focus:bg-destructive/10 hover:text-destructive focus:text-destructive'
+              : 'text-foreground/75 hover:text-foreground focus:text-foreground'
+          "
+          @select="selectAction(action)"
+        >
+          <slot
+            name="action"
+            :action="action"
+          >
+            <AppIcon
+              v-if="action.icon"
+              :icon="action.icon"
+              aria-hidden="true"
+            />
+            <span class="flex-1">{{ action.label }}</span>
+          </slot>
+          <AppIcon
+            v-if="action.checked"
+            :icon="Check"
+            class="ml-4 size-4"
+            aria-hidden="true"
+          />
+        </component>
+      </template>
+      <slot :close="close" />
+    </component>
+  </component>
+</template>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from fastapi_ronin.decorators import viewset
 
 from app.core.viewsets import BaseModelViewSet
@@ -11,6 +11,7 @@ from app.domains.organization.schemas import (
     OrganizationUserCreateSchema,
     OrganizationUserReadSchema,
 )
+from app.domains.organization.services.organization_service import OrganizationService
 from app.domains.user.models import User
 
 organizations_router = APIRouter(prefix='/organizations', tags=['organizations'])
@@ -26,9 +27,7 @@ class OrganizationViewSet(BaseModelViewSet[Organization]):
     filterset_class = OrganizationFilterSet
 
     async def perform_create(self, obj: Organization) -> Organization:
-        obj = await super().perform_create(obj)
-        await OrganizationUser.create(organization=obj, user=self.user)
-        return obj
+        return await OrganizationService.create(obj, self.user)
 
 
 @viewset(organization_users_router)
@@ -47,18 +46,7 @@ class OrganizationUserViewSet(BaseModelViewSet[OrganizationUser]):
         return OrganizationUser.filter(organization_id__in=org_ids)
 
     async def perform_create(self, obj: OrganizationUser) -> OrganizationUser:
-        if not self.user.is_superuser:
-            allowed = await Organization.filter(id=obj.organization_id, users=self.user).exists()
-            if not allowed:
-                raise HTTPException(status_code=403, detail='Cannot modify this organization')
-        existing = await OrganizationUser.get_or_none(organization_id=obj.organization_id, user_id=obj.user_id)
-        if existing:
-            raise HTTPException(status_code=400, detail='User is already in this organization')
-        return await super().perform_create(obj)
+        return await OrganizationService.add_member(obj, self.user)
 
     async def perform_destroy(self, obj: OrganizationUser) -> None:
-        if not self.user.is_superuser:
-            allowed = await Organization.filter(id=obj.organization_id, users=self.user).exists()
-            if not allowed:
-                raise HTTPException(status_code=403, detail='Cannot modify this organization')
-        await obj.delete()
+        await OrganizationService.remove_member(obj, self.user)

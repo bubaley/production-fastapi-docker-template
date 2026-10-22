@@ -1,127 +1,78 @@
-import type { Dayjs } from "dayjs"
+import dayjs, { type Dayjs } from 'dayjs'
+import utc from 'dayjs/plugin/utc.js'
+import ru from 'dayjs/locale/ru.js'
+import en from 'dayjs/locale/en.js'
+import { onMounted, ref, toValue, type MaybeRefOrGetter } from 'vue'
 
-// import Dayjs from 'dayjs-nuxt'
+dayjs.extend(utc)
+dayjs.locale(ru, undefined, true)
+dayjs.locale(en, undefined, true)
+
 export type DateFormat = 'shortcut'
 export type DateType = 'date' | 'datetime'
+export type DateLocale = 'ru' | 'en'
 
-const RELATIVE_DAYS: Record<number, string> = {
-  [-2]: 'Позавчера',
-  [-1]: 'Вчера',
-  0: 'Сегодня',
-  1: 'Завтра',
-  2: 'Послезавтра'
+const RELATIVE_DAYS: Record<DateLocale, Record<number, string>> = {
+  ru: { [-2]: 'Позавчера', [-1]: 'Вчера', 0: 'Сегодня', 1: 'Завтра', 2: 'Послезавтра' },
+  en: { [-2]: 'Day before yesterday', [-1]: 'Yesterday', 0: 'Today', 1: 'Tomorrow', 2: 'Day after tomorrow' },
+}
+const MONTHS_SHORT = {
+  ru: ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
 }
 
-const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+const WEEKDAYS = {
+  ru: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
+  en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+}
+const WEEKDAYS_SHORT = {
+  ru: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
+  en: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
+}
 
-const WEEKDAYS_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
-
-export const useDate = () => {
-  const dayjs = useDayjs()
-  dayjs.locale('ru')
+export const useDate = (locale: MaybeRefOrGetter<DateLocale> = 'ru') => {
+  // Hydration shares the server clock/offset; local time is applied only after mounting.
+  const reference = useState<number>('app-date-reference', () => Date.now())
+  const offset = useState<number>('app-date-offset', () => dayjs().utcOffset())
+  const mounted = ref(false)
+  onMounted(() => {
+    reference.value = Date.now()
+    offset.value = dayjs().utcOffset()
+    mounted.value = true
+  })
+  const localized = (value: Dayjs) => value.locale(toValue(locale))
   const now = (type: DateType = 'datetime') => {
-    return type === 'date' ? dayjs().startOf('day') : dayjs()
+    const value = localized(mounted.value ? dayjs(reference.value) : dayjs(reference.value).utcOffset(offset.value))
+    return type === 'date' ? value.startOf('day') : value
   }
-
   const parseDate = (date?: string | null, config?: { isUtc?: boolean; type?: DateType }) => {
     if (!date) return null
     const { isUtc = true, type = 'datetime' } = config ?? {}
-    let value = isUtc ? dayjs.utc(date).local() : dayjs(date)
-    if (type === 'date') value = value.startOf('day')
-    return value.isValid() ? value : null
+    // Calendar dates describe a day, not an instant, and must never shift across time zones.
+    const calendarDate = type === 'date' || /^\d{4}-\d{2}-\d{2}$/.test(date)
+    const value = mounted.value
+      ? calendarDate ? dayjs(date.slice(0, 10)) : isUtc ? dayjs.utc(date).local() : dayjs(date)
+      : calendarDate
+      ? dayjs.utc(date.slice(0, 10)).utcOffset(offset.value, true)
+      : isUtc
+        ? dayjs.utc(date).utcOffset(offset.value)
+        : dayjs.utc(date).utcOffset(offset.value, true)
+    return value.isValid() ? localized(type === 'date' ? value.startOf('day') : value) : null
   }
-
-  const getDaysDifference = (date: Dayjs): number => {
-    const dateStart = date.startOf('day')
-    const nowStart = now().startOf('day')
-    return dateStart.diff(nowStart, 'day')
+  const relativeDay = (date: Dayjs, config?: { disableRelativeDay?: boolean; useShortWeekday?: boolean }) => {
+    const current = now('date')
+    const diff = date.startOf('day').diff(current, 'day')
+    const relative = RELATIVE_DAYS[toValue(locale)][diff]
+    if (!config?.disableRelativeDay && relative) return relative
+    const firstWeekday = toValue(locale) === 'ru' ? 1 : 0
+    const weekStart = current.subtract((current.day() - firstWeekday + 7) % 7, 'day')
+    const day = date.startOf('day')
+    if (day.isBefore(weekStart) || day.isAfter(weekStart.add(6, 'day'))) return null
+    const labels = config?.useShortWeekday ? WEEKDAYS_SHORT : WEEKDAYS
+    return labels[toValue(locale)][date.day()] ?? null
   }
-
-  const isWithinCurrentWeek = (date: Dayjs): boolean => {
-    const dateStart = date.startOf('day')
-    const nowStart = now().startOf('day')
-    const weekStart = nowStart.startOf('week')
-    const weekEnd = weekStart.add(6, 'day')
-    return (
-      (dateStart.isSame(weekStart) || dateStart.isAfter(weekStart)) &&
-      (dateStart.isSame(weekEnd) || dateStart.isBefore(weekEnd))
-    )
-  }
-
-  // const isWithinNextWeek = (date: Dayjs): boolean => {
-  //   const dateStart = date.startOf('day')
-  //   const nowStart = now().startOf('day')
-  //   const nextWeekStart = nowStart.add(1, 'week').startOf('week')
-  //   const nextWeekEnd = nextWeekStart.add(6, 'day')
-  //   return (
-  //     (dateStart.isSame(nextWeekStart) || dateStart.isAfter(nextWeekStart)) &&
-  //     (dateStart.isSame(nextWeekEnd) || dateStart.isBefore(nextWeekEnd))
-  //   )
-  // }
-
-  const formatWeekday = (date: Dayjs): string => {
-    return date.format('dddd')
-  }
-
-  const formatShortWeekday = (date: Dayjs): string => {
-    const dayIndex = date.day()
-    return WEEKDAYS_SHORT[dayIndex] || 'вс'
-  }
-
-  const formatRelativeDay = (
-    date: Dayjs,
-    config?: {
-      disableRelativeDay?: boolean
-      useShortWeekday?: boolean
-    }
-  ): string | null => {
-    const diff = getDaysDifference(date)
-
-    if (!config?.disableRelativeDay && RELATIVE_DAYS[diff]) {
-      return RELATIVE_DAYS[diff]
-    }
-
-    // if (isWithinCurrentWeek(date) || isWithinNextWeek(date)) {
-    if (isWithinCurrentWeek(date)) {
-      if (config?.useShortWeekday) {
-        return formatShortWeekday(date)
-      }
-      const weekdayName = formatWeekday(date)
-      return weekdayName.charAt(0).toUpperCase() + weekdayName.slice(1)
-    }
-
-    return null
-  }
-
-  const formatDateWithMonth = (date: Dayjs, includeYear: boolean = false): string => {
-    const day = date.format('D')
-    const monthIndex = date.month()
-    const month = MONTHS_SHORT[monthIndex]
-    const year = includeYear ? ` ${date.format('YYYY')}` : ''
-    return `${day} ${month}${year}`
-  }
-
-  const formatTime = (date: Dayjs, includeSeconds: boolean = false): string => {
-    return includeSeconds ? date.format('HH:mm:ss') : date.format('HH:mm')
-  }
-
-  const formatShortcutDate = (
-    date: Dayjs,
-    config?: {
-      disableRelative?: boolean
-      disableRelativeDay?: boolean
-      useShortWeekday?: boolean
-    }
-  ): string => {
-    let relative: string | null = null
-    if (!config?.disableRelative) relative = formatRelativeDay(date, config)
-    if (relative) return relative
-    const isCurrentYear = date.year() === now().year()
-    return formatDateWithMonth(date, !isCurrentYear)
-  }
-
   const formatDate = (
-    date: Dayjs | null | string,
+    input: Dayjs | null | string,
     config?: {
       format?: DateFormat | string
       type?: DateType
@@ -129,22 +80,16 @@ export const useDate = () => {
       disableRelativeDay?: boolean
       useShortWeekday?: boolean
       disableRelative?: boolean
-    }
+    },
   ): string | null => {
-    if (typeof date === 'string') date = parseDate(date)
-    if (!date) return null
     const { format = 'shortcut', type = 'datetime' } = config ?? {}
-    date = date.isUTC() ? date.local() : date
-
-    const values: string[] = []
-    if (format === 'shortcut') values.push(formatShortcutDate(date, config))
-    if (type === 'datetime') values.push(formatTime(date, config?.includeSeconds))
-    return values.join(' ')
+    const date = typeof input === 'string' ? parseDate(input, { type }) : input ? localized(input) : null
+    if (!date) return null
+    if (format !== 'shortcut') return date.format(format)
+    const relative = config?.disableRelative ? null : relativeDay(date, config)
+    const year = date.year() === now().year() ? '' : ` ${date.format('YYYY')}`
+    const label = relative ?? `${date.date()} ${MONTHS_SHORT[toValue(locale)][date.month()]}${year}`
+    return type === 'date' ? label : `${label} ${date.format(config?.includeSeconds ? 'HH:mm:ss' : 'HH:mm')}`
   }
-
-  return {
-    parseDate,
-    formatDate,
-    now
-  }
+  return { parseDate, formatDate, now }
 }

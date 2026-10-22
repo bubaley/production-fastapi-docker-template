@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import UIView from '~/features/ui/views/UIView.vue'
+definePageMeta({ path: '/home/ui' })
+await navigateTo({ path: '/ui', query: useRoute().query }, { replace: true })
 </script>
-
-<template>
-  <UIView />
-</template>
+<template><div /></template>

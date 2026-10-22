@@ -7,17 +7,7 @@ export const useUserTokenRepo = defineStore('userTokenRepo', () => {
     parseResponse: (raw, action) => {
       const decoded = userTokenCodec.decode(raw)
       if (import.meta.client && action === 'create' && decoded.value) {
-        try {
-          const { notify } = useNotify()
-          notify({
-            severity: 'success',
-            summary: 'Токен создан',
-            detail: decoded.value,
-            life: 120_000,
-          })
-        } catch {
-          /* composable outside setup */
-        }
+        useToast().default('Токен создан', { description: decoded.value, duration: 120_000 })
       }
       return decoded
     },

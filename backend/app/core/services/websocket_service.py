@@ -36,10 +36,7 @@ class BaseWebSocketService:
         if not channel_config:
             return False
 
-        if not channel_config.secure:
-            return True
-
-        return True
+        return not channel_config.secure
 
     async def process_message(self, websocket: WebSocket, message: WebSocketMessage) -> None:
         """

@@ -10,7 +10,6 @@ export const colorTokens = [
   'info',
   'danger',
   'success',
-  'accent',
   'orange',
   'yellow',
   'teal',
@@ -18,10 +17,6 @@ export const colorTokens = [
 ] as const
 
 export type ColorToken = (typeof colorTokens)[number]
-
-export const blockVariants = ['filled', 'ghost', 'outlined', 'ghost-outlined', 'text'] as const
-
-export type BlockVariantToken = (typeof blockVariants)[number]
 
 export type RadiusToken = 'sm' | 'md' | 'lg' | 'full' | 'unset'
 

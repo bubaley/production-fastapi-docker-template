@@ -1,26 +1,12 @@
+<script setup lang="ts">
+import { TabsContent } from '~/shared/ui/shadcn/tabs'
+defineProps<{ tabValue: string }>()
+</script>
 <template>
-  <div
-    v-if="isActive"
-    v-bind="$attrs"
-    class="app-tab-panel"
+  <TabsContent
+    :value="tabValue"
+    class="min-w-0"
   >
     <slot />
-  </div>
+  </TabsContent>
 </template>
-
-<script setup lang="ts">
-import { computed, inject } from 'vue'
-
-defineOptions({ inheritAttrs: false })
-
-const props = defineProps<{
-  tabValue: string
-}>()
-
-const activeRef = inject<Ref<string> | null>('app-tab-active', null)
-
-const isActive = computed(() => {
-  if (!activeRef) return false
-  return activeRef.value === props.tabValue
-})
-</script>

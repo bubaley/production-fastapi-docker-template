@@ -1,88 +1,107 @@
-<template>
-  <div>
-    <component
-      :is="to ? 'router-link' : 'div'"
-      v-bind="props.to ? { to: props.to } : {}"
-    >
-      <Button
-        v-bind="{ ...$attrs }"
-        ref="buttonRef"
-        :class="{
-          [props.class || '']: true,
-          'p-button-icon-only': onlyIcon,
-        }"
-        :loading="loading"
-        :label="label"
-        :disabled="loading || disabled"
-        @click.prevent="handleClick"
-      >
-        <Icon
-          v-if="(icon || loading) && iconPos !== 'right'"
-          :size="iconSize"
-          :style="{ minWidth: iconSize + 'px' }"
-          :name="loading ? 'svg-spinners:180-ring' : icon || ''"
-        />
-        <span
-          v-if="label"
-          :class="`font-${props.fontWeight}`"
-        >
-          {{ label }}
-        </span>
-        <slot />
-        <Icon
-          v-if="iconPos === 'right'"
-          :style="{ minWidth: iconSize + 'px' }"
-          :size="iconSize"
-          :name="loading ? 'svg-spinners:180-ring' : icon || ''"
-        />
-      </Button>
-    </component>
-  </div>
-</template>
-
 <script setup lang="ts">
-import Button from 'primevue/button'
-import type { ButtonProps } from 'primevue/button'
+import { computed, useSlots, type Component, type HTMLAttributes } from 'vue'
 import { useRouter, type RouteLocationRaw } from 'vue-router'
+import AppIcon from './AppIcon.vue'
+import { LoaderCircle } from '@lucide/vue'
+import { Button, type ButtonVariants } from '~/shared/ui/shadcn/button'
+import {
+  activeOutlineClasses,
+  appControlRadiusClasses,
+  appControlStyles,
+  appControlIconSize,
+  type AppButtonSize
+} from './types/control'
 
-export interface AppButtonProps extends /* @vue-ignore */ ButtonProps {
-  test?: string
+export type AppButtonProps = {
+  onClick?: (event: MouseEvent) => void
   to?: RouteLocationRaw
-  class?: string
+  severity?: 'primary' | 'secondary' | 'success' | 'info' | 'warn' | 'warning' | 'danger' | 'help' | 'contrast'
+  outlined?: boolean
+  text?: boolean
+  rounded?: boolean
+  hidden?: boolean
+  iconPos?: 'left' | 'right'
+  iconSize?: number
+  label?: string
+  textVariant?: 'base' | 'muted'
+  variant?: ButtonVariants['variant'] | 'active-outline' | 'outlined' | 'text'
+  size?: AppButtonSize | 'small' | 'large'
+  icon?: Component | string
+  iconClass?: HTMLAttributes['class']
+  iconPosition?: 'start' | 'end'
   loading?: boolean
   disabled?: boolean
-  fontWeight?: 'normal' | 'medium' | 'semibold' | 'bold' | 'black'
-  label?: string
-  icon?: string
-  iconSize?: number
-  iconPos?: 'left' | 'right'
+  fluid?: boolean
+  type?: 'button' | 'submit' | 'reset'
 }
 
 const props = withDefaults(defineProps<AppButtonProps>(), {
-  fontWeight: 'medium',
-  loading: false,
-  disabled: false,
-  label: '',
-  iconSize: 16,
+  variant: 'default',
+  textVariant: 'base',
+  size: 'default',
+  iconPosition: 'start',
+  type: 'button'
 })
-
-const buttonRef = ref<HTMLButtonElement | null>(null)
-provide('popoverTarget', buttonRef)
-const emit = defineEmits<{
-  click: [event: Event]
-}>()
-
 const router = useRouter()
-
-const onlyIcon = computed(() => {
-  return props.icon && !props.label
+const slots = useSlots()
+const emit = defineEmits<{ click: [event: MouseEvent] }>()
+const controlSize = computed(() => props.size === 'small' ? 'sm' : props.size === 'large' ? 'lg' : props.icon && !props.label && !slots.default && props.size === 'default' ? 'icon' : props.size)
+const buttonVariant = computed(() => props.text || props.variant === 'text' ? 'ghost' : props.outlined || props.variant === 'outlined' || props.variant === 'active-outline' ? 'outline' : props.severity === 'danger' ? 'destructive' : props.severity === 'secondary' ? 'secondary' : props.variant)
+const textVariantClasses = computed(() => {
+  if (props.textVariant !== 'muted') return undefined
+  const hoverClass = buttonVariant.value === 'primary'
+    ? 'hover:text-primary-foreground focus-visible:text-primary-foreground'
+    : buttonVariant.value === 'default' || buttonVariant.value === 'destructive'
+      ? 'hover:text-background focus-visible:text-background'
+      : buttonVariant.value === 'link'
+        ? 'hover:text-primary focus-visible:text-primary'
+        : buttonVariant.value === 'secondary'
+          ? 'hover:text-secondary-foreground focus-visible:text-secondary-foreground'
+          : 'hover:text-foreground focus-visible:text-foreground'
+  return ['text-muted-foreground', hoverClass]
 })
-
-const handleClick = (event: Event) => {
-  emit('click', event)
-  if (props.to) {
-    void router.push(props.to)
-  }
-  return
-}
+function handleClick(event: MouseEvent) { emit('click', event); if (props.to) void router.push(props.to) }
 </script>
+
+<template>
+  <Button
+    class="cursor-pointer disabled:cursor-not-allowed disabled:pointer-events-auto"
+    :type="type"
+    :variant="buttonVariant"
+    :size="controlSize"
+    :style="appControlStyles.button[controlSize]"
+    :disabled="disabled || loading"
+    :aria-busy="loading || undefined"
+    :class="[
+      appControlRadiusClasses[controlSize],
+      textVariantClasses,
+      fluid && 'w-full',
+      variant === 'ghost' && 'hover:bg-[color:var(--ds-field-hover)]',
+      variant === 'active-outline' && activeOutlineClasses
+    ]"
+    @click="handleClick"
+  >
+    <AppIcon
+      v-if="loading"
+      :size="appControlIconSize[controlSize]"
+      :icon="LoaderCircle"
+      :class="['animate-spin', iconClass]"
+      aria-hidden="true"
+    />
+    <AppIcon
+      v-else-if="icon && iconPos !== 'right' && iconPosition === 'start'"
+      :size="appControlIconSize[controlSize]"
+      :icon="icon"
+      :class="iconClass"
+      aria-hidden="true"
+    />
+    <slot>{{ label }}</slot>
+    <AppIcon
+      v-if="icon && (iconPos === 'right' || iconPosition === 'end') && !loading"
+      :size="appControlIconSize[controlSize]"
+      :icon="icon"
+      :class="iconClass"
+      aria-hidden="true"
+    />
+  </Button>
+</template>

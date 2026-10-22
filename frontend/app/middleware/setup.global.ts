@@ -1,7 +1,8 @@
 export default defineNuxtRouteMiddleware(async (to) => {
+  if (to.path === '/ui' || to.path === '/ui/') return
   const routeName = String(to.name || '')
   const isSetupRoute = routeName.startsWith('home-setup')
-  if (routeName.startsWith('auth')) return
+  if (routeName.startsWith('auth') || routeName === 'ui') return
 
   const setupStore = useSetupStore()
 

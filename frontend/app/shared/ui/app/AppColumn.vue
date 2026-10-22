@@ -1,16 +1,12 @@
-<template>
-  <Column v-bind="$attrs">
-    <slot />
-  </Column>
-</template>
-
 <script setup lang="ts">
-import Column from 'primevue/column'
-import type { ColumnProps } from 'primevue/column'
-export interface AppColumnProps extends ColumnProps {
-  test?: string
-  format?: (data: any, row: any) => string | null | number
+export interface AppColumnProps {
+  field?: string
+  header?: string
+  format?: (data: any, row: { data: any; index: number }) => unknown
+  headerClass?: string
+  bodyClass?: string
+  style?: string | Record<string, string>
 }
-
 defineProps<AppColumnProps>()
 </script>
+<template><slot /></template>

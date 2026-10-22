@@ -1,9 +1,7 @@
 <template>
-  <Avatar
-    shape="circle"
-    :size="size"
+  <span
     :style="_style"
-    class="app-avatar"
+    class="app-avatar inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground"
   >
     <img
       v-if="showImage"
@@ -19,7 +17,7 @@
       {{ initial }}
     </span>
     <slot />
-  </Avatar>
+  </span>
 </template>
 
 <script lang="ts" setup>

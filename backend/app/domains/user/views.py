@@ -9,7 +9,6 @@ from fastapi_ronin.types import PydanticModel
 from pydantic import BaseModel
 
 from app.core.viewsets import BaseModelViewSet, BaseReadOnlyViewSet
-from app.domains.organization.models import OrganizationUser
 from app.domains.user.filters import UserTokenFilterSet
 from app.domains.user.models import User, UserToken
 from app.domains.user.schemas import (
@@ -19,8 +18,10 @@ from app.domains.user.schemas import (
     UserTokenCreatedReadSchema,
     UserTokenCreateSchema,
     UserTokenReadSchema,
+    UserTokenUpdateSchema,
     UserUpdateSchema,
 )
+from app.shared.permissions.is_superuser import IsSuperUser
 
 users_router = APIRouter(prefix='/users', tags=['users'])
 user_tokens_router = APIRouter(prefix='/user-tokens', tags=['user-tokens'])
@@ -33,13 +34,18 @@ class UserViewSet(BaseModelViewSet[User]):
     create_schema = UserCreateSchema
     update_schema = UserUpdateSchema
 
+    def get_permissions(self):
+        permissions = [permission() for permission in self.permission_classes]
+        if self.action in {'create', 'destroy'}:
+            return [*permissions, IsSuperUser()]
+        return permissions
+
     async def get_queryset(self):
         user: User = self.user
         if user.is_superuser:
             return User.all()
 
-        user_ids = await OrganizationUser.filter(user_id=user.id).values_list('user_id', flat=True)
-        return User.filter(id__in=user_ids)
+        return User.filter(id=user.id)
 
     async def validate_data(self, data: PydanticModel):
         if isinstance(data, UserCreateSchema):
@@ -88,14 +94,13 @@ class UserTokenViewSet(
     filterset_class = UserTokenFilterSet
     read_schema = UserTokenReadSchema
     create_schema = UserTokenCreateSchema
+    update_schema = UserTokenUpdateSchema
 
     async def get_queryset(self):
         user: User = self.user
         if user.is_superuser:
             return UserToken.all()
-        user_ids = await OrganizationUser.filter(user_id=user.id).values_list('user_id', flat=True)
-        user_ids = list(set(user_ids) | {user.id})
-        return UserToken.filter(user_id__in=user_ids)
+        return UserToken.filter(user_id=user.id)
 
     @action(methods=['POST'], detail=False)
     async def create(self, data: UserTokenCreateSchema) -> UserTokenCreatedReadSchema:

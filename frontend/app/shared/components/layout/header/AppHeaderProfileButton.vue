@@ -1,79 +1,28 @@
 <template>
-  <AppButton
-    severity="secondary"
-    icon="lucide:user"
-    class="rounded-xl!"
-    @click="toggle"
-  />
-  <Popover
-    ref="op"
-    class="w-[240px] overflow-hidden"
-    :pt="{ content: { class: '!p-0' } }"
-    :show-close-icon="false"
+  <AppMenu
+    title="Учётная запись"
+    :actions="actions"
   >
-    <div class="p-2">
-      <div class="font-bold ml-2 my-2">МЕНЮ</div>
-      <div
-        v-for="action in actions"
-        :key="action.label"
-        class="flex flex-col"
-      >
-        <AppButton
-          severity="secondary"
-          text
-          class="justify-start!"
-          fluid
-          @click="action.action"
-        >
-          {{ action.label }}
-        </AppButton>
-      </div>
-    </div>
-    <Divider class="mb-0! mt-1!" />
-    <div class="p-2 dark:bg-secondary">
-      <SelectButton
-        fluid
-        :model-value="$colorMode.value"
-        :options="themes"
-        @update:model-value="$colorMode.preference = $event"
-      >
-        <template #option="{ option }">
-          <Icon
-            class="h-5!"
-            :name="option === 'dark' ? 'lucide:moon' : 'lucide:sun'"
-          />
-        </template>
-      </SelectButton>
-    </div>
-  </Popover>
+    <template #trigger>
+      <AppButton
+        variant="ghost"
+        size="icon"
+        icon="lucide:user"
+        aria-label="Меню профиля"
+      />
+    </template>
+  </AppMenu>
 </template>
-
 <script setup lang="ts">
-import type { PopoverMethods } from 'primevue/popover'
-
-const op = ref<PopoverMethods | null>(null)
-const themes = ['light', 'dark']
-
-const router = useRouter()
+const colorMode = useColorMode()
 const { logout } = useAuth()
-
-const logoutHandler = async () => {
-  await logout()
-  router.replace({ name: 'auth' })
-}
-
-const toggle = (event: Event) => {
-  op.value?.toggle(event)
-}
-
-const actions = ref([
-  {
-    label: 'Профиль',
-    action: () => navigateTo({ name: 'settings-profile' }),
-  },
-  {
-    label: 'Выйти',
-    action: logoutHandler,
-  },
+const actions = computed(() => [
+  { label: 'Профиль', icon: 'lucide:user', action: async () => { await navigateTo({ name: 'settings-profile' }) } },
+  { label: colorMode.value === 'dark' ? 'Светлая тема' : 'Тёмная тема', icon: colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon', action: () => { colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark' } },
+  { label: 'Выйти', icon: 'lucide:log-out', separatorBefore: true, action: async () => {
+    const result = await logout()
+    if (result.error) { useToast().error('Не удалось выйти. Попробуйте ещё раз'); return }
+    await navigateTo({ name: 'auth' })
+  } },
 ])
 </script>

@@ -1,63 +1,67 @@
 <template>
-  <div class="px-6 pt-3">
-    <AppLogo />
-  </div>
-  <div class="flex flex-col items-center justify-center min-h-screen">
-    <div class="p-6 rounded-xl border border-surface-200 dark:border-surface-800 w-full max-w-md">
-      <AppTitle
-        centered
-        title="Войти"
-        class="mb-8"
-      />
-      <Form
-        class="space-y-4"
-        @submit="loginHandler"
+  <main class="flex min-h-dvh items-center justify-center bg-background px-4 py-12">
+    <div class="w-full max-w-sm space-y-8">
+      <AppLogo class="mx-auto w-fit" />
+      <AppCard
+        variant="outlined"
+        padding="lg"
       >
-        <AppInput
-          id="email"
-          v-model="email"
-          label="Email"
-          placeholder="Введите email"
-          class="w-full"
-        />
-        <AppInput
-          v-model="password"
-          label="Пароль"
-          type="password"
-          placeholder="Введите пароль"
-          class="w-full"
-        />
-        <Button
-          :disabled="!email || !password"
-          :loading="authLoading"
-          type="submit"
-          label="Войти"
-          class="w-full mt-4"
-        />
-      </Form>
+        <AppSection
+          title="Войти"
+          description="Используйте учётную запись вашей команды"
+          template-variant="flat-section"
+        >
+          <form
+            class="space-y-4"
+            @submit.prevent="loginHandler"
+          >
+            <AppInput
+              id="email"
+              v-model="email"
+              label="Электронная почта"
+              type="email"
+              autocomplete="username"
+              placeholder="name@company.ru"
+              required
+            />
+            <AppInput
+              v-model="password"
+              label="Пароль"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+            <AppButton
+              :disabled="!email || !password"
+              :loading="authLoading"
+              type="submit"
+              class="w-full"
+            >
+              Войти
+            </AppButton>
+          </form>
+        </AppSection>
+      </AppCard>
     </div>
-  </div>
+  </main>
 </template>
-
-<script lang="ts" setup>
+<script setup lang="ts">
 import AppLogo from '~/shared/components/layout/header/AppLogo.vue'
-
-const email = ref<string>('')
-const password = ref<string>('')
-const authLoading = ref<boolean>(false)
+const email = ref('')
+const password = ref('')
+const authLoading = ref(false)
 const router = useRouter()
-const { notify } = useNotify()
+const toast = useToast()
 const { login } = useAuth()
-
-const loginHandler = async (): Promise<void> => {
+const loginHandler = async () => {
+  if (authLoading.value) return
   authLoading.value = true
-  const result = await login({ email: email.value, password: password.value })
-  if (result.error) {
-    notify({ summary: 'Неверный данные', severity: 'error' })
-    authLoading.value = false
-    return
-  }
-  const redirectUrl = router.currentRoute.value.query.redirect as string
-  await router.replace(redirectUrl || { name: 'home' })
+  try {
+    const result = await login({ email: email.value, password: password.value })
+    if (result.error) { toast.error('Неверная почта или пароль'); return }
+    const redirect = router.currentRoute.value.query.redirect
+    await router.replace(typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : { name: 'home' })
+  } catch { toast.error('Не удалось войти. Попробуйте ещё раз') }
+  finally { authLoading.value = false }
 }
 </script>

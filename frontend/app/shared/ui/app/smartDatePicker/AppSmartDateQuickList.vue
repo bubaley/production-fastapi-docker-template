@@ -85,11 +85,11 @@ const filteredItems = computed(() => {
   transition: background-color 0.15s ease;
 
   &:hover {
-    background: var(--bg-tertiary, var(--p-content-hover-background));
+    background: var(--accent);
   }
 
   &.active {
-    background: var(--bg-tertiary, var(--p-content-hover-background));
+    background: var(--accent);
     font-weight: 600;
 
     &::before {
@@ -100,7 +100,7 @@ const filteredItems = computed(() => {
       bottom: 0.35rem;
       width: 3px;
       border-radius: 999px;
-      background: var(--p-primary-color, var(--p-primary-500));
+      background: var(--primary);
     }
   }
 }

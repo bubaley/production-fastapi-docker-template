@@ -1,32 +1,21 @@
 <template>
-  <Listbox
-    :model-value="null"
-    :options="visibleActions"
-    option-label="label"
-    option-disabled="disabled"
-    data-key="key"
-    class="w-full border-none! bg-transparent!"
-    :pt="{ option: { class: 'px-2 py-1.5 group' } }"
-    @update:model-value="onSelect"
+  <div
+    class="flex flex-col gap-1"
+    role="group"
   >
-    <template #option="{ option }">
-      <div
-        class="flex items-center gap-2.5"
-        :class="option.severity === 'danger' ? 'text-red-500' : ''"
-      >
-        <AppIcon
-          v-if="option.icon || isLoading(option)"
-          class="opacity-60 transition-opacity group-hover:opacity-100 group-[.p-focus]:opacity-100"
-          :icon="option.icon || ''"
-          :size="14"
-          :loading="isLoading(option)"
-        />
-        <span class="text-sm opacity-80 transition-opacity group-hover:opacity-100 group-[.p-focus]:opacity-100">
-          {{ option.label }}
-        </span>
-      </div>
-    </template>
-  </Listbox>
+    <AppButton
+      v-for="option in visibleActions"
+      :key="option.key"
+      variant="ghost"
+      :icon="option.icon"
+      :loading="isLoading(option)"
+      :disabled="option.disabled"
+      :class="['w-full justify-start', option.severity === 'danger' && 'text-destructive']"
+      @click="onSelect(option)"
+    >
+      {{ option.label }}
+    </AppButton>
+  </div>
 </template>
 
 <script setup lang="ts">

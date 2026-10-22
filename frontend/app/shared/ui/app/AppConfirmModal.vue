@@ -3,11 +3,11 @@
     v-model="model"
     :width="width"
     :title="title"
-    :subtitle="hideSubtitle ? undefined : subtitle"
+    :description="hideSubtitle ? undefined : (description || subtitle)"
     v-bind="$attrs"
   >
     <slot />
-    <div class="mt-6">
+    <template #footer>
       <slot
         v-if="$slots.actions"
         name="actions"
@@ -21,7 +21,7 @@
           full-width
         />
       </div>
-    </div>
+    </template>
   </AppModal>
 </template>
 
@@ -32,7 +32,7 @@ import type { AppTemplateAction } from '../template/types/template-types'
 
 const model = defineModel<boolean>()
 
-export interface CConfirmModalProps extends AppModalProps {
+export interface AppConfirmModalProps extends AppModalProps {
   confirmText?: string
   declineText?: string
   confirmProps?: AppButtonProps
@@ -42,7 +42,7 @@ export interface CConfirmModalProps extends AppModalProps {
 
   hideSubtitle?: boolean
 }
-const props = withDefaults(defineProps<CConfirmModalProps>(), {
+const props = withDefaults(defineProps<AppConfirmModalProps>(), {
   width: '25rem',
   confirmText: 'Подтвердить',
   declineText: 'Отмена',
@@ -101,5 +101,3 @@ const _handleConfirm = async () => {
   }
 }
 </script>
-
-<style lang="scss" scoped></style>

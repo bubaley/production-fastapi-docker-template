@@ -1,7 +1,7 @@
 <template>
-  <NuxtPage />
-  <AppNotify />
-  <AppImageLightbox />
+  <NuxtLayout><NuxtPage /></NuxtLayout>
+  <AppToaster />
+  <ClientOnly><AppImageLightbox /></ClientOnly>
 </template>
 
 <script setup lang="ts">

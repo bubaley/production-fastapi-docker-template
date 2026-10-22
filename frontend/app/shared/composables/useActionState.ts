@@ -1,65 +1,74 @@
-import { useDebounceFn } from '@vueuse/core'
+import { ref } from 'vue'
+import type { ToastConfig } from './useToast'
 
-export type AppStateNotification<T> = string | NotifyParams | ((data: T) => string | NotifyParams)
-
+export type ActionNotification = { message: string } & ToastConfig
+export type AppStateNotification<T> = string | ActionNotification | ((data: T) => string | ActionNotification)
 export interface AppStateParams<T> {
   errorNotification?: AppStateNotification<T>
   successNotification?: AppStateNotification<T>
   debounce?: number
 }
 
-export const useActionState = <T>(
-  fn: (...args: any[]) => Promise<T> | T,
-  params?: AppStateParams<T>,
-) => {
+export const useActionState = <T>(fn: (...args: any[]) => Promise<T> | T, params?: AppStateParams<T>) => {
   const loading = ref(false)
   const error = ref<Error | null>(null)
   const data = ref<T | null>(null)
-  const { notify: nottify } = useNotify()
-
-
-  const _processNotification = (
-    notification?: AppStateNotification<T>,
-    severity?: 'success' | 'error',
-  ) => {
+  const toast = useToast()
+  let pending: Promise<T> | undefined
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let started = false
+  let latestArgs: any[] = []
+  let resolvePending: (value: T) => void
+  let rejectPending: (reason: unknown) => void
+  const notify = (notification: AppStateNotification<T> | undefined, kind: 'default' | 'error') => {
     if (!notification) return
-    let value: string | NotifyParams
-    if (typeof notification === 'function') {
-      value = notification(data.value as T)
-    } else {
-      value = notification
+    const value = typeof notification === 'function' ? notification(data.value as T) : notification
+    if (typeof value === 'string') toast[kind](value)
+    else {
+      const { message, ...config } = value
+      toast[kind](message, config)
     }
-    if (typeof value === 'string') {
-      nottify({ severity: severity, summary: value })
-    } else {
-      nottify({ ...value, severity: severity })
-    }
-    return notification
   }
-
-  const _execute = async (...args: any[]) => {
+  const run = async () => {
+    started = true
     try {
-      data.value = await fn(...args)
-      _processNotification(params?.successNotification, 'success')
-      return data.value
-    } catch (e) {
-      error.value = e as Error
-      _processNotification(params?.errorNotification, 'error')
-      throw e
+      const value = await fn(...latestArgs)
+      data.value = value
+      notify(params?.successNotification, 'default')
+      resolvePending(value)
+    } catch (reason) {
+      error.value = reason instanceof Error ? reason : new Error(String(reason))
+      notify(params?.errorNotification, 'error')
+      rejectPending(reason)
     } finally {
       loading.value = false
+      started = false
+      pending = undefined
     }
   }
-
-  const debouncedExecute = params?.debounce
-    ? useDebounceFn((...args: any[]) => _execute(...args), params.debounce)
-    : null
-
+  const schedule = () => {
+    clearTimeout(timer)
+    if (params?.debounce) timer = setTimeout(() => { void run() }, params.debounce)
+    else void run()
+  }
   const execute = (...args: any[]) => {
+    if (pending) {
+      if (!started) {
+        latestArgs = args
+        schedule()
+      }
+      return pending
+    }
+    latestArgs = args
     loading.value = true
     error.value = null
-    return debouncedExecute ? debouncedExecute(...args) : _execute(...args)
+    const promise = new Promise<T>((resolve, reject) => {
+      resolvePending = resolve
+      rejectPending = reject
+    })
+    pending = promise
+    schedule()
+    return promise
   }
-
   return { loading, error, data, execute }
 }

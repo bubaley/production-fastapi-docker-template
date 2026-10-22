@@ -1,143 +1,171 @@
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { ChromePicker, tinycolor } from 'vue-color'
+import { Pipette } from '@lucide/vue'
+import 'vue-color/style.css'
+import AppInput from './AppInput.vue'
+import AppIcon from './AppIcon.vue'
+import AppMenu from './AppMenu.vue'
+import { appColorPalette } from './colorPalette'
+const props = withDefaults(
+  defineProps<{
+    label?: string
+    hint?: string
+    disabled?: boolean
+    mode?: 'palette' | 'hex'
+    colors?: string[]
+  }>(),
+  { mode: 'palette', colors: () => [...appColorPalette] }
+)
+const model = defineModel<string | null>({ default: null })
+const field = computed({
+  get: () => model.value ?? '',
+  set: (value) => {
+    model.value = value
+  }
+})
+const valid = computed(() => /^#[0-9a-f]{6}$/i.test(field.value))
+const isPaletteColor = (value: string | null | undefined) =>
+  !!value && props.colors.some((color) => color.toLowerCase() === value.toLowerCase())
+const customColor = ref('#7779ed')
+watch(
+  model,
+  (value) => {
+    if (value && /^#[0-9a-f]{6}$/i.test(value) && !isPaletteColor(value)) customColor.value = value.toLowerCase()
+  },
+  { immediate: true }
+)
+const pickerColor = computed(() =>
+  props.mode === 'palette' ? customColor.value : valid.value ? field.value : '#7779ed'
+)
+const customSelected = computed(
+  () => !isPaletteColor(model.value) && model.value?.toLowerCase() === customColor.value.toLowerCase()
+)
+function choose(value: unknown) {
+  if (props.disabled) return
+  const parsed = tinycolor(value as string)
+  if (!parsed.isValid()) return
+  const next = parsed.toHexString()
+  if (props.mode === 'palette') customColor.value = next
+  model.value = next
+}
+</script>
 <template>
-  <div class="flex flex-col gap-2">
-    <div class="relative inline-flex">
+  <div class="min-w-0">
+    <AppInput
+      v-if="mode === 'hex'"
+      v-model="field"
+      :disabled="disabled"
+      :label="label"
+      :hint="hint"
+      :error="valid ? undefined : 'HEX: #RRGGBB'"
+      maxlength="7"
+      spellcheck="false"
+    >
+      <template #append>
+        <AppMenu
+          :disabled="disabled"
+          content-class="p-0"
+        >
+          <template #trigger>
+            <button
+              type="button"
+              :disabled="disabled"
+              :aria-label="`${label || 'Цвет'}: выбрать цвет`"
+              class="mr-2 h-5 w-5 rounded-sm border-0 p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+              :style="{ backgroundColor: pickerColor }"
+            />
+          </template>
+          <ChromePicker
+            :model-value="pickerColor"
+            :formats="['hex']"
+            disable-alpha
+            class="app-color-picker !shadow-none"
+            @update:model-value="choose"
+          />
+        </AppMenu>
+      </template>
+    </AppInput>
+    <div
+      v-else
+      class="space-y-2"
+    >
+      <span
+        v-if="label"
+        class="block text-sm font-medium"
+      >{{ label }}</span>
       <div
-        ref="targetRef"
-        class="color-preview"
-        :style="{ backgroundColor: displayColor }"
-        @click="togglePopover"
-      />
-      <Popover
-        ref="popoverRef"
-        :target="targetRef"
-        class="color-picker-popover"
+        class="flex max-w-64 flex-wrap gap-2"
+        :aria-label="label || 'Цвет'"
+        role="group"
       >
-        <div class="color-palette p-2">
-          <div
-            v-for="color in colorPalette"
-            :key="color.hex"
-            class="color-item"
-            :class="{ active: modelValue === color.hex }"
-            :style="{ '--color-picker-color': color.hex }"
-            :title="color.name"
-            @click="selectColor(color.hex)"
-          >
-            <div class="color-item-swatch" />
-          </div>
-        </div>
-      </Popover>
+        <button
+          v-for="color in colors"
+          :key="color"
+          type="button"
+          :disabled="disabled"
+          :aria-label="color"
+          :aria-pressed="model?.toLowerCase() === color.toLowerCase()"
+          class="h-6 w-6 rounded-sm border-0 p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+          :style="{ backgroundColor: color }"
+          @click="model = color"
+        >
+          <span
+            v-if="model?.toLowerCase() === color.toLowerCase()"
+            :style="{ color: tinycolor(color).isLight() ? '#000' : '#fff' }"
+          >✓</span>
+        </button>
+        <AppMenu
+          :disabled="disabled"
+          content-class="p-0"
+        >
+          <template #trigger>
+            <button
+              type="button"
+              :disabled="disabled"
+              aria-label="Другой цвет"
+              :aria-pressed="customSelected"
+              class="inline-flex h-6 w-6 items-center justify-center rounded-sm border-0 p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+              :class="customSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background'"
+              :style="{
+                backgroundColor: customColor,
+                color: tinycolor(customColor).isLight() ? '#000' : '#fff'
+              }"
+            >
+              <AppIcon
+                :icon="Pipette"
+                size="xs"
+                aria-hidden="true"
+              />
+            </button>
+          </template>
+          <ChromePicker
+            :model-value="pickerColor"
+            :formats="['hex']"
+            disable-alpha
+            class="app-color-picker !shadow-none"
+            @update:model-value="choose"
+          />
+        </AppMenu>
+      </div>
+      <p
+        v-if="hint"
+        class="text-xs text-muted-foreground"
+      >
+        {{ hint }}
+      </p>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import Popover from 'primevue/popover'
-import type { PopoverMethods } from 'primevue/popover'
-
-export interface CColorPickerProps {
-  modelValue?: string | null
-  label?: string
-}
-
-const props = withDefaults(defineProps<CColorPickerProps>(), {
-  modelValue: null,
-})
-
-const emit = defineEmits<{
-  'update:modelValue': [value: string | null]
-}>()
-
-const targetRef = ref<HTMLElement | null>(null)
-const popoverRef = ref<PopoverMethods | null>(null)
-
-const colorPalette = [
-  { name: 'Red', hex: '#ef4444' },
-  { name: 'Orange', hex: '#f97316' },
-  { name: 'Amber', hex: '#f59e0b' },
-  { name: 'Yellow', hex: '#eab308' },
-  { name: 'Lime', hex: '#84cc16' },
-  { name: 'Green', hex: '#22c55e' },
-  { name: 'Emerald', hex: '#10b981' },
-  { name: 'Teal', hex: '#14b8a6' },
-  { name: 'Cyan', hex: '#06b6d4' },
-  { name: 'Sky', hex: '#0ea5e9' },
-  { name: 'Blue', hex: '#3b82f6' },
-  { name: 'Indigo', hex: '#6366f1' },
-  { name: 'Violet', hex: '#8b5cf6' },
-  { name: 'Purple', hex: '#a855f7' },
-  { name: 'Fuchsia', hex: '#d946ef' },
-  { name: 'Pink', hex: '#ec4899' },
-  { name: 'Rose', hex: '#f43f5e' },
-  { name: 'Slate', hex: '#64748b' },
-  { name: 'Gray', hex: '#6b7280' },
-  { name: 'Zinc', hex: '#71717a' },
-  { name: 'Neutral', hex: '#737373' },
-  { name: 'Stone', hex: '#78716c' },
-]
-
-const normalizeHex = (value: string | null | undefined): string => {
-  try {
-    return value?.startsWith('#') ? value : `#${value}`
-  } catch {
-    return '#cccccc'
-  }
-}
-
-const displayColor = computed(() => {
-  return normalizeHex(props.modelValue)
-})
-
-const togglePopover = (event: Event) => {
-  popoverRef.value?.toggle(event)
-}
-
-const selectColor = (hex: string) => {
-  emit('update:modelValue', hex)
-  popoverRef.value?.hide()
-}
-</script>
-
-<style scoped lang="scss">
-.color-preview {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.375rem;
-  border: 2px solid var(--p-content-border-color);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.color-palette {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.3rem;
-}
-
-.color-item {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.375rem;
-  border: 1px solid transparent;
-  cursor: pointer;
-  padding: 0.1875rem;
-  transition: border-color 0.1s;
-
-  .color-item-swatch {
-    width: 100%;
-    height: 100%;
-    border-radius: calc(0.375rem - 0.1875rem);
-    background-color: var(--color-picker-color);
-    transition: transform 0.1s;
-  }
-
-  &:hover {
-    .color-item-swatch {
-      transform: scale(1.1);
-    }
-  }
-
-  &.active {
-    border-color: var(--color-picker-color);
-  }
+<style>
+.app-color-picker {
+  --vc-body-bg: var(--popover);
+  --vc-picker-bg: var(--foreground);
+  --vc-input-bg: var(--background);
+  --vc-input-text: var(--foreground);
+  --vc-input-label: var(--muted-foreground);
+  --vc-input-border: var(--border);
+  --vc-chrome-toggle-btn-highlighted: var(--accent);
 }
 </style>

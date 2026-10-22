@@ -1,66 +1,39 @@
-<template>
-  <div class="column gap-xs">
-    <div
-      class="title"
-      :class="_class"
-    >
-      {{ title }}
-      <slot />
-    </div>
-    <div
-      v-if="subtitle"
-      class="fg-secondary"
-    >
-      {{ subtitle }}
-    </div>
-  </div>
-</template>
-
-<script lang="ts" setup>
-import { computed } from 'vue'
-
-const props = withDefaults(
+<script setup lang="ts">
+import type { TitleSizeToken, WeightToken } from '../template/types/template-ui-tokens'
+withDefaults(
   defineProps<{
     size?: TitleSizeToken
     weight?: WeightToken
     title?: string
     subtitle?: string
+    as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'div'
   }>(),
-  {
-    size: 'xl',
-  },
+  { size: 'lg', weight: 'semibold', as: 'h2' },
 )
-
-const defaultWeightBySize: Record<TitleSizeToken, WeightToken> = {
-  sm: 'medium',
-  md: 'semibold',
-  lg: 'bold',
-  xl: 'bold',
+const sizes = { sm: 'text-sm', md: 'text-base', lg: 'text-xl', xl: 'text-2xl' }
+const weights = {
+  light: 'font-light',
+  regular: 'font-normal',
+  medium: 'font-medium',
+  semibold: 'font-semibold',
+  bold: 'font-bold',
+  black: 'font-black',
 }
-
-const _class = computed(() => {
-  const classes: string[] = []
-  if (props.size) classes.push(`size-${props.size}`)
-  const weight = props.weight ?? (props.size ? defaultWeightBySize[props.size] : undefined)
-  if (weight) classes.push(`weight-${weight}`)
-  return classes
-})
 </script>
-
-<style lang="scss" scoped>
-@import '~/assets/styles/variables.scss';
-
-.title {
-  @each $size, $value in $title-size-map {
-    &.size-#{$size} {
-      font-size: $value;
-    }
-  }
-
-  @each $name, $value in $weight-map {
-    &.weight-#{$name} {
-      font-weight: $value;
-    }
-  }
-}
-</style>
+<template>
+  <div class="flex min-w-0 flex-col gap-1">
+    <component
+      :is="as"
+      class="m-0 leading-tight tracking-tight text-foreground [overflow-wrap:anywhere]"
+      :class="[sizes[size], weights[weight]]"
+    >
+      {{ title }}<slot />
+    </component>
+    <p
+      v-if="subtitle"
+      class="text-sm leading-5 text-muted-foreground"
+    >
+      {{ subtitle }}
+    </p>
+  </div>
+</template>

@@ -24,7 +24,7 @@
         label="Пароль"
       />
       <div class="flex items-center gap-2">
-        <Checkbox
+        <AppCheckbox
           v-model="item.is_superuser"
           binary
           input-id="user-su"
@@ -46,7 +46,6 @@
 </template>
 
 <script setup lang="ts">
-import Checkbox from 'primevue/checkbox'
 import UserChangePasswordButton from '../components/UserChangePasswordButton.vue'
 import UserTokensSection from '../components/UserTokensSection.vue'
 import { userCodec } from '../models/user'

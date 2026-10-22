@@ -91,7 +91,13 @@ class AuthService:
     @staticmethod
     def remove_cookie(response: Response, token_type: TokenType, path: str = '/'):
         """Remove the token as an HTTP-only cookie in the response."""
-        response.delete_cookie(key=token_type.value, path=path, httponly=settings.cookie_httponly)
+        response.delete_cookie(
+            key=AuthService.get_cookie_key(token_type),
+            path=path,
+            httponly=settings.cookie_httponly,
+            secure=settings.cookie_secure,
+            samesite=settings.cookie_samesite,
+        )
 
     @staticmethod
     def set_cookie(

@@ -1,6 +1,7 @@
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  const publicNames = ['auth']
+  if (to.path === '/ui' || to.path === '/ui/') return
+  const publicNames = ['auth', 'ui']
   if (publicNames.includes(to.name as string)) return
   const { getSession } = useAuth()
   if (import.meta.server) {

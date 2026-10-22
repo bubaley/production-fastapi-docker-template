@@ -1,3 +1,5 @@
+import { computed, onMounted, onScopeDispose, ref, shallowRef, watch } from 'vue'
+
 export const useTemplateDetail = <T extends AppModel>(
   repo: AppRepoStore<T>,
   detailRouteParam: string,
@@ -5,44 +7,44 @@ export const useTemplateDetail = <T extends AppModel>(
   preloadItem = true,
 ) => {
   const route = useRoute()
-  const { restoreRepoItem } = useAppTemplate()
   const loading = ref(false)
-
+  const error = shallowRef<Error | null>(null)
+  const item = ref<T | null>(null) as Ref<T | null>
+  let generation = 0
   const routeItemId = computed(() => String(route.params[detailRouteParam] ?? ''))
-
-  const item = computed(() => {
-    if (!repo.item) return null
-    if (!repo.item.id) return repo.item
-    const allowedIds = [String(repo.item.id), 'new']
-    return allowedIds.includes(routeItemId.value) ? repo.item : null
-  })
-
+  const invalidate = () => {
+    generation++
+    item.value = null
+    error.value = null
+    loading.value = false
+  }
   const loadItem = async () => {
+    invalidate()
+    const request = generation
     loading.value = true
     try {
-      await restoreRepoItem({
-        repo,
-        itemId: routeItemId.value,
-        buildNewItem,
-      })
-    } catch (error) {
-      console.error(error)
+      let result: T | undefined
+      if (!routeItemId.value || routeItemId.value === 'new') {
+        if (!buildNewItem) throw new Error('Не удалось создать запись')
+        result = buildNewItem()
+      } else {
+        result = await repo.retrieve(routeItemId.value, undefined, undefined, { storeInRepo: false })
+      }
+      if (request !== generation) return
+      if (!result) throw new Error('Не удалось загрузить запись')
+      item.value = result
+    } catch (reason) {
+      if (request === generation) error.value = reason instanceof Error ? reason : new Error(String(reason))
     } finally {
-      loading.value = false
+      if (request === generation) loading.value = false
     }
   }
-
-  onMounted(() => {
-    if (preloadItem) void loadItem()
-  })
-
+  onMounted(() => { if (preloadItem) void loadItem() })
   watch(routeItemId, () => {
+    invalidate()
     if (preloadItem) void loadItem()
-  })
-
-  return {
-    loadItem,
-    item,
-    loading,
-  }
+  }, { flush: 'sync' })
+  watch(() => repo.revision, invalidate, { flush: 'sync' })
+  onScopeDispose(invalidate)
+  return { loadItem, item, loading, error }
 }

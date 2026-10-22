@@ -1,3 +1,4 @@
+from types import GenericAlias
 from typing import Any, TypeVar
 
 from pydantic import BaseModel, TypeAdapter
@@ -14,7 +15,7 @@ class SchemaField(fields.JSONField[TModel]):
         kwargs['encoder'] = self.encode
         super().__init__(**kwargs)
 
-    def to_db_value(self, value: Any, instance: 'Model | type[Model]') -> str | None:
+    def to_db_value(self, value: Any, instance: Model | type[Model]) -> str | None:
         self.validate(value)
         if value is None:
             return None
@@ -59,10 +60,10 @@ class SchemaListField(fields.JSONField[list[TModel]]):
     def _get_list_adapter(self) -> TypeAdapter[list[TModel]]:
         if self._list_schema_adapter is None:
             assert self._schema is not None, 'Schema must be provided before first use'
-            self._list_schema_adapter = TypeAdapter(list[self._schema])
+            self._list_schema_adapter = TypeAdapter(GenericAlias(list, self._schema))
         return self._list_schema_adapter
 
-    def to_db_value(self, value: Any, instance: 'Model | type[Model]') -> str | None:
+    def to_db_value(self, value: Any, instance: Model | type[Model]) -> str | None:
         self.validate(value)
         assert self._schema is not None, 'Schema must be provided'
         if value is None:

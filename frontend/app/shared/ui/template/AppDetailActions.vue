@@ -1,13 +1,18 @@
 <template>
   <AppTemplateActions
+    v-bind="$attrs"
     :actions="actions"
     :full-width="fullWidth"
     :size="size"
   />
   <AppConfirmModal
     v-model="deleteModal"
-    title="Подтверждение удаления"
-    subtitle="Уверены, что хотите удалить?"
+    :title="labels?.deleteTitle || 'Подтверждение удаления'"
+    :confirm-text="labels?.delete || 'Удалить'"
+    :decline-text="labels?.cancel"
+    :close-label="labels?.close"
+    :confirm-props="{ variant: 'destructive' }"
+    :subtitle="labels?.deleteDescription || 'Уверены, что хотите удалить?'"
     :confirm="handleDeleteConfirm"
   />
 </template>
@@ -17,6 +22,18 @@ import type { AppTemplateAction } from './types/template-types'
 import type { ActionDisplayMode } from './types/template-ui-tokens'
 
 export type AppDetailActionsProps<T extends AppModel> = {
+  labels?: {
+    save?: string
+    cancel?: string
+    delete?: string
+    deleteTitle?: string
+    deleteDescription?: string
+    close?: string
+    saved?: string
+    deleted?: string
+    saveError?: string
+    deleteError?: string
+  }
   repo: AppRepoStore<T>
   item: T
   hideCreateButton?: boolean
@@ -25,6 +42,8 @@ export type AppDetailActionsProps<T extends AppModel> = {
   hideDeleteButton?: boolean
   showCancelButton?: boolean
   hideActions?: boolean
+  hideHeaderActions?: boolean
+  hidden?: boolean
   fullWidth?: boolean
   size?: 'small' | 'large'
   saveMode?: ActionDisplayMode
@@ -34,6 +53,8 @@ export type AppDetailActionsProps<T extends AppModel> = {
   beforeSave?: (item: T) => Promise<void> | void
   beforeDelete?: (item: T) => Promise<void> | void
 }
+
+defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(defineProps<AppDetailActionsProps<T>>(), {
   fullWidth: false,
@@ -60,14 +81,13 @@ const hideSaveButton = computed(() => {
 const actions = computed<AppTemplateAction[]>(() => {
   const values: AppTemplateAction[] = [
     {
-      label: 'Сохранить',
-      mode: props.saveMode,
-      hidden: hideSaveButton.value,
-      loading: saveLoading.value,
-      action: handleSave,
+      label: props.labels?.cancel || 'Отмена',
+      severity: 'secondary',
+      hidden: !props.showCancelButton || props.hideActions,
+      action: () => emit('cancel'),
     },
     {
-      label: 'Удалить',
+      label: props.labels?.delete || 'Удалить',
       icon: 'lucide:trash-2',
       severity: 'secondary',
       mode: props.deleteMode,
@@ -77,11 +97,13 @@ const actions = computed<AppTemplateAction[]>(() => {
         deleteModal.value = true
       },
     },
+
     {
-      label: 'Отмена',
-      severity: 'secondary',
-      hidden: !props.showCancelButton || props.hideActions,
-      action: () => emit('cancel'),
+      label: props.labels?.save || 'Сохранить',
+      mode: props.saveMode,
+      hidden: hideSaveButton.value,
+      loading: saveLoading.value,
+      action: handleSave,
     },
   ]
 
@@ -96,6 +118,8 @@ const handleSave = async () => {
   await props.beforeSave?.(props.item)
   const result = await updateOrCreate(props.item, {
     changeRouteParam: !props.disableRouterAutoResolving,
+    successMessage: props.labels?.saved,
+    errorMessage: props.labels?.saveError,
   })
 
   if (!result.success) return
@@ -105,9 +129,12 @@ const handleSave = async () => {
 
 const handleDeleteConfirm = async () => {
   await props.beforeDelete?.(props.item)
-  const result = await deleteItem(props.item)
+  const result = await deleteItem(props.item, {
+    successMessage: props.labels?.deleted,
+    errorMessage: props.labels?.deleteError,
+  })
 
-  if (!result.success) return
+  if (!result.success) throw new Error('Удаление не выполнено')
 
   emit('delete', result)
 }

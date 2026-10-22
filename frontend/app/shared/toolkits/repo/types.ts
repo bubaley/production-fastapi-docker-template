@@ -42,6 +42,8 @@ export type RepoListConfig = {
   pagination?: AppPagination
 }
 
+export type RepoRetrieveConfig = { storeInRepo?: boolean }
+
 export type RepoException = {
   status_code?: number
   message?: string
@@ -55,6 +57,7 @@ export type AppRepo<T extends AppModel> = {
   loading: LoadingState
   pagination: AppPagination
   isLoading: boolean
+  revision?: number
 
   resetStore: () => void
   resetPagination: () => void
@@ -64,7 +67,7 @@ export type AppRepo<T extends AppModel> = {
     config?: RepoListConfig,
     onError?: RepoOnError,
   ) => Promise<{ items: T[]; pagination: AppPagination } | undefined>
-  retrieve: (id: string | number, params?: Record<string, unknown>, onError?: RepoOnError) => Promise<T | undefined>
+  retrieve: (id: string | number, params?: Record<string, unknown>, onError?: RepoOnError, config?: RepoRetrieveConfig) => Promise<T | undefined>
   create: (object: T, onError?: RepoOnError) => Promise<T | undefined>
   update: (object: T, onError?: RepoOnError) => Promise<T | undefined>
   delete: (object: T, onError?: RepoOnError) => Promise<any | undefined>
@@ -80,6 +83,7 @@ export type AppRepoStore<T extends AppModel> = Pick<
   | 'pagination'
   | 'loading'
   | 'isLoading'
+  | 'revision'
   | 'resetStore'
   | 'list'
   | 'retrieve'
