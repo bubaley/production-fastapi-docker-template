@@ -3,6 +3,13 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.9.1] - 2026-10-22
+
+### Bug fixes
+- **docker:** install libatomic for the Node 26 binary (d139ce6)
+
+### Build
+- move to Python 3.15, Node 26 and pnpm 12 (ed29c81)
 ## [0.9.0] - 2026-10-22
 
 ### Features
