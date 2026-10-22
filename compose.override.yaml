@@ -1,0 +1,16 @@
+# Local development overrides, merged automatically by `docker compose` next to compose.yaml.
+# `docker compose up -d db redis` gives the dev backend PostgreSQL and Redis on 127.0.0.1.
+# Not copied to servers; `make docker-run` ignores it (`-f compose.yaml`).
+
+services:
+  app:
+    build:
+      context: .
+
+  db:
+    ports:
+      - "127.0.0.1:${SQL_PORT:-5432}:5432"
+
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"

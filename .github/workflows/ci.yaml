@@ -1,154 +1,493 @@
+# One pipeline: changes -> backend / frontend / pre-commit / image -> gate,
+# then on push to main: release -> publish -> deploy. See docs/deployment.md.
 name: CI
 
 on:
-  push:
-    branches: ["main"]
-    paths-ignore:
-      - "README.md"
-      - "docs/**"
-      - "*.md"
   pull_request:
-    branches: ["main"]
-    paths-ignore:
-      - "README.md"
-      - "docs/**"
-      - "*.md"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.ref }}
+  # Never cancel a main run: it may be releasing or deploying.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
-  SECRET_KEY: apple-banana-cherry-date-elderberry-fig-grape-honeydew-kiwi-lemon
-  ENCRYPTION_KEY: test-password-32-chars-for-tests
-  SQL_DATABASE: postgres
-  SQL_USER: postgres
-  SQL_PASSWORD: postgres
-  SQL_HOST: localhost
-  SQL_PORT: 5432
+  UV_VERSION: "0.13.5" # keep in sync with UV_IMAGE in Dockerfile
+  GIT_CLIFF_VERSION: "2.14.2"
+  CI_IMAGE: fastapi-nuxt-template:ci
 
 jobs:
-  lint-and-format:
-    name: Code Quality & Linting
+  changes:
+    name: Detect changes
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      # Pushes to main and manual runs check everything; pull requests only what they touch.
+      all: ${{ github.event_name != 'pull_request' }}
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      infra: ${{ steps.filter.outputs.infra }}
+      docs: ${{ steps.filter.outputs.docs }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
+          persist-credentials: false
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
         with:
-          enable-cache: true
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.python-version'
+              - 'Makefile'
+              - '.github/workflows/ci.yaml'
+            frontend:
+              - 'frontend/**'
+              - '.nvmrc'
+              - 'Makefile'
+              - '.github/workflows/ci.yaml'
+            infra:
+              - 'Dockerfile'
+              - '.dockerignore'
+              - 'Caddyfile'
+              - 'docker/**'
+              - 'compose.yaml'
+              - '.github/workflows/ci.yaml'
+            docs:
+              - 'docs/**'
+              - '**/*.md'
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version-file: "./backend/pyproject.toml"
-
-      - name: Install packages
-        run: uv sync --project backend --dev --locked
-
-      - name: Cache pre-commit hooks
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
-          restore-keys: |
-            pre-commit-${{ runner.os }}-
-
-      - name: Install pre-commit hooks
-        run: cd backend && uv run pre-commit run --all-files --show-diff-on-failure
-
-  test:
-    name: Unit Tests
+  backend:
+    name: Backend checks
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    timeout-minutes: 15
     services:
       postgres:
-        image: postgres:17
-        ports:
-          - 5432:5432
+        image: postgres:18.6-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres -d postgres"
-          --health-interval 5s
-          --health-timeout 10s
-          --health-retries 10
-
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:8.10.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      SECRET_KEY: ci-only-secret-key-not-used-anywhere-else-0123456789abcdefghijklmnop
+      ENCRYPTION_KEY: ci-only-encryption-key-32-chars!
+      SQL_HOST: localhost
+      SQL_PORT: "5432"
+      SQL_USER: postgres
+      SQL_PASSWORD: postgres
+      SQL_DATABASE: postgres
+      CACHE_REDIS_URL: redis://localhost:6379/0
+      BROKER_REDIS_URL: redis://localhost:6379/1
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+      # Python comes from .python-version (uv downloads it if the runner lacks it).
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
           enable-cache: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version-file: "./backend/pyproject.toml"
-
-      - name: Install packages
-        run: uv sync --project backend --dev --locked
-
-      - name: Run tests
-        working-directory: backend
-        run: uv run manage.py test
+          cache-dependency-glob: backend/uv.lock
+      - name: Install dependencies
+        run: uv sync --project backend --locked
+      - name: Lint, format, types, tests (PostgreSQL)
+        run: make check-backend PYTEST_ARGS=
 
   frontend:
-    name: Frontend Checks
+    name: Frontend checks
+    needs: changes
+    if: needs.changes.outputs.all == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: frontend
+    timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # pnpm version from packageManager in frontend/package.json.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           package_json_file: frontend/package.json
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+      - name: Format, lint, types, tests, architecture, build
+        run: make check-frontend BUILD=1
 
-      - name: Install packages
-        run: pnpm install --frozen-lockfile
-
-      - name: Format, lint, typecheck, tests, architecture
-        run: pnpm check
-
-      - name: Production build
-        run: pnpm build
-
-  all-checks:
-    name: All Checks Passed
+  pre-commit:
+    name: Repository hygiene
+    needs: changes
     runs-on: ubuntu-latest
-    needs: [lint-and-format, test, frontend]
-    if: always()
-
+    timeout-minutes: 10
     steps:
-      - name: Check all jobs
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      # ruff and ty already run in the backend job.
+      - name: pre-commit (yaml, eol, large files, pyupgrade, bandit, uv lock, pyproject)
+        env:
+          SKIP: ruff-check,ruff-format,ty
+        run: uvx pre-commit@4.6.2 run --all-files --show-diff-on-failure
+
+  image:
+    name: Image build and smoke test
+    needs: changes
+    if: >-
+      needs.changes.outputs.all == 'true' || needs.changes.outputs.backend == 'true' ||
+      needs.changes.outputs.frontend == 'true' || needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Image metadata
+        id: meta
         run: |
-          if [[ "${{ needs.lint-and-format.result }}" != "success" ||
-                "${{ needs.test.result }}" != "success" ||
-                "${{ needs.frontend.result }}" != "success" ]]; then
-            echo "One or more checks failed"
+          echo "version=$(jq -r .version version.json)" >> "$GITHUB_OUTPUT"
+          echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.CI_IMAGE }}
+          build-args: |
+            APP_VERSION=${{ steps.meta.outputs.version }}
+            GIT_SHA=${{ github.sha }}
+            BUILD_DATE=${{ steps.meta.outputs.created }}
+          cache-from: type=gha,scope=app-image
+          cache-to: type=gha,mode=max,scope=app-image
+      - name: Smoke test (compose.yaml with PostgreSQL and Redis)
+        env:
+          APP_IMAGE: ${{ env.CI_IMAGE }}
+          COMPOSE_PROJECT_NAME: smoke
+          APP_ENTRY_PORT: 127.0.0.1:8080
+        run: |
+          cat > .env <<'EOF'
+          SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123456789abcdefghijklmnop
+          ENCRYPTION_KEY=ci-only-encryption-key-32-chars!
+          NUXT_PUBLIC_BASE_URL=http://127.0.0.1:8080
+          EOF
+          docker compose -f compose.yaml up -d --wait --wait-timeout 240
+          base=http://127.0.0.1:8080
+
+          curl -fsS "$base/healthz"
+          echo " <- /healthz"
+
+          curl -fsSL "$base/" -o page.html
+          grep -q 'id="__nuxt"' page.html
+          echo "/ renders the Nuxt app"
+
+          asset=$(grep -o '/_nuxt/[^"]*\.js' page.html | head -n 1)
+          curl -fsS -D headers.txt -o /dev/null "$base$asset"
+          grep -qi '^cache-control: public, max-age=31536000, immutable' headers.txt
+          echo "$asset is served with immutable caching"
+
+          code=$(curl -s -o api.json -w '%{http_code}' "$base/api/v1/auth/me")
+          test "$code" = 401
+          jq -e . api.json > /dev/null
+          echo "/api/v1/auth/me reaches FastAPI (401 JSON without credentials)"
+      - name: Container logs
+        if: failure()
+        run: docker compose -f compose.yaml -p smoke logs --no-color --tail 300
+      - name: Stop smoke stack
+        if: always()
+        run: docker compose -f compose.yaml -p smoke down -v
+      - name: Vulnerability scan (fail on fixable CRITICAL)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.CI_IMAGE }}
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  gate:
+    name: CI gate
+    if: always()
+    needs: [changes, backend, frontend, pre-commit, image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          jobs: ${{ toJSON(needs) }}
+          allowed-skips: backend, frontend, image
+
+  release:
+    name: Release
+    needs: gate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: release-main
+      cancel-in-progress: false
+    outputs:
+      released: ${{ steps.push.outputs.released }}
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.push.outputs.sha }}
+    steps:
+      # A GitHub App token can push past branch protection (add the app to the bypass list);
+      # without it the job falls back to GITHUB_TOKEN, which works only on an unprotected main.
+      - name: Release token
+        id: app-token
+        if: vars.RELEASE_APP_CLIENT_ID != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ steps.app-token.outputs.token || github.token }}
+      - name: Skip if main moved since the tested commit
+        id: guard
+        run: |
+          head=$(git rev-parse HEAD)
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::notice title=Release skipped::main moved from ${GITHUB_SHA::7} to ${head::7}; the CI run for the newer commit releases it."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        if: steps.guard.outputs.proceed == 'true'
+        with:
+          version: ${{ env.UV_VERSION }}
+      - name: Next version from conventional commits
+        id: version
+        if: steps.guard.outputs.proceed == 'true'
+        run: |
+          current=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || echo none)
+          next=$(uvx --from "git-cliff==${GIT_CLIFF_VERSION}" git-cliff --bumped-version)
+          if [ -z "$next" ] || [ "$next" = "$current" ]; then
+            echo "::notice title=No release::no feat/fix/perf/revert/build/deps or breaking commits since ${current}."
+            echo "bump=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Releasing ${next} (previous: ${current})"
+          {
+            echo "bump=true"
+            echo "tag=${next}"
+            echo "version=${next#v}"
+          } >> "$GITHUB_OUTPUT"
+      - name: Update version files and changelog
+        if: steps.version.outputs.bump == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          jq --arg v "$VERSION" '.version = $v' version.json > "$RUNNER_TEMP/version.json"
+          mv "$RUNNER_TEMP/version.json" version.json
+          # Same key order as Oxfmt's package.json sorting: version right after name.
+          jq --arg v "$VERSION" '{name} + {version: $v} + del(.name, .version)' frontend/package.json > "$RUNNER_TEMP/package.json"
+          mv "$RUNNER_TEMP/package.json" frontend/package.json
+          uv version "$VERSION" --project backend --no-sync
+          uvx --from "git-cliff==${GIT_CLIFF_VERSION}" git-cliff --tag "$TAG" --output CHANGELOG.md
+          uvx --from "git-cliff==${GIT_CLIFF_VERSION}" git-cliff --tag "$TAG" --unreleased --strip all --output "$RUNNER_TEMP/release-notes.md"
+          git diff --stat
+      - name: Commit, tag and push
+        id: push
+        if: steps.version.outputs.bump == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add version.json frontend/package.json backend/pyproject.toml backend/uv.lock CHANGELOG.md
+          git commit -m "chore(release): ${TAG} [skip ci]"
+          git tag -a "$TAG" -m "Release ${TAG}"
+          if ! git push --atomic origin HEAD:refs/heads/main "refs/tags/${TAG}"; then
+            git fetch --quiet origin main
+            if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
+              echo "::notice title=Release skipped::main moved while releasing; the CI run for the newer commit releases it."
+              echo "released=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error title=Release push rejected::check that the release token may bypass branch protection (docs/deployment.md)."
             exit 1
           fi
-          echo "All checks passed successfully"
+          echo "released=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: GitHub Release
+        if: steps.push.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release create "$TAG" --title "$TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --verify-tag
+
+  publish:
+    name: Publish image
+    needs: release
+    # Off until the registry is configured (repository variables YC_REGISTRY_ID and IMAGE_NAME).
+    if: needs.release.outputs.released == 'true' && vars.YC_REGISTRY_ID != '' && vars.IMAGE_NAME != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # Yandex Cloud workload identity federation (vars.YC_SA_ID)
+      packages: write # optional attestation copy in GHCR (vars.ATTESTATIONS == 'ghcr')
+    outputs:
+      image: ${{ steps.ref.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+    env:
+      IMAGE: cr.yandex/${{ vars.YC_REGISTRY_ID }}/${{ vars.IMAGE_NAME }}
+      TAG: ${{ needs.release.outputs.tag }}
+      VERSION: ${{ needs.release.outputs.version }}
+      RELEASE_SHA: ${{ needs.release.outputs.sha }}
+      # registry: SBOM + provenance attached in Yandex CR; ghcr: plain image in Yandex CR, attested copy in GHCR; off: none.
+      ATTESTATIONS: ${{ vars.ATTESTATIONS || 'registry' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+          persist-credentials: false
+      - name: Image references
+        id: ref
+        run: |
+          {
+            echo "image=${IMAGE}"
+            echo "short=${RELEASE_SHA::7}"
+            echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "ghcr=ghcr.io/${GITHUB_REPOSITORY,,}"
+            if [ "$ATTESTATIONS" = registry ]; then echo "attest=true"; else echo "attest=false"; fi
+          } >> "$GITHUB_OUTPUT"
+      # Key file (secrets.YC_KEY_JSON) or keyless OIDC federation (vars.YC_SA_ID).
+      - name: Log in to Yandex Container Registry
+        uses: yc-actions/yc-cr-login@ee42362bcacb854964afa3a3180ca8ae6dd388f8 # v3.0.2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_KEY_JSON }}
+          yc-sa-id: ${{ vars.YC_SA_ID }}
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+            type=raw,value=sha-${{ steps.ref.outputs.short }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.revision=${{ env.RELEASE_SHA }}
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ env.VERSION }}
+            GIT_SHA=${{ env.RELEASE_SHA }}
+            BUILD_DATE=${{ steps.ref.outputs.created }}
+          provenance: ${{ steps.ref.outputs.attest == 'true' && 'mode=max' || 'false' }}
+          sbom: ${{ steps.ref.outputs.attest == 'true' }}
+          cache-from: type=gha,scope=app-image
+          cache-to: type=gha,mode=max,scope=app-image
+      - name: Log in to GHCR
+        if: env.ATTESTATIONS == 'ghcr'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Push attested copy to GHCR
+        if: env.ATTESTATIONS == 'ghcr'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.ref.outputs.ghcr }}:${{ env.VERSION }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ env.VERSION }}
+            GIT_SHA=${{ env.RELEASE_SHA }}
+            BUILD_DATE=${{ steps.ref.outputs.created }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=app-image
+      - name: Summary
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          {
+            echo "### Image ${TAG}"
+            echo
+            echo "\`${IMAGE}@${DIGEST}\`"
+            echo
+            echo "Tags: ${VERSION}, ${VERSION%.*}, sha-${RELEASE_SHA::7}, latest. Attestations: ${ATTESTATIONS}."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy
+    needs: [release, publish]
+    # Off until the server is configured (repository variable DEPLOY_ENABLED=true).
+    if: needs.publish.result == 'success' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+          persist-credentials: false
+      - name: Deploy by digest
+        uses: ./.github/actions/deploy
+        with:
+          image: ${{ needs.publish.outputs.image }}@${{ needs.publish.outputs.digest }}
+          host: ${{ secrets.DEPLOY_HOST }}
+          user: ${{ secrets.DEPLOY_USER }}
+          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          path: ${{ vars.DEPLOY_PATH }}

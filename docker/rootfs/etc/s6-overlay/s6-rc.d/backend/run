@@ -1,0 +1,9 @@
+#!/command/with-contenv sh
+# FastAPI behind Caddy; only Caddy (127.0.0.1) may set forwarded headers.
+exec 2>&1
+cd /app/backend || exit 1
+exec /app/backend/.venv/bin/uvicorn app.main:app \
+    --host 127.0.0.1 --port 8000 \
+    --workers "${BACKEND_WORKERS:-2}" \
+    --proxy-headers --forwarded-allow-ips 127.0.0.1 \
+    --timeout-graceful-shutdown 20

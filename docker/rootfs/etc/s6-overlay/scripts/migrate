@@ -1,0 +1,16 @@
+#!/command/with-contenv sh
+# Oneshot before every longrun: wait for PostgreSQL, then apply Tortoise migrations.
+# A failure stops the container (S6_BEHAVIOUR_IF_STAGE2_FAILS=2).
+set -eu
+exec 2>&1
+
+if [ "${RUN_MIGRATIONS:-true}" != "true" ]; then
+    echo "migrate: skipped (RUN_MIGRATIONS=${RUN_MIGRATIONS})"
+    exit 0
+fi
+
+cd /app/backend
+/app/backend/.venv/bin/python -I /etc/s6-overlay/scripts/wait-for-db.py
+echo "migrate: applying migrations"
+/app/backend/.venv/bin/python -m tortoise migrate
+echo "migrate: done"

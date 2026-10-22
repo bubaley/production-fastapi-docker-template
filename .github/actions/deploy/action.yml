@@ -1,0 +1,105 @@
+# Pluggable deploy step used by ci.yaml (deploy) and rollback.yaml.
+# Default target: one server with Docker Compose, reached over SSH. Replace this action
+# (same inputs) to deploy elsewhere, e.g. Kubernetes or a managed container service.
+name: Deploy over SSH
+description: Upload compose.yaml, pin APP_IMAGE to a digest in the server's .env, pull and restart until healthy.
+
+inputs:
+  image:
+    description: Image reference pinned by digest (registry/name@sha256:...).
+    required: true
+  host:
+    description: SSH host.
+    required: true
+  user:
+    description: SSH user (member of the docker group).
+    required: true
+  ssh-key:
+    description: Private key for the SSH user.
+    required: true
+  known-hosts:
+    description: known_hosts line(s) for the host. Empty trusts the key on first use (with a warning).
+    required: false
+    default: ""
+  port:
+    description: SSH port.
+    required: false
+    default: "22"
+  path:
+    description: Directory on the server with .env (and compose.yaml after the first deploy).
+    required: false
+    default: ""
+  compose-file:
+    description: Local compose file to upload.
+    required: false
+    default: compose.yaml
+
+runs:
+  using: composite
+  steps:
+    - name: Check inputs
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        HOST: ${{ inputs.host }}
+      run: |
+        if [[ ! "$IMAGE" =~ @sha256:[0-9a-f]{64}$ ]]; then
+          echo "::error::image must be pinned by digest, got '${IMAGE}'"
+          exit 1
+        fi
+        if [ -z "$HOST" ]; then
+          echo "::error::DEPLOY_HOST is not set"
+          exit 1
+        fi
+
+    - name: Configure SSH
+      shell: bash
+      env:
+        HOST: ${{ inputs.host }}
+        SSH_USER: ${{ inputs.user }}
+        PORT: ${{ inputs.port }}
+        SSH_KEY: ${{ inputs.ssh-key }}
+        KNOWN_HOSTS: ${{ inputs.known-hosts }}
+      run: |
+        install -m 700 -d ~/.ssh
+        printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        if [ -n "$KNOWN_HOSTS" ]; then
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+        else
+          echo "::warning::DEPLOY_KNOWN_HOSTS is not set; trusting the host key presented now."
+          ssh-keyscan -p "$PORT" "$HOST" > ~/.ssh/known_hosts 2>/dev/null
+        fi
+        cat > ~/.ssh/config <<EOF
+        Host deploy-target
+          HostName ${HOST}
+          User ${SSH_USER}
+          Port ${PORT}
+          IdentityFile ~/.ssh/deploy_key
+          IdentitiesOnly yes
+          StrictHostKeyChecking yes
+          ServerAliveInterval 30
+        EOF
+
+    - name: Upload compose file
+      shell: bash
+      env:
+        DEPLOY_PATH: ${{ inputs.path || '/opt/app' }}
+        COMPOSE_FILE: ${{ inputs.compose-file }}
+      run: |
+        ssh deploy-target "mkdir -p '${DEPLOY_PATH}'"
+        scp -q "$COMPOSE_FILE" "deploy-target:${DEPLOY_PATH}/compose.yaml"
+
+    - name: Pull and restart
+      shell: bash
+      env:
+        DEPLOY_PATH: ${{ inputs.path || '/opt/app' }}
+        IMAGE: ${{ inputs.image }}
+      run: ssh deploy-target bash -s -- "'${DEPLOY_PATH}'" "'${IMAGE}'" < "${GITHUB_ACTION_PATH}/remote-deploy.sh"
+
+    - name: Summary
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        HOST: ${{ inputs.host }}
+      run: echo "Deployed \`${IMAGE}\` to ${HOST}." >> "$GITHUB_STEP_SUMMARY"

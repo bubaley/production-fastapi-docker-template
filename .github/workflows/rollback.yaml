@@ -1,0 +1,78 @@
+# Redeploy an earlier release by its image digest. See docs/deployment.md#rollback.
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release to redeploy, e.g. v1.4.2 or 1.4.2
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Redeploy ${{ inputs.tag }}
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # Yandex Cloud workload identity federation (vars.YC_SA_ID)
+    environment: production
+    # Shares the lock with the deploy job in ci.yaml.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      IMAGE: cr.yandex/${{ vars.YC_REGISTRY_ID }}/${{ vars.IMAGE_NAME }}
+    steps:
+      - name: Check the tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          version="${INPUT_TAG#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'${INPUT_TAG}' is not a release tag like v1.4.2"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Deploy with the compose.yaml of that release, so file and image match.
+      - name: compose.yaml of the release
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          git fetch --quiet --depth=1 origin "refs/tags/v${VERSION}:refs/tags/v${VERSION}"
+          git show "v${VERSION}:compose.yaml" > "$RUNNER_TEMP/compose.yaml"
+      - name: Log in to Yandex Container Registry
+        uses: yc-actions/yc-cr-login@ee42362bcacb854964afa3a3180ca8ae6dd388f8 # v3.0.2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_KEY_JSON }}
+          yc-sa-id: ${{ vars.YC_SA_ID }}
+      - name: Resolve the image digest
+        id: digest
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          digest=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" --format '{{json .Manifest}}' | jq -r .digest)
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::could not resolve ${IMAGE}:${VERSION}"
+            exit 1
+          fi
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+      - name: Deploy by digest
+        uses: ./.github/actions/deploy
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.digest.outputs.digest }}
+          compose-file: ${{ runner.temp }}/compose.yaml
+          host: ${{ secrets.DEPLOY_HOST }}
+          user: ${{ secrets.DEPLOY_USER }}
+          ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known-hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          path: ${{ vars.DEPLOY_PATH }}
