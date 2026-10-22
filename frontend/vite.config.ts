@@ -37,6 +37,7 @@ export default defineConfig({
   lint: {
     plugins: ['typescript', 'unicorn', 'oxc', 'import', 'vue'],
     categories: { correctness: 'error' },
-    ignorePatterns,
+    // Written by `pnpm gen:api` (openapi-ts.config.ts); typecheck still covers it.
+    ignorePatterns: [...ignorePatterns, 'app/shared/api/generated/**'],
   },
 })

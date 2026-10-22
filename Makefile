@@ -62,6 +62,9 @@ prepare: ## prepare project
 openapi: ## write the OpenAPI schema to frontend/openapi.json (no database needed)
 	cd $(BACKEND_DIR) && $(UV) run manage.py openapi --output ../$(FRONTEND_DIR)/openapi.json
 
+gen-client: openapi ## regenerate the typed frontend API client (frontend/app/shared/api/generated) from the schema
+	$(PNPM) --dir $(FRONTEND_DIR) run gen:api
+
 shell: ## run backend shell
 	cd $(BACKEND_DIR) && python -m manage shell
 
@@ -101,7 +104,7 @@ docker-stop: ## stop the docker-run stack and delete its volumes
 
 # ----------- QUALITY ----------- #
 
-.PHONY: openapi check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
+.PHONY: openapi gen-client check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
 
 check: check-backend check-frontend ## run every CI check without changing files
 

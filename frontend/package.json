@@ -17,7 +17,9 @@
     "check:unused": "knip --include files,dependencies,devDependencies,unlisted,unresolved,binaries",
     "check:architecture": "node scripts/check-architecture.mjs",
     "ui:add": "node scripts/shadcn-add.mjs",
-    "check": "pnpm run fmt:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run check:architecture && pnpm run check:unused"
+    "check": "pnpm run fmt:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run gen:api:check && pnpm run check:architecture && pnpm run check:unused",
+    "gen:api": "openapi-ts",
+    "gen:api:check": "node scripts/check-generated-api.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -42,6 +44,7 @@
     "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
     "@typescript-eslint/parser": "^8.72.0",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/test-utils": "^2.4.6",
