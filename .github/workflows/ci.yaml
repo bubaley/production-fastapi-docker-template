@@ -329,6 +329,8 @@ jobs:
           mv "$RUNNER_TEMP/package.json" frontend/package.json
           uv version "$VERSION" --project backend --no-sync
           uvx --from "git-cliff==${GIT_CLIFF_VERSION}" git-cliff --tag "$TAG" --output CHANGELOG.md
+          # git-cliff ends the file with a blank line; end-of-file-fixer expects exactly one newline.
+          perl -0pi -e 's/\n+\z/\n/' CHANGELOG.md
           uvx --from "git-cliff==${GIT_CLIFF_VERSION}" git-cliff --tag "$TAG" --unreleased --strip all --output "$RUNNER_TEMP/release-notes.md"
           git diff --stat
       - name: Commit, tag and push
