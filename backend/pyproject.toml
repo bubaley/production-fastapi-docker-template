@@ -14,12 +14,10 @@ dependencies = [
     "cryptography>=50.0.0",
     "fastapi>=0.141.1",
     "fastapi-ronin>=1.0.0",
-    "glom>=25.12.0",
     "gunicorn>=26.1.0",
-    "httpx2>=2.12.0",
     "loguru>=0.7.3",
     "pydantic-settings>=2.15.0",
-    "python-jose[cryptography]>=3.5.0",
+    "pyjwt>=2.15.1",
     "python-multipart>=0.0.32",
     "redis>=8.1.0",
     "taskiq>=0.12.4",
@@ -31,6 +29,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.12.0",
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
@@ -42,13 +41,13 @@ dev = [
 target-version = "py314"
 line-length = 120
 indent-width = 4
-extend-exclude = [ "backend/migrations" ]
+extend-exclude = [ "migrations" ]
+force-exclude = true
 format.quote-style = "single"
 format.line-ending = "auto"
 format.skip-magic-trailing-comma = false
 lint.extend-select = [ "I" ]
 lint.ignore = [ "BLE001" ]
-lint.extend-per-file-ignores."core/settings/*.py" = [ "F403", "F405" ]
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.bandit]
@@ -57,6 +56,7 @@ skips = [ "B101" ]
 
 [tool.pytest]
 ini_options.testpaths = [ "app" ]
+ini_options.pythonpath = [ "." ]
 ini_options.python_files = [ "test_*.py" ]
 ini_options.asyncio_mode = "auto"
 

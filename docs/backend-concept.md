@@ -10,12 +10,13 @@ Viewsets stay thin: HTTP only — schema, permissions, queryset. **Almost no bus
 
 ## Model
 
-Always inherit `BaseModel`. Declare each FK as the field plus a `_id: UUID` annotation. `related_name` is plural.
+Always inherit `BaseModel`. Declare each FK as the field plus a `_id: UUID` annotation. `related_name` is plural. Every model declares `tenant_scope` (see [Scoping](#scoping)).
 
 ```python
 from uuid import UUID
 from tortoise import fields
 from app.core.models import BaseModel
+from app.core.scope import Scope
 
 class Project(BaseModel):
     organization = fields.ForeignKeyField(
@@ -23,6 +24,11 @@ class Project(BaseModel):
     )
     organization_id: UUID
     name = fields.CharField(max_length=255)
+
+    tenant_scope = Scope(
+        user='organization__org_users__user_id',
+        organization='organization_id',
+    )
 
     class Meta:
         table = 'project'
@@ -88,6 +94,8 @@ Always declare a separate update schema for resources with immutable ownership.
 Ronin falls back to the create schema when `update_schema` is missing. For example,
 `UserTokenUpdateSchema` accepts only `name` and rejects extra fields; `user_id`
 belongs only to creation. Do not let a PATCH/PUT payload change a token's owner.
+`OrganizationUserUpdateSchema` has no fields and forbids extras: a membership's
+user and organization are fixed once created.
 
 ```python
 from fastapi import APIRouter
@@ -116,16 +124,28 @@ Custom create/destroy/queryset: `perform_create`, `perform_destroy`, `get_querys
 
 ## Scoping
 
-`get_queryset()` applies `FilterObjectsManager` automatically. Register every model in `app/shared/services/filter_objects_manager.py`:
+`get_queryset()` passes every queryset through `FilterObjectsManager`, which reads the model's `tenant_scope` (`app/core/scope.py`). It **fails closed**:
+
+| Declaration | Effect |
+|---|---|
+| none | `ScopeConfigurationError` on the first query. `app/shared/tests/test_filter_objects_manager.py` fails for every registered model without a scope |
+| `Scope(user=...)` | Rows matching the current user only. The user rule is mandatory; anonymous state is rejected (401) |
+| `Scope(user=..., organization=...)` | User rule **and** the organization from `Organization-Key`. No header → 400 `Organization-Key header is required` |
+| `Scope(..., require_organization=False)` | Without the header only the user rule applies: rows from every organization the user belongs to, never other tenants |
+| `Unscoped(reason='...')` | No filter. Only for intentionally global reference data |
+
+Each rule is a lookup path compared with `=` (`'organization__org_users__user_id'`) or a callable `value -> Q` for custom rules, e.g. a subquery (`OrganizationUser` uses one because Tortoise mis-aliases a self-join).
 
 ```python
-Project: Scope(
-    user='org_users__user_id',
+tenant_scope = Scope(
+    user='organization__org_users__user_id',  # Project -> Organization -> OrganizationUser
     organization='organization_id',
-),
+)
 ```
 
-Empty `Scope()` means **no** auto-filter — override `get_queryset()` when the rule is custom (`OrganizationUserViewSet`).
+The user rule always applies, so a forged or stale `Organization-Key` cannot widen access. Superuser bypass lives on the viewset (`if user.is_superuser: return Model.all()`, else `await super().get_queryset()`), not in the scope.
+
+`organization` is assigned from `AuthState` on **create only** (`process_state_to_model` in `BaseGenericViewSet.before_save`); an update never moves a row to another organization.
 
 ---
 
@@ -135,13 +155,13 @@ Empty `Scope()` means **no** auto-filter — override `get_queryset()` when the 
 |---|---|
 | Viewset | HTTP: which schema, who may CRUD, queryset shape. Keep this thin |
 | `services/` class | Business workflow: validate, load related objects, persist, S3, websocket |
-| `utils/` function | 5–20 lines, no identity as a “thing” (`round_number`, `date_utils`) |
+| `utils/` function | 5–20 lines, no identity as a “thing” (`date_utils`, `get_details_from_exception`) |
 
 Example: `OrganizationService` is a class in `domains/organization/services/organization_service.py`. If that class later needs several private helpers, turn it into `services/organization_service/organization_service.py` plus sibling modules — not a pile of functions in `utils/`.
 
 `OrganizationService.create` saves the organization and the actor's membership in
-one transaction. Membership addition/removal validates access through
-`OrganizationUser`; duplicate membership uses the database uniqueness constraint.
+one transaction. Membership addition, update and removal validate access through
+`validate_membership_change`; duplicate membership uses the database uniqueness constraint.
 The viewsets only delegate these workflows to the service.
 
 ### Service method shape
@@ -174,11 +194,23 @@ The viewset calls `validate_issue` then `issue`. It does not load models or enco
 
 ---
 
+## Errors
+
+Every error response uses one envelope (`ResultData`, `app/core/exceptions.py`):
+
+```json
+{"data": null, "error": {"code": "NOT_FOUND", "message": "Not found", "details": {}}, "success": false}
+```
+
+Raise `AppException.from_attrs(ErrorCode.FORBIDDEN, 'Cannot modify this organization')` for business errors; its status follows the code (`UNAUTHORIZED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CONFLICT` 409, otherwise 400). A plain `HTTPException` also works: the status picks the code (400/422 `VALIDATION_ERROR`, 401, 403, 404, 409, other 4xx `APP_ERROR`, 5xx `UNHANDLED_ERROR`). Request/pydantic validation → 422 with `details.errors`. Tortoise `DoesNotExist` → 404, `IntegrityError` → 409 without the database message. Unexpected exceptions → 500 `Internal server error`; the exception is logged, never returned.
+
+---
+
 ## Registration
 
 1. `app/core/database.py` — `'app.domains.project.models'` in `MODELS`
 2. `app/main.py` — `api_router.include_router(projects_router)`
-3. `filter_objects_manager.py` — `Scope` for the model
+3. `tenant_scope` on every model (`Scope(...)` or `Unscoped(reason=...)`)
 4. Tell the user a migration is needed (`make mm` then `make m`). Do not run it unless they ask.
 
 ---
@@ -190,18 +222,20 @@ Write backend tests when the behavior is not obvious CRUD: uniqueness, permissio
 ```
 app/domains/<name>/tests/test_<subject>.py
 app/core/tests/test_<subject>.py          # health, auth, kernel
+app/shared/tests/test_<subject>.py        # cross-domain services (scoping, async_task)
 ```
 
-Shared Tortoise fixture: `app/conftest.py` (`db`) + `@pytest.mark.asyncio`. Prefer `TestClient` without DB when persistence is not required.
+Fixtures live in `app/conftest.py`: `db` (Tortoise context), `api_client` (the real ASGI app over `httpx2`, no Redis or broker startup), `user_factory` (users with password `test-password`). `asyncio_mode = "auto"`; `@pytest.mark.asyncio` is still written for clarity. Prefer `TestClient` without `db` when persistence is not required (`app/core/tests/test_exceptions.py`).
 
-The default suite uses a separate PostgreSQL database and applies its migrations.
-For local checks that must not run migrations, use
-`cd backend && uv run manage.py test --sqlite`. Each `db` fixture gets a fresh
-in-memory SQLite schema; production/test PostgreSQL databases are not touched.
-SQLite checks cover API behavior and permissions, not PostgreSQL migration or
-engine compatibility. `api_client` uses the real ASGI app without starting external
-services; `user_factory` creates test identities in the selected test database.
+Two database modes, chosen per run:
+
+| Mode | Command | What happens |
+|---|---|---|
+| PostgreSQL (default, CI) | `make t` → `uv run manage.py test --keepdb` | Separate `<SQL_DATABASE>_test` database; migrations are applied once per session, tables truncated per test. Without `--keepdb` an existing test database is dropped (asks first in a terminal) |
+| SQLite | `cd backend && uv run pytest --sqlite` | Fresh in-memory schema per `db` fixture, no migrations, no PostgreSQL needed |
+
+SQLite covers API behavior and permissions, not PostgreSQL migrations or engine-specific SQL. Production databases are never touched in either mode.
 
 Canonical example: `app/domains/organization/tests/test_organization.py`. Also `app/core/tests/test_health.py`.
 
-Run: `make t` (or `make test`). Do not add a frontend test suite unless the user asks.
+Frontend tests (Vitest) are described in [frontend-concept.md](frontend-concept.md).

@@ -57,7 +57,9 @@ class BaseGenericViewSet(GenericViewSet[BaseModelT]):
         return FilterObjectsManager.filter(queryset=queryset, auth_state=result)
 
     async def before_save(self, obj: BaseModelT) -> None:
-        process_state_to_model(obj)
+        # Ownership is assigned on create only, so an update cannot move a row to another organization.
+        if not obj._saved_in_db:
+            process_state_to_model(obj)
 
     async def bind_to_existing_object(self, obj: BaseModelT, params: dict[str, Any]) -> BaseModelT:
         if instance := await self.model.filter(**params).only('id', 'created_at', 'updated_at').first():

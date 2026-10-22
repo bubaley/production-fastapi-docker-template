@@ -92,3 +92,52 @@ async def test_organization_creation_rolls_back_when_membership_fails(db, user_f
     with pytest.raises(RuntimeError, match='Membership failed'):
         await OrganizationService.create(Organization(name='Rollback', key='rollback'), actor)
     assert not await Organization.filter(key='rollback').exists()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('method', ['patch', 'put'])
+async def test_membership_user_cannot_be_changed(api_client, user_factory, method):
+    actor = await user_factory()
+    member = await user_factory()
+    organization = await Organization.create(name='Org', key='org')
+    await OrganizationUser.create(organization=organization, user=actor)
+    membership = await OrganizationUser.create(organization=organization, user=member)
+    headers = {
+        'Authorization': f'Bearer {AuthService.create_access_token(actor).token}',
+        'Organization-Key': organization.key,
+    }
+    response = await getattr(api_client, method)(
+        f'/api/v1/organization-users/{membership.id}', headers=headers, json={'user_id': str(actor.id)}
+    )
+    assert response.status_code == 422
+    assert (await OrganizationUser.get(id=membership.id)).user_id == member.id
+
+
+@pytest.mark.asyncio
+async def test_membership_update_keeps_organization(api_client, user_factory):
+    actor = await user_factory()
+    organization = await Organization.create(name='Org', key='org')
+    other = await Organization.create(name='Other', key='other')
+    membership = await OrganizationUser.create(organization=organization, user=actor)
+    await OrganizationUser.create(organization=other, user=actor)
+    response = await api_client.patch(
+        f'/api/v1/organization-users/{membership.id}',
+        headers={
+            'Authorization': f'Bearer {AuthService.create_access_token(actor).token}',
+            'Organization-Key': 'other',
+        },
+        json={},
+    )
+    assert response.status_code == 200
+    assert (await OrganizationUser.get(id=membership.id)).organization_id == organization.id
+
+
+@pytest.mark.asyncio
+async def test_service_rejects_membership_update_by_outsider(db, user_factory):
+    actor = await user_factory()
+    owner = await user_factory()
+    organization = await Organization.create(name='Other', key='other')
+    membership = await OrganizationUser.create(organization=organization, user=owner)
+    with pytest.raises(AppException) as error:
+        await OrganizationService.update_member(membership, actor)
+    assert error.value.status_code == 403

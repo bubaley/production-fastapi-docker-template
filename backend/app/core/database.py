@@ -31,7 +31,6 @@ def register_database(app: FastAPI):
         db_url=settings.database_url,
         modules={'models': MODELS},
         generate_schemas=False,
-        add_exception_handlers=True,
     )
 
 

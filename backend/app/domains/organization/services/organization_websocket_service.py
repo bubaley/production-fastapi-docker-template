@@ -1,4 +1,3 @@
-from enum import Enum
 from uuid import UUID
 
 from fastapi import WebSocket
@@ -6,11 +5,6 @@ from fastapi import WebSocket
 from app.core.auth import resolve_connection_user
 from app.core.services.websocket_service import BaseWebSocketService, ChannelConfig, WebSocketMessage
 from app.domains.organization.models import OrganizationUser
-
-
-class OrganizationWebSocketEventType(str, Enum):
-    CHAT_MESSAGE_UPDATE = 'chat.message.update'
-    CHAT_UPDATE = 'chat.update'
 
 
 class _OrganizationWebSocketService(BaseWebSocketService):
@@ -36,16 +30,6 @@ class _OrganizationWebSocketService(BaseWebSocketService):
 
     async def process_message(self, websocket: WebSocket, message: WebSocketMessage):
         pass
-
-    # @async_task
-    # async def chat_update(self, chat: Chat):
-    #     result = await ChatReadSchema.from_tortoise_orm(chat)
-    #     await self.send_message(
-    #         self.CHANNEL_NAME,
-    #         message_type=OrganizationWebSocketEventType.CHAT_UPDATE,
-    #         data=result.model_dump(mode='json'),
-    #         recipients=[str(chat.organization_id)],
-    #     )
 
 
 OrganizationWebSocketService = _OrganizationWebSocketService()

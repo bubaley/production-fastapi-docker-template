@@ -1,10 +1,12 @@
 from pydantic import BaseModel
 
+from app.core.fields.email_field import NormalizedEmail
+
 
 class LoginRequest(BaseModel):
     """Schema for user login request."""
 
-    email: str
+    email: NormalizedEmail
     password: str
 
 
@@ -20,12 +22,3 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     type: str = 'bearer'
-
-
-class RegisterRequest(BaseModel):
-    """Schema for user registration request."""
-
-    email: str
-    password: str
-    first_name: str
-    last_name: str

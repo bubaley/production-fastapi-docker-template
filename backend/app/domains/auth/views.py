@@ -17,15 +17,18 @@ class AuthViewSet(BaseGenericViewSet):
     read_schema = UserReadSchema
 
     def get_permissions(self):
-        if self.action in ['login', 'refresh', 'logout', 'register']:
+        if self.action in ['login', 'refresh', 'logout']:
             return []
         return [IsAuthenticated()]
 
     @action(methods=['POST'], response_model=TokenResponse)
     async def login(self, response: Response, data: LoginRequest):
         """Authenticate user and return JWT token."""
-        user = await User.filter(email=data.email).first()
-        if not user or not user.verify_password(data.password):
+        # iexact also matches accounts stored before emails were normalized to lowercase.
+        user = await User.filter(email__iexact=data.email).first()
+        if not user:
+            await User.verify_dummy_password(data.password)
+        if not user or not await user.verify_password_async(data.password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid email or password')
         access_token = AuthService.create_access_token(user)
         access_token.set_cookie(response)
@@ -47,19 +50,6 @@ class AuthViewSet(BaseGenericViewSet):
         """Get current authenticated user information."""
         result = self.user
         return result
-
-    # @action(methods=['POST'], response_model=UserSchema)
-    # async def register(self, data: RegisterRequest):
-    #     """Register a new user with hashed password."""
-    #     user_data = data.model_dump(exclude={'password'})
-    #     user = User(**user_data)
-    #     user.set_password(data.password)
-    #     await user.save()
-    #     organization = await Organization.create(name='Основная', key='main')
-    #     await organization.users.add(user)
-    #     user.organization = organization
-    #     await user.save()
-    #     return user
 
     @action(methods=['POST'], response_model=TokenResponse)
     async def refresh(self, request: Request, response: Response, data: RefreshTokenRequest | None = None):

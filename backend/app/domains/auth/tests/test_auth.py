@@ -1,8 +1,39 @@
+from uuid import uuid4
+
 import pytest
 from fastapi import Request
 
 from app.core.auth import is_public_route
+from app.core.settings import settings
 from app.domains.auth.services.auth_service import AuthService
+from app.domains.user.models import User
+
+# Issued by python-jose (HS256) before the PyJWT migration; must keep validating.
+LEGACY_SECRET_KEY = 'legacy-jose-compat-secret-key-' + 'x' * 40
+LEGACY_JOSE_TOKEN = (
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+    'eyJpZCI6IjVmMGM2YjhlLTJmNGUtNGMxYS05ZDNiLThhN2U2ZjVkNGMzYiIsInR5cGUiOiJhY2Nlc3MiLCJleHAiOjQxMDI0NDQ4MDB9.'
+    'NwFyI6811GK5aSU9w7LF1pBQDEOk30oEgy5W9LYPFqw'
+)
+
+
+def test_tokens_issued_by_python_jose_still_validate(monkeypatch):
+    monkeypatch.setattr(settings, 'secret_key', LEGACY_SECRET_KEY)
+    payload = AuthService.verify_token(LEGACY_JOSE_TOKEN)
+    assert payload == {'id': '5f0c6b8e-2f4e-4c1a-9d3b-8a7e6f5d4c3b', 'type': 'access', 'exp': 4102444800}
+
+
+def test_token_claims_and_rejections(monkeypatch):
+    user = User(id=uuid4())
+    payload = AuthService.verify_token(AuthService.create_refresh_token(user).token)
+    assert payload is not None
+    assert set(payload) == {'id', 'type', 'exp'}
+    assert payload['id'] == str(user.id)
+    assert payload['type'] == 'refresh'
+    assert AuthService.verify_token('not-a-token') is None
+    assert AuthService.verify_token(LEGACY_JOSE_TOKEN) is None
+    monkeypatch.setattr(settings, 'jwt_access_token_expire_minutes', -1)
+    assert AuthService.verify_token(AuthService.create_access_token(user).token) is None
 
 
 @pytest.mark.asyncio

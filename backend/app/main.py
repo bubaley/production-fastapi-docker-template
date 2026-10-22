@@ -1,10 +1,8 @@
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, Depends, FastAPI, Request, status
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi_ronin.cache import cache
-from pydantic import ValidationError
 
 from app.core.auth import get_auth_state
 from app.core.broker import broker
@@ -31,16 +29,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title='fastapi-nuxt-template', version='0.0.0', dependencies=[], lifespan=lifespan)
 
 register_exceptions_handlers(app)
-
-
-@app.exception_handler(ValidationError)
-async def validation_exception_handler(request: Request, exc: ValidationError):
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            'detail': exc.errors(),
-        },
-    )
 
 
 # Configure CORS

@@ -1,6 +1,3 @@
-# https://github.com/bubaley/production-fastapi-docker-template
-# version: 0.0.0 | Increase the version after changes from the template, this will make
-
 from pathlib import Path
 from typing import Literal
 
@@ -24,6 +21,11 @@ class Settings(BaseSettings):
     # encryption settings
     secret_key: str = Field(None, validate_default=True, min_length=64)
     encryption_key: str = Field(None, validate_default=True, min_length=32, max_length=32)
+    # Optional secret mixed into password hashes; empty means no pepper. Choose it before users sign up
+    # and never change it (empty -> value counts as a change): hashes made with another pepper stop verifying.
+    # Hashes from before this setting existed depend on SECRET_KEY until the user logs in again and they are
+    # re-hashed, so rotating SECRET_KEY locks out only users who have not logged in since the upgrade.
+    password_pepper: str = ''
 
     # cache settings
     cache_redis_url: str | None = None
@@ -33,8 +35,8 @@ class Settings(BaseSettings):
 
     # JWT settings
     jwt_algorithm: str = 'HS256'
-    jwt_access_token_expire_minutes: int = 60 * 24 * 1  # 24 hour
-    jwt_refresh_token_expire_minutes: int = 60 * 24 * 30  # 7 days
+    jwt_access_token_expire_minutes: int = 60 * 24  # 24 hours
+    jwt_refresh_token_expire_minutes: int = 60 * 24 * 30  # 30 days
 
     # cookie settings
     cookie_secure: bool = False
