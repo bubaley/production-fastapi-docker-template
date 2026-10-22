@@ -89,7 +89,7 @@ pnpm lint           # Oxlint + ESLint for *.vue templates (lint:fix to fix)
 pnpm test           # Vitest via vp test
 pnpm typecheck      # nuxt typecheck (vue-tsc)
 pnpm check          # all of the above + architecture guard, as in CI
-pnpm check:unused   # knip: unused files and dependencies (not part of check)
+pnpm check:unused   # knip: unused files and dependencies (also part of check)
 pnpm build          # production build
 ```
 

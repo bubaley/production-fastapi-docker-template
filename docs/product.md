@@ -23,11 +23,12 @@ Do not invent capabilities that are not listed here. When a scenario changes, up
 - **Вход** (`/auth`) — email + password. Session via JWT cookies (`access_token` / `refresh_token`).
 - **Выбор организации** (`/home/setup`) — required before the rest of the app. Creating an org adds the current user as a member.
 - **Главная** — смена организации, настройки, каталог UI (`/ui`) и интерактивный пример AppPageView: действия в шапке, контекст под шапкой, поиск и переключатель под разделителем, прокручиваемые карточки и закреплённая нижняя зона. Поиск фильтрует возможности страницы; сброс возвращает исходный пример.
+- **Оформление** — в меню профиля (иконка пользователя в шапке): тема «Системная / Светлая / Тёмная» и акцентный цвет (нейтральный, синий, фиолетовый, зелёный, оранжевый). Выбор сохраняется в cookie и применяется до первой отрисовки.
 
 ### UI catalogue
 
-- **Каталог UI** (`/ui`) is public and uses local sample data. Its copy is English so it reads alongside the prop names it demonstrates; the theme toggle is Russian.
-- Demonstrates shadcn/Reka-based App controls, light/dark appearance, forms, dates, selects, modals, page/section patterns, cards in semantic colors, AppTitle sizes, the Lucide icon picker and the color picker. Explains button variant roles (`default` main, `primary` colored, `secondary` filled companion) and switches tables between default and outline styles.
+- **Каталог UI** (`/ui`) is public and uses local sample data. Its copy is English (including its theme and palette switch) so it reads alongside the prop names it demonstrates.
+- Demonstrates the design tokens (colors, radii, control sizes, type scale), variant/size/tone matrices for App controls with disabled, loading and invalid states, forms, dates, selects, checkboxes, radio groups, switches, badges, tooltips, alerts, progress, skeletons, scroll areas, modals, drawers, menus, the image lightbox, page/section patterns, cards in semantic tones, AppTitle sizes, the Lucide icon picker and the color picker. Theme (system/light/dark) and palette switch at the top; tables switch between default and outline styles.
 - `AppFilters` lets users add filter conditions through **+**. It is a reusable UI component; each feature still defines its supported fields and maps filter values to repo query parameters; the component adds no business filtering rules by itself.
 
 ### Settings
