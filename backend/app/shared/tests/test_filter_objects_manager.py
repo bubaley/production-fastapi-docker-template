@@ -9,8 +9,8 @@ from app.domains.organization.models import Organization, OrganizationUser
 from app.shared.services.filter_objects_manager import FilterObjectsManager, ScopeConfigurationError
 
 
-def _auth(user) -> dict[str, str]:
-    return {'Authorization': f'Bearer {AuthService.create_access_token(user).token}'}
+async def _auth(user) -> dict[str, str]:
+    return {'Authorization': f'Bearer {(await AuthService.start_session(user)).access.token}'}
 
 
 @pytest.fixture
@@ -74,19 +74,19 @@ async def test_anonymous_state_is_rejected(tenants):
 
 @pytest.mark.asyncio
 async def test_users_see_only_their_organizations(api_client, tenants):
-    response = await api_client.get('/api/v1/organizations', headers=_auth(tenants['actor']))
+    response = await api_client.get('/api/v1/organizations', headers=await _auth(tenants['actor']))
     assert response.status_code == 200
     assert {row['key'] for row in response.json()['data']} == {'own', 'second'}
     foreign_path = f'/api/v1/organizations/{tenants["foreign"].id}'
-    assert (await api_client.get(foreign_path, headers=_auth(tenants['actor']))).status_code == 404
+    assert (await api_client.get(foreign_path, headers=await _auth(tenants['actor']))).status_code == 404
     assert (
-        await api_client.patch(foreign_path, headers=_auth(tenants['actor']), json={'name': 'X'})
+        await api_client.patch(foreign_path, headers=await _auth(tenants['actor']), json={'name': 'X'})
     ).status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_memberships_of_foreign_organizations_are_hidden(api_client, tenants):
-    response = await api_client.get('/api/v1/organization-users', headers=_auth(tenants['actor']))
+    response = await api_client.get('/api/v1/organization-users', headers=await _auth(tenants['actor']))
     assert response.status_code == 200
     visible = {row['id'] for row in response.json()['data']}
     expected = await OrganizationUser.filter(organization_id__in=[tenants['own'].id, tenants['second'].id])

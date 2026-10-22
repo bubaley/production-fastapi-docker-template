@@ -4,11 +4,17 @@ from fastapi_ronin.permissions import IsAuthenticated
 
 from app.core.viewsets import BaseGenericViewSet
 from app.domains.auth.schemas import LoginRequest, RefreshTokenRequest, TokenResponse
-from app.domains.auth.services.auth_service import AuthService, TokenType
+from app.domains.auth.services.auth_service import AuthService
+from app.domains.auth.transport import clear_auth_cookies, read_access_token, read_refresh_token, set_auth_cookies
 from app.domains.user.models import User
 from app.domains.user.schemas import UserReadSchema
 
 auth_router = APIRouter(prefix='/auth', tags=['auth'])
+
+
+def _client_ip(request: Request) -> str:
+    # Behind Caddy this is the real client only when uvicorn runs with --proxy-headers.
+    return request.client.host if request.client else 'unknown'
 
 
 @viewset(auth_router)
@@ -22,58 +28,38 @@ class AuthViewSet(BaseGenericViewSet):
         return [IsAuthenticated()]
 
     @action(methods=['POST'], response_model=TokenResponse)
-    async def login(self, response: Response, data: LoginRequest):
-        """Authenticate user and return JWT token."""
-        # iexact also matches accounts stored before emails were normalized to lowercase.
-        user = await User.filter(email__iexact=data.email).first()
-        if not user:
-            await User.verify_dummy_password(data.password)
-        if not user or not await user.verify_password_async(data.password):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid email or password')
-        access_token = AuthService.create_access_token(user)
-        access_token.set_cookie(response)
-        refresh_token = AuthService.create_refresh_token(user)
-        refresh_token.set_cookie(response)
-        result = TokenResponse(access_token=access_token.token, refresh_token=refresh_token.token)
-        return result
+    async def login(self, request: Request, response: Response, data: LoginRequest):
+        """Authenticate user and return JWT tokens (also set as cookies)."""
+        pair = await AuthService.login(data.email, data.password, client_ip=_client_ip(request))
+        set_auth_cookies(response, pair)
+        return TokenResponse.from_pair(pair)
 
     @action(methods=['POST'])
-    async def logout(self, response: Response):
-        """Logout user by clearing auth cookies."""
-        AuthService.remove_cookie(response, TokenType.ACCESS)
-        AuthService.remove_cookie(response, TokenType.REFRESH)
-        result = {'success': True}
-        return result
+    async def logout(self, request: Request, response: Response, data: RefreshTokenRequest | None = None):
+        """End the current session: revoke its refresh tokens and clear auth cookies."""
+        refresh_token = (data.refresh_token if data else None) or read_refresh_token(request)
+        await AuthService.logout(refresh_token=refresh_token, access_token=read_access_token(request))
+        clear_auth_cookies(response)
+        return {'success': True}
+
+    @action(methods=['POST'])
+    async def logout_all(self, response: Response):
+        """End every session of the current user: all issued JWTs stop working."""
+        await AuthService.invalidate_user_tokens(self.user)
+        clear_auth_cookies(response)
+        return {'success': True}
 
     @action(methods=['GET'], response_model=UserReadSchema)
     async def me(self):
         """Get current authenticated user information."""
-        result = self.user
-        return result
+        return self.user
 
     @action(methods=['POST'], response_model=TokenResponse)
     async def refresh(self, request: Request, response: Response, data: RefreshTokenRequest | None = None):
-        """Refresh access and refresh tokens using a valid refresh token."""
-        refresh_cookie_key = AuthService.get_cookie_key(TokenType.REFRESH)
-        refresh_token = data.refresh_token if data else request.cookies.get(refresh_cookie_key)
+        """Rotate the refresh token: returns a new pair; the presented refresh token stops working."""
+        refresh_token = (data.refresh_token if data else None) or read_refresh_token(request)
         if not refresh_token:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Refresh token not found')
-        payload = AuthService.verify_token(refresh_token)
-        if not payload or payload.get('type') != TokenType.REFRESH:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid refresh token')
-
-        user_id = payload.get('id')
-        if not user_id:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token payload')
-
-        user = await User.filter(id=user_id).first()
-        if not user:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User not found')
-
-        access_token = AuthService.create_access_token(user)
-        access_token.set_cookie(response)
-        refresh_token = AuthService.create_refresh_token(user)
-        refresh_token.set_cookie(response)
-
-        result = TokenResponse(access_token=access_token.token, refresh_token=refresh_token.token)
-        return result
+        pair = await AuthService.refresh(refresh_token)
+        set_auth_cookies(response, pair)
+        return TokenResponse.from_pair(pair)

@@ -23,7 +23,7 @@ async def test_organization_websocket_requires_member_and_access_credential(db, 
     await OrganizationUser.create(organization=organization, user=actor)
     headers = []
     if credential == 'cookie':
-        headers = [(b'cookie', f'access_token={AuthService.create_access_token(actor).token}'.encode())]
+        headers = [(b'cookie', f'access_token={(await AuthService.start_session(actor)).access.token}'.encode())]
     elif credential == 'api':
         value = 'isolated-test-api-token'
         await UserToken.create(
@@ -31,8 +31,9 @@ async def test_organization_websocket_requires_member_and_access_credential(db, 
         )
         headers = [(b'authorization', f'Token {value}'.encode())]
     elif credential in {'access', 'refresh'}:
-        create_token = AuthService.create_access_token if credential == 'access' else AuthService.create_refresh_token
-        headers = [(b'authorization', f'Bearer {create_token(actor).token}'.encode())]
+        pair = await AuthService.start_session(actor)
+        token = pair.access if credential == 'access' else pair.refresh
+        headers = [(b'authorization', f'Bearer {token.token}'.encode())]
     websocket = WebSocket({'type': 'websocket', 'path': '/ws', 'headers': headers}, AsyncMock(), AsyncMock())
     allowed = credential in {'access', 'cookie', 'api'}
     assert await OrganizationWebSocketService.check_access(websocket, 'organizations', str(organization.id)) is allowed
@@ -47,7 +48,7 @@ async def test_websocket_rejects_authenticated_nonmembers(db, user_factory, admi
         {
             'type': 'websocket',
             'path': '/ws',
-            'headers': [(b'authorization', f'Bearer {AuthService.create_access_token(actor).token}'.encode())],
+            'headers': [(b'authorization', f'Bearer {(await AuthService.start_session(actor)).access.token}'.encode())],
         },
         AsyncMock(),
         AsyncMock(),

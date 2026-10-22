@@ -6,6 +6,7 @@ import pytest
 
 from app.core.settings import settings
 from app.domains.auth.services.auth_service import AuthService
+from app.domains.auth.services.password_service import PasswordService
 from app.domains.user.models import User
 
 # Hash produced by the pre-PASSWORD_PEPPER code: bcrypt(HMAC(f'{id}{SECRET_KEY}', password)).
@@ -37,8 +38,8 @@ async def test_password_pepper_is_applied(db, monkeypatch):
     monkeypatch.setattr(settings, 'password_pepper', 'pepper-one')
     user = User(email='pepper@example.test', first_name='P', last_name='U')
     await user.set_password_async('secret')
-    assert AuthService.verify_password('secret', user.password, 'pepper-one')
-    assert not AuthService.verify_password('secret', user.password, '')
+    assert PasswordService.verify_password('secret', user.password, 'pepper-one')
+    assert not PasswordService.verify_password('secret', user.password, '')
     monkeypatch.setattr(settings, 'password_pepper', 'pepper-two')
     assert not await user.verify_password_async('secret')
 
@@ -50,7 +51,7 @@ async def test_legacy_hash_verifies_and_is_upgraded_on_login(api_client, monkeyp
     assert response.status_code == 200
     upgraded = (await User.get(id=user.id)).password
     assert upgraded != LEGACY_HASH
-    assert AuthService.match_pepper(LEGACY_PASSWORD, upgraded, User._password_peppers(user.id)) == 0
+    assert PasswordService.match_pepper(LEGACY_PASSWORD, upgraded, User._password_peppers(user.id)) == 0
     # Once upgraded, the hash no longer depends on SECRET_KEY.
     monkeypatch.setattr(settings, 'secret_key', 'rotated-' + 'y' * 60)
     response = await api_client.post('/api/v1/auth/login', json={'email': user.email, 'password': LEGACY_PASSWORD})
@@ -68,7 +69,7 @@ async def test_legacy_hash_is_kept_when_password_is_wrong(api_client, monkeypatc
 @pytest.mark.asyncio
 async def test_unknown_email_runs_dummy_password_check(api_client, monkeypatch):
     dummy = AsyncMock()
-    monkeypatch.setattr(AuthService, 'verify_dummy_password', dummy)
+    monkeypatch.setattr(PasswordService, 'verify_dummy_password', dummy)
     response = await api_client.post('/api/v1/auth/login', json={'email': 'nobody@example.test', 'password': 'x'})
     assert response.status_code == 401
     dummy.assert_awaited_once()
@@ -79,13 +80,13 @@ async def test_unknown_email_runs_dummy_password_check(api_client, monkeypatch):
 @pytest.mark.asyncio
 async def test_bcrypt_runs_outside_event_loop_thread(db, monkeypatch):
     threads: list[int] = []
-    original = AuthService.hash_password
+    original = PasswordService.hash_password
 
     def spy(password: str, pepper: str) -> str:
         threads.append(threading.get_ident())
         return original(password, pepper)
 
-    monkeypatch.setattr(AuthService, 'hash_password', spy)
+    monkeypatch.setattr(PasswordService, 'hash_password', spy)
     await User(email='t@example.test', first_name='T', last_name='U').set_password_async('secret')
     assert threads
     assert threads[0] != threading.get_ident()
@@ -94,7 +95,7 @@ async def test_bcrypt_runs_outside_event_loop_thread(db, monkeypatch):
 @pytest.mark.asyncio
 async def test_emails_are_normalized(api_client, user_factory):
     admin = await user_factory(is_superuser=True)
-    headers = {'Authorization': f'Bearer {AuthService.create_access_token(admin).token}'}
+    headers = {'Authorization': f'Bearer {(await AuthService.start_session(admin)).access.token}'}
     response = await api_client.post(
         '/api/v1/users',
         headers=headers,
