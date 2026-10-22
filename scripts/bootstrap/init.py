@@ -280,8 +280,8 @@ def main(argv: list[str] | None = None) -> int:
         '  1. Review and commit: git add -A && git commit -m "chore: initialize from template"\n'
         '  2. make install\n'
         '  3. docker compose up -d db redis\n'
-        '  4. make m                       # apply migrations\n'
-        '  5. cd backend && uv run manage.py create_superuser\n'
+        '  4. make m                       # apply migrations (run it yourself; agents ask first)\n'
+        '  5. make createsuperuser\n'
         '  6. make run-backend / make run-frontend (two terminals)\n'
         '  7. Describe the product in docs/product.md (purpose, personas, scenarios, non-goals)'
     )
