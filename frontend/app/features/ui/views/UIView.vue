@@ -19,7 +19,7 @@ const tabs = [{ label: 'Components', value: 'components' }, { label: 'Layout', v
           variant="outline"
           size="sm"
           :icon="colorMode.value === 'dark' ? 'lucide:sun' : 'lucide:moon'"
-          :label="colorMode.value === 'dark' ? 'Light mode' : 'Dark mode'"
+          :label="colorMode.value === 'dark' ? 'Светлая тема' : 'Тёмная тема'"
           @click="colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'"
         />
         <template #fallback>
@@ -27,7 +27,7 @@ const tabs = [{ label: 'Components', value: 'components' }, { label: 'Layout', v
             variant="outline"
             size="sm"
             icon="lucide:sun-moon"
-            label="Appearance"
+            label="Тема"
             disabled
           />
         </template>
