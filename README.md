@@ -8,7 +8,7 @@ What every product inherits: [docs/template-core.md](docs/template-core.md). Wha
 
 | Layer | Technologies |
 |---|---|
-| Backend | Python 3.14, FastAPI, Tortoise ORM, fastapi-ronin, Taskiq, Redis, PostgreSQL |
+| Backend | Python 3.15, FastAPI, Tortoise ORM, fastapi-ronin, Taskiq, Redis, PostgreSQL |
 | Frontend | Nuxt 4, Vue 3, Pinia, shadcn-vue / Reka UI, Tailwind CSS |
 | Infra | One Docker image (s6-overlay: Caddy, uvicorn, Nuxt, Taskiq), Docker Compose, GitHub Actions, Makefile |
 
@@ -55,7 +55,7 @@ Generates an organization-scoped CRUD entity end to end — backend domain (mode
 
 ### 1. Environment
 
-Requirements: Python 3.14 (`.python-version`) with [uv](https://docs.astral.sh/uv/), Node 24 (`.nvmrc`; `^22.18 || ^24.11` supported) and pnpm from `packageManager` in `frontend/package.json` (`corepack enable`).
+Requirements: Python 3.15 (`.python-version`) with [uv](https://docs.astral.sh/uv/) 0.13+, Node 26 (`.nvmrc`) and pnpm 12 from `packageManager` in `frontend/package.json` (`npm install -g pnpm@12`; Node 26 no longer ships corepack).
 
 ```bash
 cp .env.example .env

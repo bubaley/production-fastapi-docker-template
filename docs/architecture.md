@@ -6,7 +6,7 @@ What the app does: [template-core.md](template-core.md) (inherited by every prod
 
 | Layer | Stack |
 |---|---|
-| Backend | Python 3.14, FastAPI, Tortoise ORM, fastapi-ronin, Taskiq, Redis, PostgreSQL |
+| Backend | Python 3.15, FastAPI, Tortoise ORM, fastapi-ronin, Taskiq, Redis, PostgreSQL |
 | Frontend | Nuxt 4, Vue 3, Pinia, Pinia Colada, `@hey-api/openapi-ts` (generated client), shadcn-vue / Reka UI, Tailwind CSS |
 | Infra | One Docker image (s6-overlay: Caddy, uvicorn, Nuxt, Taskiq), Docker Compose, GitHub Actions, Makefile — see [deployment.md](deployment.md) |
 
