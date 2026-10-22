@@ -1,6 +1,6 @@
 # Template modernization roadmap
 
-Approved plan for bringing the template to a stable, agent-friendly baseline. Each stage lands as its own commit series on `modernize/template`. When a stage is done, mark it here and move durable rules into the concept docs — this file describes work in progress, not conventions.
+**Archived — every stage is done.** Approved plan for bringing the template to a stable, agent-friendly baseline; each stage landed as its own commit series. Durable rules live in the concept docs; open items moved to [follow-ups.md](../follow-ups.md).
 
 ## Decisions
 
@@ -23,7 +23,7 @@ Approved plan for bringing the template to a stable, agent-friendly baseline. Ea
 4. **Design system** — one `theme.css` with semantic shadcn tokens, status tones, palettes via `data-palette`; SCSS and `sass` removed; `components.json` + shadcn-vue CLI; missing primitives; one `AppButton` vocabulary; one date library (`@internationalized/date`), one icon set (`@lucide/vue`), self-hosted Inter; `/ui` showcase with variant matrices and theme/palette switch.
 5. **API contract and data layer** — fix duplicate PUT/PATCH operationIds in `fastapi-ronin`; security schemes, error responses and short operationIds in OpenAPI; `make gen-client`; Pinia Colada; auth moved to FastAPI cookies; hybrid `routeRules`; 401 interceptor; repo auto-registration.
 6. **Backend hardening** — `is_active`, `token_version`, refresh rotation, cookie path; login rate limit, email normalisation; request id, structured logs, optional OTel; websocket fan-out via Redis pub/sub; taskiq stream broker with result TTL; S3 service fixes; test factories and `auth_headers`; dependency updates.
-7. **Agent tooling and forks** — `manage.py new-domain` + `/new-domain` skill, model/router auto-discovery; `/verify`, `design-system`, `add-shadcn-component` skills; hooks (block migrations, format on edit); `make init name=…`; `product.md` split into `template-core.md` + `product.md`; ownership map and `/sync-template`.
+7. **Agent tooling and forks** — `make new-domain` (`scripts/scaffold/new_domain.py`) + `/new-domain` skill, model/router auto-discovery; `/verify`, `design-system`, `add-shadcn-component` skills; hooks (block migrations, format on edit); `make init name=…`; `product.md` split into `template-core.md` + `product.md`; ownership map and `/sync-template`.
 
 Order: 1 → 2 → (3, 4, 6 in parallel) → 5 → 7.
 
@@ -37,11 +37,15 @@ Order: 1 → 2 → (3, 4, 6 in parallel) → 5 → 7.
 | 4 | done |
 | 5 | done |
 | 6 | done |
-| 7 | pending |
+| 7 | done |
 
-## Known follow-ups
+## After the roadmap
+
+All seven stages are done. The decisions above are now described where they apply (architecture, backend/frontend concept, deployment, template ownership). Remaining work is tracked in [docs/follow-ups.md](../follow-ups.md); the list below is the state at archiving time.
+
+## Known follow-ups (at archiving time)
 
 - Stage 2: Oxlint runs without type-aware rules (tsgolint cannot resolve types exported from `.vue` files). `nuxt dev` prints `NUXT_B5004` for the Vite+ `vite.config.ts` (expected; Nuxt ignores the file).
 - Temporary fastapi-ronin workaround: `split_put_patch_routes` in `backend/app/core/openapi.py` (called in `main.py`) splits ronin's combined PUT/PATCH route so operationIds stay unique. The fix (separate `update`/`partial_update` routes, partial PATCH body) is on ronin branch `fix/split-put-patch-operations`, not released. After upgrading ronin: delete the function and its call, run `make gen-client` (PATCH bodies become `Patched<UpdateSchema>`) and check the resource descriptors still typecheck.
-- Stage 3: none of the workflows have run on GitHub yet; registry/deploy variables and secrets are listed in [deployment.md](deployment.md).
+- Stage 3: none of the workflows have run on GitHub yet; registry/deploy variables and secrets are listed in [deployment.md](../deployment.md).
 - Optional data migration: lowercase existing `user.email` values so login can drop `iexact`.

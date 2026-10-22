@@ -21,7 +21,7 @@ This file is an index. Do not copy patterns here — follow the linked docs.
 | How to run the project locally? | [README.md](README.md) |
 | How is the image built, released and deployed? | [docs/deployment.md](docs/deployment.md) — `Dockerfile`, `docker/rootfs/`, `.github/workflows/ci.yaml` |
 | How to lint, format, test, what CI checks? | `make lint` / `make check` in [README.md](README.md#makefile); frontend tooling in [docs/frontend-concept.md](docs/frontend-concept.md#tooling) |
-| What is being modernized right now, and which decisions are fixed? | [docs/roadmap.md](docs/roadmap.md) |
+| Known open items (upstream workarounds, CI not yet run, deferred decisions)? | [docs/follow-ups.md](docs/follow-ups.md); history of the 2026 modernization: [docs/archive/roadmap-2026.md](docs/archive/roadmap-2026.md) |
 
 If the knowledge graph is missing or stale, index the repo with codebase-memory. Do not invent architecture from memory. Do not invent capabilities that are in neither [docs/template-core.md](docs/template-core.md) nor [docs/product.md](docs/product.md); when they disagree, `product.md` wins.
 

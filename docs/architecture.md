@@ -2,7 +2,7 @@
 
 Full-stack template: FastAPI REST API (`/api/v1`) + Nuxt 4 app with hybrid rendering (client-only app routes, SSR for public pages). FastAPI owns auth (HttpOnly cookies); the frontend talks to it through a client generated from the OpenAPI schema. Data is scoped by the current user and organization (`FilterObjectsManager` on the backend, `Organization-Key` on the frontend).
 
-What the app does (purpose, scenarios): [product.md](product.md).
+What the app does: [template-core.md](template-core.md) (inherited by every product) and [product.md](product.md) (this product; wins on conflict). Who owns which path in a fork: [template-ownership.md](template-ownership.md).
 
 | Layer | Stack |
 |---|---|
@@ -30,9 +30,9 @@ Same change, all of this (skip a row only if it does not apply):
 | Tests | Non-trivial rules get pytest next to the domain (`domains/<name>/tests/`). See [backend-concept.md](backend-concept.md#tests). Canonical: `domains/organization/tests/test_organization.py` |
 | Frontend | `make gen-client` (schema + generated client committed), feature resource descriptor, views on `AppListTemplate` / `AppDetailTemplate`, thin page, drawer item if needed. User-facing copy in **Russian** |
 | Realtime | Org events go through **`OrganizationWebSocketService`**, not a new websocket stack |
-| Docs | [product.md](product.md) if the user can see or do something new. Concept docs if the pattern itself changed |
+| Docs | [product.md](product.md) if the user can see or do something new ([template-core.md](template-core.md) for inherited capabilities in the template repo). Concept docs if the pattern itself changed |
 | Checks | `make lint` applied, `make check` is green |
-| Migration | Tell the user `make mm` / `make m` is needed. Do not run it unless they ask |
+| Migration | Tell the user `make mm` / `make m` is needed. Do not run it unless they ask (the hook blocks it; `ALLOW_MIGRATIONS=1` after an explicit yes) |
 
 ---
 
@@ -239,3 +239,37 @@ Where new infrastructure goes:
 - A new CI check → a `make` target first (the Makefile is the source of truth), then a step in `ci.yaml`; add the job to the `gate` needs.
 
 `AppListToolbar` is the shared search/filter composition: fixed in page list controls, sticky in nested lists. `UserProfileView` owns profile presentation; `pages/settings/profile.vue` only mounts the view.
+
+---
+
+## Agent tooling
+
+The template is the seed of products that agents extend; this tooling keeps that fast and deterministic.
+
+```
+AGENTS.md, CLAUDE.md      # Agent index (CLAUDE.md includes AGENTS.md)
+.claude/
+  settings.json           # Hooks (committed); personal overrides in settings.local.json (ignored)
+  hooks/                  # block_migrations.py (PreToolUse Bash), format_file.py (PostToolUse Edit|Write)
+  skills/<name>/SKILL.md  # new-domain, verify, design-system, add-shadcn-component, sync-template, release
+  agents/                 # domain-reviewer, ui-reviewer (subagents)
+scripts/
+  scaffold/               # make new-domain: new_domain.py + templates/*.tmpl (string.Template)
+  bootstrap/              # make init: init.py + product.md.tmpl
+  tests/                  # Tests for the scaffolder, init and hooks (part of make check-backend)
+.template-version         # Template version/commit a product is synced to
+.vscode/                  # extensions.json + settings.json.example (Oxc, Ruff, Vue-only ESLint)
+```
+
+| Piece | Behavior |
+|---|---|
+| Domain discovery | `backend/app/core/discovery.py`: no registration step for models or routers ([backend-concept.md](backend-concept.md#registration)) |
+| `make new-domain` | Scaffolds backend domain + frontend feature + drawer entry; never overwrites, never migrates ([backend-concept.md](backend-concept.md#scaffolding)) |
+| `make init` | Turns a template copy into a product ([README.md](../README.md#start-a-new-product)) |
+| Migration hook | Blocks `make m/mm/migrate/make-migrations` and `tortoise migrate/makemigrations/upgrade/downgrade` with a message to ask the user. `ALLOW_MIGRATIONS=1 <command>` passes, only after the user explicitly asked |
+| Format hook | Formats only the edited file: Ruff for `backend/**/*.py`, `vp fmt` for `frontend/**`; no-op elsewhere; reports formatter problems as a note and never fails the edit |
+| Skills | Short checklists that link to these docs; they do not copy rules |
+| Subagents | Read-only reviewers of a diff: backend rules (`domain-reviewer`), browser pass over affected screens (`ui-reviewer`) |
+| Forks | [template-ownership.md](template-ownership.md), `.template-version`, `/sync-template` |
+
+Where new things go: a recurring agent workflow → `.claude/skills/<name>/SKILL.md` plus a row in `AGENTS.md`; hooks stay small Python 3.9+ stdlib scripts reading the hook JSON on stdin, with tests in `scripts/tests/`. A change to a file that `make init` or `make new-domain` rewrites (Makefile image line, `app.config.ts`, the organization templates, `navigation/settings.ts`) must keep their patterns — `scripts/tests` fails when one goes missing.

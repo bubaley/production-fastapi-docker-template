@@ -83,6 +83,6 @@ app.include_router(ws_router)
 
 app.include_router(health_router)
 
-# TEMPORARY: remove with the fastapi-ronin release that registers PUT and PATCH separately (docs/roadmap.md).
+# TEMPORARY: remove with the fastapi-ronin release that registers PUT and PATCH separately (docs/follow-ups.md).
 split_put_patch_routes(app.router, generate_operation_id)
 install_openapi(app, PUBLIC_PATHS)
