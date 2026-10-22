@@ -31,10 +31,15 @@ Order: 1 → 2 → (3, 4, 6 in parallel) → 5 → 7.
 
 | Stage | Status |
 |---|---|
-| 1 | in progress |
-| 2 | pending |
+| 1 | done |
+| 2 | in progress |
 | 3 | pending |
 | 4 | pending |
 | 5 | pending |
 | 6 | pending |
 | 7 | pending |
+
+## Known follow-ups
+
+- Stage 5: adding a member from the organization page uses the organization in the header (`Organization-Key`), not the organization being viewed. Fix with the new data layer.
+- Optional data migration: lowercase existing `user.email` values so login can drop `iexact`.

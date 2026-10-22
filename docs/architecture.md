@@ -26,7 +26,7 @@ Same change, all of this (skip a row only if it does not apply):
 
 | Layer | Done when |
 |---|---|
-| Backend | Domain files (`models`, `schemas`, `filters`, `views`). Register in `core/database.py` (`MODELS`), `main.py` (`include_router`), **`FilterObjectsManager`**. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
+| Backend | Domain files (`models`, `schemas`, `filters`, `views`). Register in `core/database.py` (`MODELS`) and `main.py` (`include_router`); declare **`tenant_scope`** on every model. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
 | Tests | Non-trivial rules get pytest next to the domain (`domains/<name>/tests/`). See [backend-concept.md](backend-concept.md#tests). Canonical: `domains/organization/tests/test_organization.py` |
 | Frontend | Feature: model + codec, repo, `useRepo` registry, views on `AppListTemplate` / `AppDetailTemplate`, thin page, drawer item if needed. User-facing copy in **Russian** |
 | Realtime | Org events go through **`OrganizationWebSocketService`**, not a new websocket stack |
@@ -62,7 +62,7 @@ Owns process-wide wiring. Do not put organization/user business rules here.
 | `broker.py` | Taskiq |
 | `exceptions.py` | Exception handlers |
 | `services/` | Infrastructure **classes** (S3, crypto, logger, websocket) |
-| `utils/` | Small **functions** (dates, exception details, M2M helpers) |
+| `utils/` | Small **functions** (dates, exception details) |
 | `fields/` | Reusable Tortoise/Pydantic fields |
 | `tests/` | App-level tests (health, auth smoke) — not domain tests |
 
@@ -85,7 +85,7 @@ One domain can contain several models. Split files by role, not by putting every
 | `services/` | Domain **classes** (see services vs utils below) |
 | `tests/` | Tests for this domain: `tests/test_<subject>.py` |
 
-Register the domain: `core/database.py` (`MODELS`) + `main.py` (`include_router`) + `shared/services/filter_objects_manager.py` (queryset scope).
+Register the domain: `core/database.py` (`MODELS`) + `main.py` (`include_router`) + `tenant_scope` on each model (queryset scope, see [backend-concept.md](backend-concept.md#scoping)).
 
 ### `shared/` — used by more than one domain
 

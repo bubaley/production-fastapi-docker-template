@@ -51,7 +51,7 @@ There are no org roles (admin / member / viewer) — only membership (`Organizat
 
 ## Important aspects
 
-**`FilterObjectsManager`** — default queryset limit by current user / organization (`AuthState`). After adding a model, register it in `filter_objects_manager.py`. Empty `Scope()` means no auto-filter — then override `get_queryset()`. Superuser bypass is **per viewset**, not global.
+**Tenant scoping** — every model declares `tenant_scope` (`Scope(...)` or `Unscoped(reason=...)`); `FilterObjectsManager` applies it to every queryset and fails closed on models without one. Org-scoped models require the `Organization-Key` header. Superuser bypass is **per viewset**, not global. Memberships cannot be edited after creation — only added or removed.
 
 **`OrganizationWebSocketService`** — `/ws` for organization realtime. Extend this service (events, `check_access`, `process_message`). Do not add a second websocket stack.
 
