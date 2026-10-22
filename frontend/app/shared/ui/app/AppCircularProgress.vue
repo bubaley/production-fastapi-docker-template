@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { toneVariants, type Tone } from './tone'
 const props = withDefaults(
   defineProps<{
     value?: number
@@ -7,7 +8,7 @@ const props = withDefaults(
     max?: number
     size?: string | number
     thickness?: number
-    color?: string
+    tone?: Tone
     showValue?: boolean
   }>(),
   { value: 0, min: 0, max: 100, size: 40, thickness: 0.16, showValue: true },
@@ -41,14 +42,14 @@ const stroke = computed(() => Math.max(1, Math.min(20, props.thickness * 40)))
         cy="20"
         :r="20 - stroke / 2"
         :stroke-width="stroke"
-        stroke="var(--ds-border)"
+        class="stroke-border"
       />
       <circle
         cx="20"
         cy="20"
         :r="20 - stroke / 2"
         :stroke-width="stroke"
-        :stroke="`var(--ds-${color || 'accent'})`"
+        :class="toneVariants({ tone: tone ?? 'primary', appearance: 'stroke' })"
         pathLength="100"
         :stroke-dasharray="`${normalized} 100`"
       />

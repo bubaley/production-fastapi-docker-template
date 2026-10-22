@@ -8,10 +8,7 @@ const root = path.resolve(import.meta.dirname, '..')
 const appDir = path.join(root, 'app')
 
 // Existing violations kept until the code is moved. Remove an entry once it is fixed; stale entries fail the check.
-const KNOWN_VIOLATIONS = new Set([
-  'shared/stores/useSetupStore.ts -> features/organization/models/organization',
-  'shared/components/layout/header/AppLayoutHeader.vue -> features/organization/components/OrganizationPicker.vue',
-])
+const KNOWN_VIOLATIONS = new Set([])
 
 const RULES = [
   {

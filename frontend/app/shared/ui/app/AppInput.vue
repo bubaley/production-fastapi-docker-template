@@ -4,11 +4,11 @@ import { Input } from '~/shared/ui/shadcn/input'
 import AppField from './AppField.vue'
 import AppIcon from './AppIcon.vue'
 import AppClearButton from './AppClearButton.vue'
+import { Search } from '@lucide/vue'
 import {
   activeOutlineClasses,
-  appControlRadiusClasses,
-  appControlStyles,
   appControlIconSize,
+  appInputSizeClasses,
   type AppFieldVariant,
   type AppControlSize,
 } from './types/control'
@@ -20,7 +20,7 @@ export type AppInputProps = {
   clearable?: boolean
   /** Reserve trailing space for an always-visible clear button. Default: overlay on hover/focus. */
   clearInline?: boolean
-  icon?: Component | string
+  icon?: Component
   isSearch?: boolean
   loading?: boolean
   fluid?: boolean
@@ -39,7 +39,7 @@ export type AppInputProps = {
   size?: AppControlSize
 }
 
-const props = withDefaults(defineProps<AppInputProps>(), { type: 'text', size: 'default', variant: 'outline' })
+const props = withDefaults(defineProps<AppInputProps>(), { type: 'text', size: 'md', variant: 'outline' })
 const model = defineModel<string | null>({ default: '' })
 const localValue = ref(model.value ?? '')
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
@@ -60,9 +60,8 @@ const inputModel = computed({
     else model.value = localValue.value
   },
 })
-const effectiveIcon = computed(() =>
-  props.loading ? 'svg-spinners:180-ring' : props.icon || (props.isSearch ? 'lucide:search' : undefined),
-)
+const effectiveIcon = computed(() => props.icon || (props.isSearch ? Search : undefined))
+const showIcon = computed(() => props.loading || Boolean(effectiveIcon.value))
 const attrs = useAttrs()
 const inputRef = ref<{ $el: HTMLInputElement }>()
 const emit = defineEmits<{ clear: [] }>()
@@ -105,14 +104,9 @@ const describedBy = (message?: string) => [attrs['aria-describedby'], message].f
           :required="required"
           :aria-invalid="Boolean(error) || attrs['aria-invalid'] || undefined"
           :aria-describedby="describedBy(field.describedBy)"
-          :style="{
-            ...appControlStyles.input[props.size],
-            ...($slots.prepend || effectiveIcon ? { paddingLeft: '2.5rem' } : {}),
-            ...($slots.append || (clearable && clearInline) ? { paddingRight: '2.5rem' } : {}),
-          }"
           :class="[
-            appControlRadiusClasses[props.size],
-            ($slots.prepend || effectiveIcon) && 'pl-10',
+            appInputSizeClasses[props.size],
+            ($slots.prepend || showIcon) && 'pl-10',
             ($slots.append || (clearable && clearInline)) && 'pr-10',
             variant === 'active-outline' && [activeOutlineClasses, 'enabled:hover:bg-primary/20'],
             variant === 'secondary' &&
@@ -122,12 +116,13 @@ const describedBy = (message?: string) => [attrs['aria-describedby'], message].f
           ]"
         />
         <span
-          v-if="$slots.prepend || effectiveIcon"
+          v-if="$slots.prepend || showIcon"
           class="absolute left-3 flex"
           :class="!model ? 'text-muted-foreground' : variant === 'active-outline' ? 'text-primary' : 'text-foreground'"
           ><slot name="prepend"
             ><AppIcon
               :icon="effectiveIcon"
+              :loading="loading"
               :size="appControlIconSize[size]" /></slot
         ></span>
         <AppClearButton

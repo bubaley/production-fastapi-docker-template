@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Circle } from '@lucide/vue'
 import AppDataLabel, { type AppDataLabelSize } from './AppDataLabel.vue'
 import type { AppLabelConfig } from './types/label-types'
 const props = defineProps<
@@ -11,7 +12,7 @@ const props = defineProps<
   }
 >()
 const resolved = computed(
-  () => props.config ?? { label: props.label ?? '', icon: props.icon ?? '', color: props.color, tone: props.tone },
+  () => props.config ?? { label: props.label ?? '', icon: props.icon ?? Circle, tone: props.tone },
 )
 </script>
 <template>

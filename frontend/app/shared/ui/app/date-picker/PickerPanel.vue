@@ -159,7 +159,7 @@ function preset(key: string) {
 </script>
 <template>
   <section
-    class="flex w-full flex-col overflow-hidden rounded-xl border border-overlay-border bg-background text-foreground"
+    class="flex w-full flex-col overflow-hidden rounded-xl border border-border-strong bg-background text-foreground"
     :class="!inline && 'max-h-[min(90dvh,var(--reka-popover-content-available-height,90dvh))]'"
     :aria-label="en ? 'Date picker' : 'Выбор даты'"
   >

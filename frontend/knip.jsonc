@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["tests/**/*.test.ts", "scripts/*.mjs"],
+  "ignore": [
+    // Kept for the realtime work in later stages (websocket fan-out); not wired into the UI yet.
+    "app/shared/composables/useWebSocket.ts",
+  ],
+  // vue-tsc runs through `nuxt typecheck`; ofetch and h3 come with Nuxt.
+  "ignoreDependencies": ["vue-tsc", "ofetch", "h3"],
+}

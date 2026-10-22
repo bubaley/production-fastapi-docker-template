@@ -1,57 +1,58 @@
 <template>
   <component
-    :is="to ? 'router-link' : 'button'"
+    :is="to ? RouterLink : 'button'"
     :type="to ? undefined : 'button'"
     :to="to"
-    class="inline-flex items-center gap-1.5"
-    :class="classes"
+    class="inline-flex cursor-pointer items-center gap-1.5 rounded-sm border-0 bg-transparent p-0 text-left transition-[filter] select-none hover:brightness-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    :class="[weight && weightClasses[weight], toneVariants({ tone }), underline && 'hover:underline']"
     @click="handleClick"
   >
-    <Icon
+    <AppIcon
       v-if="icon"
-      :name="icon"
+      :icon="icon"
+      size="sm"
     />
     <span>{{ label }}<slot /></span>
   </component>
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-import type { RouteLocationRaw } from 'vue-router'
+import type { Component } from 'vue'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
 import { useClipboard } from '@vueuse/core'
+import { toneVariants, type Tone } from './tone'
 
 const props = withDefaults(
   defineProps<{
     label?: string
     weight?: WeightToken
-    severity?: ColorToken
-    icon?: string
+    tone?: Tone
+    icon?: Component
     to?: string | RouteLocationRaw
     copied?: boolean
     value?: any
     underline?: boolean
   }>(),
   {
-    severity: 'primary',
+    tone: 'primary',
     underline: true,
   },
 )
+
+const weightClasses: Record<WeightToken, string> = {
+  light: 'font-light',
+  regular: 'font-normal',
+  medium: 'font-medium',
+  semibold: 'font-semibold',
+  bold: 'font-bold',
+  black: 'font-black',
+}
 
 const emit = defineEmits<{
   click: [event: MouseEvent]
 }>()
 const { copy } = useClipboard()
 const toast = useToast()
-
-const classes = computed(() => {
-  return [
-    `font-${props.weight}`,
-    `color-${props.severity}`,
-    'cursor-pointer',
-    'text-btn',
-    { 'text-btn--no-underline': !props.underline },
-  ]
-})
 
 const handleClick = (event: MouseEvent) => {
   if (props.copied) {
@@ -68,35 +69,3 @@ const copyValue = () => {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-@use 'sass:list';
-@use '~/assets/styles/variables.scss' as *;
-
-.text-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  text-align: inherit;
-  cursor: pointer;
-  user-select: none;
-  transition: filter 0.2s;
-
-  @each $name, $entry in $colors-map {
-    $color: list.nth($entry, 1);
-
-    &.color-#{$name} {
-      color: $color;
-
-      &:hover {
-        filter: brightness(0.9);
-      }
-    }
-  }
-
-  &:not(.text-btn--no-underline):hover {
-    text-decoration: underline;
-  }
-}
-</style>

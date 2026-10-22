@@ -14,7 +14,7 @@
         <template #list-item="{ item }">
           <SetupCard
             :item="item"
-            icon="lucide:layers"
+            :icon="Layers"
             class="mb-4"
             @click.stop="handleItemClick(item)"
             @edit="handleItemEdit(item)"
@@ -37,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { Layers } from '@lucide/vue'
 import SetupCard from '~/features/setup/components/SetupCard.vue'
 
 const setupStore = useSetupStore()

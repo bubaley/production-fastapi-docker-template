@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '~/shared/ui/shadcn/dialog'
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '~/shared/ui/shadcn/sheet'
 import { computed } from 'vue'
 import { useOverlayStack } from './useOverlayStack'
 
@@ -22,27 +22,24 @@ const shellTarget = '#app-shell-drawer'
 </script>
 
 <template>
-  <Dialog
+  <Sheet
     v-if="overlay"
     v-model:open="model"
   >
-    <DialogContent
+    <SheetContent
       v-bind="$attrs"
+      :side="side"
       :close-label="closeLabel"
-      :motion="side"
       :style="{ width: `${width}px`, ...contentStyle }"
       :overlay-style="backdropStyle"
-      :class="[
-        'inset-y-0 max-h-dvh max-w-[100vw] translate-x-0 translate-y-0 rounded-none border-0 bg-[var(--ds-sidebar)] text-foreground',
-        side === 'right' ? 'right-0 left-auto border-l border-border' : 'right-auto left-0 border-r border-border',
-      ]"
+      class="block max-w-[100vw] overflow-y-auto bg-sidebar p-6 text-foreground sm:max-w-[100vw]"
       @interact-outside="!isTop && $event.preventDefault()"
     >
-      <DialogTitle class="sr-only">{{ title || 'Панель' }}</DialogTitle>
-      <DialogDescription class="sr-only">{{ description || 'Дополнительные параметры и действия.' }}</DialogDescription>
-      <div><slot /></div>
-    </DialogContent>
-  </Dialog>
+      <SheetTitle class="sr-only">{{ title || 'Панель' }}</SheetTitle>
+      <SheetDescription class="sr-only">{{ description || 'Дополнительные параметры и действия.' }}</SheetDescription>
+      <slot />
+    </SheetContent>
+  </Sheet>
   <Teleport
     v-else
     :to="shellTarget"

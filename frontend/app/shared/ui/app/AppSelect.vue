@@ -22,12 +22,17 @@ import SelectChip from './select/SelectChip.vue'
 import { useSelectSource } from './select/useSelectSource'
 import { normalizeSelection, readItem, selectionKey, valueOf } from './select/selection'
 import type { AppSelectProps, SelectValue } from './select/types'
-import { activeOutlineClasses, appControlRadiusClasses, appControlStyles, appSelectIconSize } from './types/control'
+import {
+  activeOutlineClasses,
+  appSelectIconSize,
+  appSelectSizeClasses,
+  appSelectValueSizeClasses,
+} from './types/control'
 
 const props = withDefaults(defineProps<AppSelectProps<T>>(), {
   variant: 'outline',
   filter: true,
-  size: 'default',
+  size: 'md',
   hideDropdownIcon: undefined,
   locale: 'ru',
 
@@ -244,14 +249,13 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
             v-else
             data-app-select-trigger
             class="group/select relative flex min-w-0 items-center gap-1 transition-colors"
-            :style="appControlStyles.select[size]"
             :class="[
-              appControlRadiusClasses[size],
+              appSelectSizeClasses[size],
               variant === 'ghost'
-                ? 'group border border-transparent px-2 hover:bg-[color:var(--ds-field-hover)]'
+                ? 'group border border-transparent hover:bg-field-hover'
                 : variant === 'secondary'
-                  ? 'group border border-transparent bg-secondary px-2 text-secondary-foreground shadow-none hover:bg-accent'
-                  : 'group border border-input bg-background px-2 shadow-sm hover:bg-[color:var(--ds-field-hover)]',
+                  ? 'group border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-accent'
+                  : 'group border border-input bg-background shadow-sm hover:bg-field-hover',
               variant === 'active-outline' && activeOutlineClasses,
               error && 'border-destructive',
               disabled && 'opacity-50',
@@ -268,8 +272,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
                 :aria-describedby="[field.describedBy, `${field.id}-value`].filter(Boolean).join(' ')"
                 :aria-invalid="Boolean(error) || undefined"
                 :aria-required="required || undefined"
-                class="absolute inset-0 w-full cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
-                :class="appControlRadiusClasses[size]"
+                class="absolute inset-0 w-full cursor-pointer rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
                 @keydown="onTriggerKey"
               />
             </ComboboxTrigger>
@@ -284,8 +287,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
               :id="`${field.id}-value`"
               data-avatar-owner
               class="pointer-events-none flex min-w-0 flex-1 flex-wrap items-center gap-1"
-              :style="appControlStyles.selectValue[size]"
-              :class="multiple && 'pr-1'"
+              :class="[appSelectValueSizeClasses[size], multiple && 'pr-1']"
               @click="!disabled && (open = !open)"
             >
               <slot
@@ -375,7 +377,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
             align="start"
             :side-offset="5"
             :collision-padding="12"
-            class="z-[var(--app-overlay-z)] flex max-h-[min(380px,var(--reka-combobox-content-available-height))] w-[max(240px,var(--reka-combobox-trigger-width))] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-lg border border-overlay-border bg-background text-foreground shadow-xl"
+            class="z-overlay flex max-h-[min(380px,var(--reka-combobox-content-available-height))] w-[max(240px,var(--reka-combobox-trigger-width))] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-lg border border-border-strong bg-background text-foreground shadow-overlay"
             @escape-key-down.stop
           >
             <div

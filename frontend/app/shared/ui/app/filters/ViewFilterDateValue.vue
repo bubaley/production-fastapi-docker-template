@@ -16,7 +16,7 @@ const props = withDefaults(
     locale?: 'ru' | 'en'
     disabled?: boolean
   }>(),
-  { size: 'default', locale: 'ru' },
+  { size: 'md', locale: 'ru' },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: FilterValue] }>()
 const range = computed<DatePickerRange>(() => ({

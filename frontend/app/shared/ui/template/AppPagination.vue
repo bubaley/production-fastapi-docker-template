@@ -8,8 +8,7 @@
         v-if="pagination.has_next"
         label="Показать еще"
         :loading="loading"
-        font-weight="normal"
-        severity="secondary"
+        variant="secondary"
         @click="handlePageChange(model + 1, true)"
       />
     </div>

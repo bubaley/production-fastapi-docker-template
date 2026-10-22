@@ -50,7 +50,7 @@
       />
       <div v-if="detailItem.id">
         <AppCard
-          :color="detailItem.value ? 'success' : 'neutral'"
+          :tone="detailItem.value ? 'success' : 'neutral'"
           class="w-full"
         >
           <div class="flex w-full items-start gap-2">
@@ -59,9 +59,10 @@
             </span>
             <AppButton
               v-if="detailItem.value"
-              severity="success"
-              class="ml-4 shrink-0"
-              icon="lucide:copy"
+              variant="ghost"
+              class="ml-4 shrink-0 text-success"
+              :icon="Copy"
+              aria-label="Скопировать токен"
               @click="copyToken(detailItem.value)"
             />
           </div>
@@ -75,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+import { Copy } from '@lucide/vue'
 import { userTokenCodec } from '../models/userToken'
 import { useUserTokenRepo } from '../repos/userTokenRepo'
 

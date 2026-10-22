@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import type { Organization } from '~/features/organization/models/organization'
 
 const setupStorageKey = 'setup:state'
 
+/** The slice of an organization the shell needs; feature models are structurally compatible. */
+export type SetupOrganization = AppModel & { name: string; key: string }
+
 export type SetupState = {
-  organization: Organization | null
+  organization: SetupOrganization | null
   theme: string | null
   restored: boolean
 }

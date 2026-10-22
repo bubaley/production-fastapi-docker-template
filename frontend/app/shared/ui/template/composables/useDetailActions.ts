@@ -1,5 +1,3 @@
-import { last } from 'lodash-es'
-
 export type AppDetailActionsConfig = {
   successMessage?: string
   errorMessage?: string
@@ -64,7 +62,7 @@ export const useDetailActions = <T extends AppModel>(repo: AppRepoStore<T>) => {
   }
 
   const changeRouteParam = (item: T) => {
-    const routeKey = last(Object.keys(route.params))
+    const routeKey = Object.keys(route.params).at(-1)
     if (routeKey && item?.id) {
       void router.replace({
         name: route.name,
