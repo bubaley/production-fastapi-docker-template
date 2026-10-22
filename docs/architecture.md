@@ -8,7 +8,7 @@ What the app does (purpose, scenarios): [product.md](product.md).
 |---|---|
 | Backend | Python 3.14, FastAPI, Tortoise ORM, fastapi-ronin, Taskiq, Redis, PostgreSQL |
 | Frontend | Nuxt 4, Vue 3, Pinia, shadcn-vue / Reka UI, Tailwind CSS |
-| Infra | Docker Compose, Caddy (prod), Makefile |
+| Infra | One Docker image (s6-overlay: Caddy, uvicorn, Nuxt, Taskiq), Docker Compose, GitHub Actions, Makefile — see [deployment.md](deployment.md) |
 
 **Where to put new code**
 
@@ -205,5 +205,34 @@ Router (domains/*/views.py) → ViewSet → FilterObjectsManager → Model
 ```
 
 Frontend never calls `useFetch` for business resources — always a repo.
+
+In production every request enters the container through Caddy (`:8080`): `/api/v1/*` and `/ws/*` go to uvicorn on `127.0.0.1:8000`, `/_nuxt/*` is served from the build output, everything else goes to the Nuxt server on `127.0.0.1:3000`. Details: [deployment.md](deployment.md).
+
+---
+
+## Infrastructure tree
+
+```
+Dockerfile                # One multi-stage image (backend venv, Nuxt build, runtime with s6-overlay)
+.dockerignore             # Allowlist of the build context
+Caddyfile                 # Reverse proxy inside the image
+docker/rootfs/            # Copied to / in the image
+  etc/s6-overlay/s6-rc.d/ #   one directory per service (migrate, backend, taskiq-*, frontend, caddy)
+  etc/s6-overlay/scripts/ #   migrate, wait-for-db.py, service-finish (halts the container on a crash)
+  usr/local/bin/healthcheck
+compose.yaml              # Production stack: app + PostgreSQL + Redis
+compose.override.yaml     # Local development only: db/redis ports on 127.0.0.1, app build
+cliff.toml                # Release rules: next version and CHANGELOG.md from conventional commits
+version.json              # Current release version (written by the release job, with pyproject/package.json)
+.github/workflows/        # ci.yaml (checks → release → publish → deploy), rollback, pr-title, security
+.github/actions/deploy/   # Pluggable deploy step (SSH + docker compose by digest)
+```
+
+Where new infrastructure goes:
+
+- A new long-running process in the image → a new `s6-rc.d/<name>/` longrun (`type`, `run`, `finish` calling `service-finish`, `dependencies.d/migrate`) plus an entry in `user-bundles.d/user/contents.d/`.
+- A new public route prefix for the backend → a `handle` block in `Caddyfile` before the Nuxt catch-all.
+- A new runtime setting → `.env.example` and, if production-specific, the environment table in [deployment.md](deployment.md).
+- A new CI check → a `make` target first (the Makefile is the source of truth), then a step in `ci.yaml`; add the job to the `gate` needs.
 
 `AppListToolbar` is the shared search/filter composition: fixed in page list controls, sticky in nested lists. `UserProfileView` owns profile presentation; `pages/settings/profile.vue` only mounts the view.
