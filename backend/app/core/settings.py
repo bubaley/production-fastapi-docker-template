@@ -43,16 +43,10 @@ class Settings(BaseSettings):
     cookie_samesite: Literal['lax', 'strict', 'none'] = 'lax'
     cookie_httponly: bool = True
 
-    # CORS settings
+    # CORS settings: the Nuxt dev server (FRONTEND_PORT); production is same-origin behind Caddy
     cors_origins: list[str] = [
-        'http://[::1]:3000',
-        'http://localhost:3000',  # React default
-        'http://localhost:5173',  # Vite default
-        'http://localhost:8080',  # Vue CLI default
         'http://localhost:9001',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:5173',
-        'http://127.0.0.1:8080',
+        'http://127.0.0.1:9001',
     ]
     cors_allow_credentials: bool = True
     cors_allow_methods: list[str] = ['*']

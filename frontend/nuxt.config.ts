@@ -82,7 +82,7 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/styles/tailwind.css', '~/assets/styles/global.scss', '~/assets/styles/variables.scss', '~/assets/styles/template.scss'],
   devServer: {
-    port: 8080,
+    port: 9001,
     host: 'localhost',
   },
 })
