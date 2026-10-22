@@ -29,7 +29,6 @@ describe('user context reset', () => {
     const setup = { organization: { id: 'org-A' } as unknown, restored: true }
     const reset = vi.fn(() => { setup.organization = null; setup.restored = false })
     const session = ref<{ id: string } | null>({ id: 'account-A' })
-    vi.stubGlobal('useAuthRepo', () => ({}))
     vi.stubGlobal('useOrganizationRepo', () => repos.organization)
     vi.stubGlobal('useOrganizationUserRepo', () => repos.organizationUser)
     vi.stubGlobal('useUserRepo', () => repos.user)
