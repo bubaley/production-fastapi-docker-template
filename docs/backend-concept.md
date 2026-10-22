@@ -94,6 +94,8 @@ Always declare a separate update schema for resources with immutable ownership.
 Ronin falls back to the create schema when `update_schema` is missing. For example,
 `UserTokenUpdateSchema` accepts only `name` and rejects extra fields; `user_id`
 belongs only to creation. Do not let a PATCH/PUT payload change a token's owner.
+`OrganizationUserUpdateSchema` has no fields and forbids extras: a membership's
+user and organization are fixed once created.
 
 ```python
 from fastapi import APIRouter
@@ -158,8 +160,8 @@ The user rule always applies, so a forged or stale `Organization-Key` cannot wid
 Example: `OrganizationService` is a class in `domains/organization/services/organization_service.py`. If that class later needs several private helpers, turn it into `services/organization_service/organization_service.py` plus sibling modules — not a pile of functions in `utils/`.
 
 `OrganizationService.create` saves the organization and the actor's membership in
-one transaction. Membership addition/removal validates access through
-`OrganizationUser`; duplicate membership uses the database uniqueness constraint.
+one transaction. Membership addition, update and removal validate access through
+`validate_membership_change`; duplicate membership uses the database uniqueness constraint.
 The viewsets only delegate these workflows to the service.
 
 ### Service method shape

@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi_ronin.decorators import schema
+from pydantic import ConfigDict
 
 from app.core.models import BaseCreateSchema, BaseReadSchema
 from app.domains.organization.models import Organization, OrganizationUser
@@ -26,6 +27,13 @@ class OrganizationReadSchema(BaseReadSchema, OrganizationCreateSchema):
 @schema(model=OrganizationUser)
 class OrganizationUserCreateSchema(BaseCreateSchema):
     user_id: UUID
+
+
+@schema(model=OrganizationUser)
+class OrganizationUserUpdateSchema(BaseCreateSchema):
+    """A membership has no mutable fields yet: user and organization are fixed after creation."""
+
+    model_config = ConfigDict(extra='forbid')
 
 
 @schema(model=OrganizationUser)

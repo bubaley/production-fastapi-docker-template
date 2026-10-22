@@ -10,6 +10,7 @@ from app.domains.organization.schemas import (
     OrganizationUpdateSchema,
     OrganizationUserCreateSchema,
     OrganizationUserReadSchema,
+    OrganizationUserUpdateSchema,
 )
 from app.domains.organization.services.organization_service import OrganizationService
 from app.domains.user.models import User
@@ -35,6 +36,7 @@ class OrganizationUserViewSet(BaseModelViewSet[OrganizationUser]):
     model = OrganizationUser
     read_schema = OrganizationUserReadSchema
     create_schema = OrganizationUserCreateSchema
+    update_schema = OrganizationUserUpdateSchema
     filterset_class = OrganizationUserFilterSet
 
     async def get_queryset(self):
@@ -45,6 +47,9 @@ class OrganizationUserViewSet(BaseModelViewSet[OrganizationUser]):
 
     async def perform_create(self, obj: OrganizationUser) -> OrganizationUser:
         return await OrganizationService.add_member(obj, self.user)
+
+    async def perform_update(self, obj: OrganizationUser) -> OrganizationUser:
+        return await OrganizationService.update_member(obj, self.user)
 
     async def perform_destroy(self, obj: OrganizationUser) -> None:
         await OrganizationService.remove_member(obj, self.user)
