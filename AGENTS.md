@@ -8,9 +8,9 @@ This file is an index. Do not copy patterns here — follow the linked docs.
 |---|---|
 | What does the product do? Which scenarios exist? | [docs/product.md](docs/product.md) (product-owned) on top of [docs/template-core.md](docs/template-core.md) (inherited capabilities). `product.md` wins on conflict |
 | Start a new product from the template | `make init name=<kebab-name> title="…"` — [README.md](README.md#start-a-new-product) |
-| Add a domain (backend + frontend CRUD)? | `make new-domain name=<snake_name> title="…"`, then the `/new-domain` skill — [docs/backend-concept.md](docs/backend-concept.md#scaffolding) |
-| Which files does the template own in a fork? How to pull template updates? | [docs/template-ownership.md](docs/template-ownership.md), `.template-version`, the `/sync-template` skill |
-| Which skills, subagents and hooks exist? | `.claude/skills/*/SKILL.md` (`new-domain`, `verify`, `design-system`, `add-shadcn-component`, `sync-template`, `release`), `.claude/agents/` (`domain-reviewer`, `ui-reviewer`), hooks in `.claude/settings.json` — [docs/architecture.md](docs/architecture.md#agent-tooling) |
+| Add a domain (backend + frontend CRUD)? | `make new-domain name=<snake_name> title="…"`, then the `new-domain` skill — [docs/backend-concept.md](docs/backend-concept.md#scaffolding) |
+| Which files does the template own in a fork? How to pull template updates? | [docs/template-ownership.md](docs/template-ownership.md), `.template-version`, the `sync-template` skill |
+| Which skills and hooks exist? | Skills (Claude Code and Codex): `.agents/skills/<name>/SKILL.md` — `new-domain`, `design-system` (UI, shadcn primitives, browser review), `sync-template`; `.claude/skills/<name>` are symlinks to them. Claude Code hooks: `.claude/settings.json` — [docs/architecture.md](docs/architecture.md#agent-tooling) |
 | How does existing code work, who calls X, what depends on Y? | MCP **codebase-memory** first (`search_graph`, `get_architecture`, `trace_path`, `get_code_snippet`). Then open the files it points to. |
 | Where does a new file go? What is each folder for? | [docs/architecture.md](docs/architecture.md) |
 | How to add a backend domain, model, viewset, service? | [docs/backend-concept.md](docs/backend-concept.md) — canonical code: `backend/app/domains/organization/` |
@@ -19,7 +19,7 @@ This file is an index. Do not copy patterns here — follow the linked docs.
 | Auth contract (cookies, CSRF, SSR), OpenAPI conventions, `make openapi`? | [docs/backend-concept.md](docs/backend-concept.md#auth-and-tokens) and [#openapi-contract](docs/backend-concept.md#openapi-contract) |
 | When to write backend tests, where they live? | [docs/backend-concept.md](docs/backend-concept.md#tests) — canonical: `backend/app/domains/organization/tests/test_organization.py` |
 | How to run the project locally? | [README.md](README.md) |
-| How is the image built, released and deployed? | [docs/deployment.md](docs/deployment.md) — `Dockerfile`, `docker/rootfs/`, `.github/workflows/ci.yaml` |
+| How is the image built, released and deployed? Which commit type releases what? | [docs/deployment.md](docs/deployment.md) ([Releases](docs/deployment.md#releases)) — `Dockerfile`, `docker/rootfs/`, `.github/workflows/ci.yaml`, `cliff.toml` |
 | How to lint, format, test, what CI checks? | `make lint` / `make check` in [README.md](README.md#makefile); frontend tooling in [docs/frontend-concept.md](docs/frontend-concept.md#tooling) |
 | Known open items (upstream workarounds, CI not yet run, deferred decisions)? | [docs/follow-ups.md](docs/follow-ups.md); history of the 2026 modernization: [docs/archive/roadmap-2026.md](docs/archive/roadmap-2026.md) |
 
@@ -27,11 +27,13 @@ If the knowledge graph is missing or stale, index the repo with codebase-memory.
 
 ## Always-on rules
 
-- **Do not run migrations** (`make mm`, `make m`, Tortoise migrate) unless the user explicitly asks. After model changes, describe the migration needed. A hook blocks these commands; when the user explicitly asked, prefix the command with `ALLOW_MIGRATIONS=1`.
+- **Do not run migrations** (`make mm`, `make m`, Tortoise migrate) unless the user explicitly asks. After model changes, describe the migration needed. In Claude Code a hook blocks these commands; when the user explicitly asked, prefix the command with `ALLOW_MIGRATIONS=1`.
 - **Do not duplicate.** Extend existing viewsets, UI primitives, repos, and helpers before creating new ones.
 - Comments in code: English only, and only when the logic is non-obvious.
 - User-facing UI copy is **Russian**. Do not add English labels, titles, or toasts in product screens. The one exception is the `/ui` component catalogue: its section titles and sample content are English so they read alongside the prop names they demonstrate.
-- After a non-trivial change, run **`make lint`** (fixes and formats both sides), then **`make check`** (what CI runs: format check, lint, types, tests, architecture guard; read-only). Fix what `make check` reports — do not leave it red. Without local Postgres: `make check PYTEST_ARGS=--sqlite`.
+- After a non-trivial change, run **`make lint`** (fixes and formats both sides), then **`make check`** (what CI runs: format check, lint, types, tests, architecture guard; read-only) before declaring the work done. Fix the first failure `make check` reports — do not leave it red. Without local Postgres, or with a migration the user has not applied yet: `make check PYTEST_ARGS=--sqlite` (say which mode you used). Frontend build is not in it: `make check-frontend BUILD=1` after routing, config or dependency changes.
+- Commits are conventional (`type(scope): summary`, English); the type decides the release: `feat` → minor, `fix`/`perf`/`revert`/`build`/`chore(deps)` → patch, `!` or `BREAKING CHANGE:` → major, other types do not release — [docs/deployment.md](docs/deployment.md#releases).
+- Never tag, bump versions (`version.json`, `pyproject.toml`, `package.json`) or edit `CHANGELOG.md` by hand: the CI `release` job does it on `main`.
 - Complex backend behavior needs tests — see [docs/backend-concept.md](docs/backend-concept.md#tests). Canonical: `backend/app/domains/organization/tests/test_organization.py`.
 
 ## Keep docs current
@@ -42,7 +44,7 @@ A change is incomplete if the matching doc still describes the old product or pa
 |---|---|
 | User-facing behavior or scenario | [docs/product.md](docs/product.md); an inherited capability of every product (template repo only) → [docs/template-core.md](docs/template-core.md) |
 | A new template path, or who owns a path in forks | [docs/template-ownership.md](docs/template-ownership.md) |
-| How a skill, subagent or hook works | its file under `.claude/`; the overview in [docs/architecture.md](docs/architecture.md#agent-tooling) |
+| How a skill or hook works | the skill in `.agents/skills/<name>/SKILL.md` (a new skill also gets its `.claude/skills/<name>` symlink), hooks under `.claude/`; the overview in [docs/architecture.md](docs/architecture.md#agent-tooling) |
 | Folder roles, request flow, where new files go | [docs/architecture.md](docs/architecture.md) |
 | How to add/grow a backend domain (model, schema, viewset, scope, tests) | [docs/backend-concept.md](docs/backend-concept.md) |
 | How to add/grow a frontend feature (resource descriptor, view, templates, data layer) | [docs/frontend-concept.md](docs/frontend-concept.md) |

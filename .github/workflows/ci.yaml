@@ -49,6 +49,9 @@ jobs:
               - 'scripts/**'
               - '.claude/hooks/**'
               - '.claude/settings.json'
+              # Skills are checked by scripts/tests/test_agent_skills.py.
+              - '.agents/**'
+              - '.claude/skills/**'
               - '.python-version'
               - 'Makefile'
               - '.github/workflows/ci.yaml'

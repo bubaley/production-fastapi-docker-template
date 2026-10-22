@@ -35,7 +35,7 @@ make run-frontend                                     # terminal 2 → http://lo
 
 `make init` (`scripts/bootstrap/init.py`) renames the project everywhere it is greppable (compose project, database, package names, API title, UI name, image names), writes `.env` from `.env.example` with a fresh `SECRET_KEY` and `ENCRYPTION_KEY`, resets `version.json`/`CHANGELOG.md` and package versions to 0.1.0, replaces [docs/product.md](docs/product.md) with the product skeleton and records the template version in `.template-version`. It refuses a dirty tree (`force=1` overrides) and is safe to run again. If the copy kept the template's `v*` tags, delete them before the first push (it tells you how).
 
-Then describe the product in `docs/product.md` (purpose, personas, scenarios, non-goals) — agents build only what is written there or in [docs/template-core.md](docs/template-core.md). To pull later template improvements into the product, run the `/sync-template` skill ([docs/template-ownership.md](docs/template-ownership.md)).
+Then describe the product in `docs/product.md` (purpose, personas, scenarios, non-goals) — agents build only what is written there or in [docs/template-core.md](docs/template-core.md). To pull later template improvements into the product, run the `sync-template` skill ([docs/template-ownership.md](docs/template-ownership.md)).
 
 ## Adding a domain
 
@@ -43,11 +43,11 @@ Then describe the product in `docs/product.md` (purpose, personas, scenarios, no
 make new-domain name=invoice title="Счета" item_title="Счёт"
 ```
 
-Generates an organization-scoped CRUD entity end to end — backend domain (model with `tenant_scope`, schemas, filters, thin viewset, tests) and frontend feature (resource descriptor, list and detail views, settings pages, drawer entry) — mirroring the canonical `organization` code. Models and routers are discovered automatically. Then fill in the real fields, run the migration (`make mm`, `make m`), `make gen-client`, `make check`, and update `docs/product.md`. Details: [docs/backend-concept.md](docs/backend-concept.md#scaffolding); agents follow the `/new-domain` skill.
+Generates an organization-scoped CRUD entity end to end — backend domain (model with `tenant_scope`, schemas, filters, thin viewset, tests) and frontend feature (resource descriptor, list and detail views, settings pages, drawer entry) — mirroring the canonical `organization` code. Models and routers are discovered automatically. Then fill in the real fields, run the migration (`make mm`, `make m`), `make gen-client`, `make check`, and update `docs/product.md`. Details: [docs/backend-concept.md](docs/backend-concept.md#scaffolding); agents follow the `new-domain` skill.
 
 ## Agent tooling
 
-[AGENTS.md](AGENTS.md) is the index agents read first (`CLAUDE.md` includes it). `.claude/` is committed: skills (`new-domain`, `verify`, `design-system`, `add-shadcn-component`, `sync-template`, `release`), review subagents (`domain-reviewer`, `ui-reviewer`) and hooks that block migration commands (prefix `ALLOW_MIGRATIONS=1` when you ask an agent to run one) and format every edited file. Editor setup: copy `.vscode/settings.json.example` to `.vscode/settings.json` and install the recommended extensions. Overview: [docs/architecture.md](docs/architecture.md#agent-tooling).
+[AGENTS.md](AGENTS.md) is the index agents read first (Codex reads it directly, `CLAUDE.md` includes it for Claude Code). Skills live once in `.agents/skills/` — `new-domain`, `design-system`, `sync-template` — and work in Claude Code (`/new-domain`, through the symlinks in `.claude/skills/`) and Codex (`$new-domain`). `.claude/settings.json` adds Claude Code hooks that block migration commands (prefix `ALLOW_MIGRATIONS=1` when you ask an agent to run one) and format every edited file. On Windows, enable Developer Mode and `git config --global core.symlinks true` before cloning so Claude Code sees the skills. Editor setup: copy `.vscode/settings.json.example` to `.vscode/settings.json` and install the recommended extensions. Overview: [docs/architecture.md](docs/architecture.md#agent-tooling).
 
 ---
 

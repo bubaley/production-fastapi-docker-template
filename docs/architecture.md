@@ -247,12 +247,13 @@ Where new infrastructure goes:
 The template is the seed of products that agents extend; this tooling keeps that fast and deterministic.
 
 ```
-AGENTS.md, CLAUDE.md      # Agent index (CLAUDE.md includes AGENTS.md)
+AGENTS.md, CLAUDE.md      # Agent index: Codex reads AGENTS.md, CLAUDE.md includes it for Claude Code
+.agents/
+  skills/<name>/SKILL.md  # Canonical skills for Claude Code and Codex: new-domain, design-system, sync-template
 .claude/
-  settings.json           # Hooks (committed); personal overrides in settings.local.json (ignored)
+  skills/<name>           # Relative symlinks -> ../../.agents/skills/<name> (Claude Code discovery path)
+  settings.json           # Claude Code hooks (committed); personal overrides in settings.local.json (ignored)
   hooks/                  # block_migrations.py (PreToolUse Bash), format_file.py (PostToolUse Edit|Write)
-  skills/<name>/SKILL.md  # new-domain, verify, design-system, add-shadcn-component, sync-template, release
-  agents/                 # domain-reviewer, ui-reviewer (subagents)
 scripts/
   scaffold/               # make new-domain: new_domain.py + templates/*.tmpl (string.Template)
   bootstrap/              # make init: init.py + product.md.tmpl
@@ -266,10 +267,9 @@ scripts/
 | Domain discovery | `backend/app/core/discovery.py`: no registration step for models or routers ([backend-concept.md](backend-concept.md#registration)) |
 | `make new-domain` | Scaffolds backend domain + frontend feature + drawer entry; never overwrites, never migrates ([backend-concept.md](backend-concept.md#scaffolding)) |
 | `make init` | Turns a template copy into a product ([README.md](../README.md#start-a-new-product)) |
-| Migration hook | Blocks `make m/mm/migrate/make-migrations` and `tortoise migrate/makemigrations/upgrade/downgrade` with a message to ask the user. `ALLOW_MIGRATIONS=1 <command>` passes, only after the user explicitly asked |
-| Format hook | Formats only the edited file: Ruff for `backend/**/*.py`, `vp fmt` for `frontend/**`; no-op elsewhere; reports formatter problems as a note and never fails the edit |
-| Skills | Short checklists that link to these docs; they do not copy rules |
-| Subagents | Read-only reviewers of a diff: backend rules (`domain-reviewer`), browser pass over affected screens (`ui-reviewer`) |
-| Forks | [template-ownership.md](template-ownership.md), `.template-version`, `/sync-template` |
+| Migration hook (Claude Code) | Blocks `make m/mm/migrate/make-migrations` and `tortoise migrate/makemigrations/upgrade/downgrade` with a message to ask the user. `ALLOW_MIGRATIONS=1 <command>` passes, only after the user explicitly asked |
+| Format hook (Claude Code) | Formats only the edited file: Ruff for `backend/**/*.py`, `vp fmt` for `frontend/**`; no-op elsewhere; reports formatter problems as a note and never fails the edit |
+| Skills | Short checklists that link to these docs; they do not copy rules. One copy in `.agents/skills/` ([Agent Skills](https://agentskills.io/specification) format: `name` = folder name, `description`, no tool-specific fields), read natively by Codex; Claude Code reads `.claude/skills/`, where each skill is a relative symlink to it. `new-domain` ends with a backend self-review; `design-system` covers new shadcn primitives and the browser review. Checking (`make check`) and releasing (commit types) are always-on rules in `AGENTS.md`, not skills |
+| Forks | [template-ownership.md](template-ownership.md), `.template-version`, the `sync-template` skill |
 
-Where new things go: a recurring agent workflow → `.claude/skills/<name>/SKILL.md` plus a row in `AGENTS.md`; hooks stay small Python 3.9+ stdlib scripts reading the hook JSON on stdin, with tests in `scripts/tests/`. A change to a file that `make init` or `make new-domain` rewrites (Makefile image line, `app.config.ts`, the organization templates, `navigation/settings.ts`) must keep their patterns — `scripts/tests` fails when one goes missing.
+Where new things go: a recurring agent workflow → `.agents/skills/<name>/SKILL.md`, its symlink (`ln -s ../../.agents/skills/<name> .claude/skills/<name>`) and a row in `AGENTS.md` — `scripts/tests/test_agent_skills.py` checks the pair and the frontmatter; a rule for every change belongs in `AGENTS.md`, not in a skill. On Windows the symlinks need Developer Mode + `git config --global core.symlinks true` before cloning (or WSL); otherwise they check out as plain text files and only Codex sees the skills; hooks stay small Python 3.9+ stdlib scripts reading the hook JSON on stdin, with tests in `scripts/tests/`. A change to a file that `make init` or `make new-domain` rewrites (Makefile image line, `app.config.ts`, the organization templates, `navigation/settings.ts`) must keep their patterns — `scripts/tests` fails when one goes missing.

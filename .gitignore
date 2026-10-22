@@ -302,6 +302,6 @@ logs
 .env.*
 !.env.example
 
-# Claude Code: skills, agents, hooks and settings.json are committed; worktrees and personal settings are not.
+# Claude Code: skill symlinks (to .agents/skills), hooks and settings.json are committed; worktrees and personal settings are not.
 .claude/worktrees/
 .claude/settings.local.json
