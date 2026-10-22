@@ -51,10 +51,10 @@ install-frontend: ## install frontend dependencies via pnpm
 	$(PNPM) --dir $(FRONTEND_DIR) install
 
 make-migrations: ## create migrations from model changes
-	cd $(BACKEND_DIR) && python -m tortoise makemigrations
+	cd $(BACKEND_DIR) && $(UV) run python -m tortoise makemigrations
 
 migrate: ## run migrations
-	cd $(BACKEND_DIR) && python -m tortoise migrate
+	cd $(BACKEND_DIR) && $(UV) run python -m tortoise migrate
 
 createsuperuser: ## create the first user (interactive)
 	cd $(BACKEND_DIR) && $(UV) run manage.py create_superuser
@@ -78,12 +78,12 @@ gen-client: openapi ## regenerate the typed frontend API client (frontend/app/sh
 	$(PNPM) --dir $(FRONTEND_DIR) run gen:api
 
 shell: ## run backend shell
-	cd $(BACKEND_DIR) && python -m manage shell
+	cd $(BACKEND_DIR) && $(UV) run python -m manage shell
 
 # ----------- DEVELOPMENT ----------- #
 
 run-backend: ## run FastAPI with reload
-	cd $(BACKEND_DIR) && uvicorn $(BACKEND_APP) --reload --host $(BACKEND_HOST) --port $(BACKEND_PORT)
+	cd $(BACKEND_DIR) && $(UV) run uvicorn $(BACKEND_APP) --reload --host $(BACKEND_HOST) --port $(BACKEND_PORT)
 
 run-frontend: ## run Nuxt dev server
 	cd $(FRONTEND_DIR) && pnpm dev --port $(FRONTEND_PORT)
@@ -92,10 +92,10 @@ run-taskiq: ## Run both scheduler and worker
 	$(MAKE) -j2 run-taskiq-scheduler run-taskiq-worker
 
 run-taskiq-worker: ## Run taskiq worker
-	cd $(BACKEND_DIR) && python -m taskiq worker app.core.broker:broker --fs-discover --tasks-pattern "app/**/tasks.py" --workers $(TASKIQ_WORKERS)
+	cd $(BACKEND_DIR) && $(UV) run python -m taskiq worker app.core.broker:broker --fs-discover --tasks-pattern "app/**/tasks.py" --workers $(TASKIQ_WORKERS)
 
 run-taskiq-scheduler: ## Run taskiq scheduler
-	cd $(BACKEND_DIR) && python -m taskiq scheduler app.core.broker:scheduler --fs-discover --tasks-pattern "app/**/tasks.py" --update-interval $(TASKIQ_UPDATE_INTERVAL)
+	cd $(BACKEND_DIR) && $(UV) run python -m taskiq scheduler app.core.broker:scheduler --fs-discover --tasks-pattern "app/**/tasks.py" --update-interval $(TASKIQ_UPDATE_INTERVAL)
 
 test: test-backend ## run backend tests
 

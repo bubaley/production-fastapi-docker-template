@@ -10,7 +10,7 @@ from app.core.broker import broker
 from app.core.database import register_database
 from app.core.discovery import discover_routers
 from app.core.exceptions import register_exceptions_handlers
-from app.core.health import health_router
+from app.core.health import health_router, warm_up_database
 from app.core.logging import setup_logging
 from app.core.openapi import ERROR_RESPONSES, generate_operation_id, install_openapi, split_put_patch_routes
 from app.core.redis import close_redis
@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
             stack.push_async_callback(broker.shutdown)
         except Exception as e:
             logger.warning('Task broker unavailable at startup ({}); /ready reports Redis', e)
+        await warm_up_database()
         await start_websocket_fanout()
         stack.push_async_callback(stop_websocket_fanout)
         logger.info('Application started: version {} ({})', settings.app_version, settings.git_sha or 'no sha')
