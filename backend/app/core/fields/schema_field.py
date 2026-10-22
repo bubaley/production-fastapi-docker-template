@@ -60,7 +60,8 @@ class SchemaListField(fields.JSONField[list[TModel]]):
     def _get_list_adapter(self) -> TypeAdapter[list[TModel]]:
         if self._list_schema_adapter is None:
             assert self._schema is not None, 'Schema must be provided before first use'
-            self._list_schema_adapter = TypeAdapter(GenericAlias(list, self._schema))
+            list_type: Any = GenericAlias(list, self._schema)
+            self._list_schema_adapter = TypeAdapter(list_type)
         return self._list_schema_adapter
 
     def to_db_value(self, value: Any, instance: Model | type[Model]) -> str | None:
