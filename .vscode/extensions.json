@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "VoidZero.vite-plus-extension-pack",
+    "oxc.oxc-vscode",
+    "Vue.volar",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "charliermarsh.ruff",
+    "astral-sh.ty",
+    "ms-python.python",
+    "EditorConfig.EditorConfig"
+  ],
+  "unwantedRecommendations": ["esbenp.prettier-vscode", "ms-python.black-formatter", "ms-python.isort"]
+}
