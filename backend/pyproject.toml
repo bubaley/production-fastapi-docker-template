@@ -32,10 +32,7 @@ dependencies = [
 
 [project.optional-dependencies]
 otel = [
-    "opentelemetry-api>=1.45.1",
-    "opentelemetry-exporter-otlp-proto-http>=1.45.1",
-    "opentelemetry-instrumentation-fastapi>=0.66b1",
-    "opentelemetry-sdk>=1.45.1",
+    "fastapi[opentelemetry]>=0.161.0",
 ]
 
 [dependency-groups]
@@ -59,6 +56,8 @@ format.line-ending = "auto"
 format.skip-magic-trailing-comma = false
 lint.extend-select = [ "I" ]
 lint.ignore = [ "BLE001" ]
+# conftest sets TESTING before importing the app.
+lint.per-file-ignores."app/conftest.py" = [ "E402" ]
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.bandit]
