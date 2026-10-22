@@ -6,8 +6,8 @@
 # Base images, pinned here once (Dependabot updates these FROM lines). Builder and runtime share
 # the Python image so the venv's interpreter path matches; Node (builder and the copied binary)
 # uses the same Debian release, so the same glibc, as the runtime.
-FROM python:3.14.9-slim-trixie AS python
-FROM node:24.19.0-trixie-slim AS node
+FROM python:3.15.1-slim-trixie AS python
+FROM node:26.12.1-trixie-slim AS node
 FROM caddy:2.11.7-alpine AS caddy
 FROM ghcr.io/astral-sh/uv:0.13.5 AS uv
 
@@ -54,11 +54,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # ===== Frontend: Nuxt build output in /app/frontend/.output =====
 FROM node AS frontend-builder
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
-    NUXT_TELEMETRY_DISABLED=1
-RUN corepack enable
+ENV NUXT_TELEMETRY_DISABLED=1
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
+# Node 26 no longer bundles corepack: install the pnpm version pinned in `packageManager`.
+RUN npm install --global --no-fund --no-audit "$(node -p "require('./package.json').packageManager")"
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm fetch --frozen-lockfile --store-dir /pnpm/store
 COPY frontend/ ./
@@ -79,9 +79,12 @@ COPY --from=s6 /s6-root/ /
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=caddy /usr/bin/caddy /usr/local/bin/caddy
 
-# Node needs only glibc and libstdc++, both in the slim Python image; fail the build if that changes.
-# s6-overlay runs as the unprivileged user: /run holds its supervision tree.
-RUN node --version && caddy version \
+# Node 26 also links libatomic, which the slim Python image lacks; the version check fails the build if another
+# shared library goes missing. s6-overlay runs as the unprivileged user: /run holds its supervision tree.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libatomic1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && node --version && caddy version \
     && chown app:app /run
 
 COPY --from=backend-builder /app/backend /app/backend
