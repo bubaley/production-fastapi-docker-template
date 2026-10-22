@@ -56,6 +56,13 @@ make-migrations: ## create migrations from model changes
 migrate: ## run migrations
 	cd $(BACKEND_DIR) && python -m tortoise migrate
 
+createsuperuser: ## create the first user (interactive)
+	cd $(BACKEND_DIR) && $(UV) run manage.py create_superuser
+
+init: ## turn a fresh template copy into a new product: make init name=<kebab-name> [title="Название"] [force=1]
+	@test -n "$(name)" || { echo 'usage: make init name=<kebab-name> [title="Название"] [force=1]'; exit 2; }
+	$(UV) run --no-project python scripts/bootstrap/init.py "$(name)" $(if $(title),--title "$(title)") $(if $(force),--force)
+
 new-domain: ## scaffold a backend domain + frontend feature: make new-domain name=<snake_name> [title="Проекты"] [item_title="Проект"] [plural=...]
 	@test -n "$(name)" || { echo 'usage: make new-domain name=<snake_name> [title="Проекты"] [item_title="Проект"] [plural=<snake_plural>]'; exit 2; }
 	$(UV) run --no-project python scripts/scaffold/new_domain.py "$(name)" $(if $(title),--title "$(title)") \
@@ -109,11 +116,11 @@ docker-stop: ## stop the docker-run stack and delete its volumes
 
 # ----------- QUALITY ----------- #
 
-.PHONY: new-domain openapi gen-client check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
+.PHONY: init new-domain createsuperuser openapi gen-client check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
 
 check: check-backend check-frontend ## run every CI check without changing files
 
-# Repository tooling outside backend/ that runs on the backend's Python: the scaffolder.
+# Repository tooling outside backend/ that runs on the backend's Python: scaffolder, bootstrap.
 TOOLING := ../scripts
 
 check-backend: ## ruff, ruff format --check, ty, pytest (PYTEST_ARGS=--sqlite without Postgres), tooling tests
