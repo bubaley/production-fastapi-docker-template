@@ -39,6 +39,7 @@ def _bash(command):
         'bash -c "make mm"',
         'FOO=1 make m',
         'make lint\nmake m',
+        "cat > x <<'EOF'\ntext\nEOF\nmake mm",
     ],
 )
 def test_migration_commands_are_blocked(command):
@@ -62,6 +63,9 @@ def test_migration_commands_are_blocked(command):
         'git commit -m "make m works"',
         'cd backend && uv run manage.py test --keepdb',
         'ls migrations',
+        "cat > README.md <<'EOF'\nmake m   # apply migrations\nEOF\nmake lint",
+        'python3 - <<EOF\nprint("make mm")\nEOF',
+        'git commit -m "docs: quick start\n\nmake m\n"',
     ],
 )
 def test_other_commands_pass(command):

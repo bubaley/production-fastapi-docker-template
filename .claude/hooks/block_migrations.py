@@ -22,6 +22,8 @@ SHELLS = {'sh', 'bash', 'zsh', 'dash'}
 # Commands that only print or search text: `echo tortoise migrate`, `grep -rn "make m"` are fine.
 TEXT_COMMANDS = {'echo', 'printf', 'grep', 'rg', 'git', 'cat', 'sed', 'awk', 'less', 'head', 'tail'}
 ASSIGNMENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*=')
+HEREDOC = re.compile(r'<<-?\s*([\'"]?)([A-Za-z_][A-Za-z0-9_]*)\1')
+SEPARATORS = '();<>|&\n'
 ALLOW = 'ALLOW_MIGRATIONS=1'
 
 MESSAGE = (
@@ -31,8 +33,26 @@ MESSAGE = (
 )
 
 
+def _strip_heredocs(command):
+    """Drop here-document bodies: they are data (a script fed to stdin, a file being written), not commands."""
+    lines = []
+    delimiter = None
+    for line in command.split('\n'):
+        if delimiter is not None:
+            if line.strip() == delimiter:
+                delimiter = None
+            continue
+        lines.append(line)
+        match = HEREDOC.search(line)
+        if match:
+            delimiter = match.group(2)
+    return '\n'.join(lines)
+
+
 def _tokens(command):
-    lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+    # Newlines separate commands like `;`, except inside quotes (multi-line commit messages).
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=SEPARATORS)
+    lexer.whitespace = ' \t\r'
     lexer.whitespace_split = True
     try:
         return list(lexer)
@@ -42,17 +62,16 @@ def _tokens(command):
 
 def _segments(command):
     """Simple commands separated by newlines, `;`, `&&`, `||`, `|`, `&` and parentheses."""
-    for line in command.splitlines():
-        segment = []
-        for token in _tokens(line):
-            if token and all(char in '();<>|&' for char in token):
-                if segment:
-                    yield segment
-                segment = []
-            else:
-                segment.append(token)
-        if segment:
-            yield segment
+    segment = []
+    for token in _tokens(_strip_heredocs(command)):
+        if token and all(char in SEPARATORS for char in token):
+            if segment:
+                yield segment
+            segment = []
+        else:
+            segment.append(token)
+    if segment:
+        yield segment
 
 
 def _is_make(word):
