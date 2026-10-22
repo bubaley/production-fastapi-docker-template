@@ -11,7 +11,7 @@ permissions:
 jobs:
   conventional-title:
     name: Conventional PR title
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       # Reads only the PR title through the API; never checks out PR code.
