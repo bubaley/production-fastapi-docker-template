@@ -59,6 +59,9 @@ migrate: ## run migrations
 prepare: ## prepare project
 	cd $(FRONTEND_DIR) && pnpm nuxt prepare
 
+openapi: ## write the OpenAPI schema to frontend/openapi.json (no database needed)
+	cd $(BACKEND_DIR) && $(UV) run manage.py openapi --output ../$(FRONTEND_DIR)/openapi.json
+
 shell: ## run backend shell
 	cd $(BACKEND_DIR) && python -m manage shell
 
@@ -98,7 +101,7 @@ docker-stop: ## stop the docker-run stack and delete its volumes
 
 # ----------- QUALITY ----------- #
 
-.PHONY: check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
+.PHONY: openapi check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
 
 check: check-backend check-frontend ## run every CI check without changing files
 

@@ -11,7 +11,7 @@ async def test_token_owner_cannot_be_changed(api_client, user_factory, method):
     admin = await user_factory(is_superuser=True)
     headers = {'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}'}
     created = await api_client.post('/api/v1/user-tokens', headers=headers, json={'name': 'Own token'})
-    assert created.status_code == 200
+    assert created.status_code == 201
     token = created.json()
     response = await getattr(api_client, method)(
         f'/api/v1/user-tokens/{token["id"]}', headers=headers, json={'name': 'Changed', 'user_id': str(admin.id)}

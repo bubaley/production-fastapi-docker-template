@@ -5,12 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from starlette.types import ASGIApp
 
-from app.core.auth import get_auth_state
+from app.core.auth import PUBLIC_PATHS, get_auth_state
 from app.core.broker import broker
 from app.core.database import register_database
 from app.core.exceptions import register_exceptions_handlers
 from app.core.health import health_router
 from app.core.logging import setup_logging
+from app.core.openapi import ERROR_RESPONSES, generate_operation_id, install_openapi, split_put_patch_routes
 from app.core.redis import close_redis
 from app.core.request_id import REQUEST_ID_HEADER, RequestIdMiddleware
 from app.core.services.websocket_service import start_websocket_fanout, stop_websocket_fanout
@@ -51,6 +52,7 @@ app = App(
     version=settings.app_version,
     lifespan=lifespan,
     telemetry=telemetry_config(),
+    generate_unique_id_function=generate_operation_id,
 )
 
 register_exceptions_handlers(app)
@@ -70,7 +72,7 @@ app.add_middleware(
 register_database(app)
 
 
-api_router = APIRouter(prefix='/api/v1', dependencies=[Depends(get_auth_state)])
+api_router = APIRouter(prefix='/api/v1', dependencies=[Depends(get_auth_state)], responses=ERROR_RESPONSES)
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
 api_router.include_router(user_tokens_router)
@@ -84,3 +86,7 @@ OrganizationWebSocketService.register_routes(ws_router)
 app.include_router(ws_router)
 
 app.include_router(health_router)
+
+# TEMPORARY: remove with the fastapi-ronin release that registers PUT and PATCH separately (docs/roadmap.md).
+split_put_patch_routes(app.router, generate_operation_id)
+install_openapi(app, PUBLIC_PATHS)

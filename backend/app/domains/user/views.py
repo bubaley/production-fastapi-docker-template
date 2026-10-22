@@ -107,7 +107,7 @@ class UserTokenViewSet(
             return UserToken.all()
         return await super().get_queryset()
 
-    @action(methods=['POST'], detail=False)
+    @action(methods=['POST'], detail=False, status_code=201)
     async def create(self, data: UserTokenCreateSchema) -> UserTokenCreatedReadSchema:
         owner_id = UserService.validate_api_token_creation(
             self.user, get_current_auth_state().auth_method, data.user_id, data.expires_at

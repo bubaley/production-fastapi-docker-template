@@ -41,3 +41,15 @@ class ResultData[T](BaseModel):
     @property
     def success(self) -> bool:
         return self.error is None
+
+
+class ErrorResponse(BaseModel):
+    """The error envelope every non-2xx response uses (`ResultData` with an error); documented on every operation."""
+
+    data: None = None
+    error: ErrorData
+
+    @computed_field
+    @property
+    def success(self) -> bool:
+        return False

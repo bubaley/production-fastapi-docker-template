@@ -9,7 +9,7 @@ from app.domains.user.models import User, UserToken
 
 async def _create_token(api_client, headers: dict, **payload) -> dict:
     response = await api_client.post('/api/v1/user-tokens', headers=headers, json={'name': 'Integration', **payload})
-    assert response.status_code == 200, response.text
+    assert response.status_code == 201, response.text
     return response.json()
 
 
