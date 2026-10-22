@@ -30,7 +30,7 @@
             />
             <AppButton
               :disabled="!email || !password"
-              :loading="authLoading"
+              :loading="login.isLoading.value"
               type="submit"
               class="w-full"
             >
@@ -44,31 +44,23 @@
 </template>
 <script setup lang="ts">
 import AppLogo from '~/shared/components/layout/header/AppLogo.vue'
+import { isApiError } from '~/shared/api/client'
+
 const email = ref('')
 const password = ref('')
-const authLoading = ref(false)
 const router = useRouter()
 const toast = useToast()
-const { login } = useAuth()
+const { login } = useSession()
 const loginHandler = async () => {
-  if (authLoading.value) return
-  authLoading.value = true
+  if (login.isLoading.value) return
   try {
-    const result = await login({ email: email.value, password: password.value })
-    if (result.error) {
-      toast.error('Неверная почта или пароль')
-      return
-    }
-    const redirect = router.currentRoute.value.query.redirect
-    await router.replace(
-      typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
-        ? redirect
-        : { name: 'home' },
-    )
-  } catch {
-    toast.error('Не удалось войти. Попробуйте ещё раз')
-  } finally {
-    authLoading.value = false
+    await login.mutateAsync({ email: email.value, password: password.value })
+  } catch (error) {
+    if (isApiError(error, 401) || isApiError(error, 400)) toast.error('Неверная почта или пароль')
+    else if (isApiError(error, 429)) toast.error('Слишком много попыток входа. Попробуйте позже')
+    else toast.error('Не удалось войти. Попробуйте ещё раз')
+    return
   }
+  await router.replace(safeRedirect(router.currentRoute.value.query.redirect) ?? { name: 'home' })
 }
 </script>

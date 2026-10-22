@@ -11,8 +11,9 @@
       },
     }"
     :extra-params="{ user_id: props.userId }"
-    :build-new-item="() => userTokenCodec.decode({ user_id: props.userId })"
-    :repo="repo"
+    :build-new-item="() => userTokenResource.toForm({ user_id: props.userId })"
+    :resource="userTokenResource"
+    @save="onSave"
   >
     <AppColumn
       field="name"
@@ -77,15 +78,20 @@
 
 <script setup lang="ts">
 import { Copy } from '@lucide/vue'
-import { userTokenCodec } from '../models/userToken'
-import { useUserTokenRepo } from '../repos/userTokenRepo'
+import { userTokenResource, type UserToken, type UserTokenForm } from '../resources/userToken'
 
 const props = defineProps<{
   userId: string
 }>()
 
-const repo = useUserTokenRepo()
 const toast = useToast()
+
+// The full secret is in the create response only; the modal stays open to show it, the toast keeps a copy.
+const onSave = (event: AppDetailActionsSaveResult<UserTokenForm, UserToken>) => {
+  if (event.created && event.saved?.value) {
+    toast.default('Токен создан', { description: event.saved.value, duration: 120_000 })
+  }
+}
 
 const copyToken = async (value: string) => {
   try {

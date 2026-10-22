@@ -28,7 +28,7 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import { Pencil } from '@lucide/vue'
-import type { Organization } from '~/features/organization/models/organization'
+import type { Organization } from '~/features/organization/resources/organization'
 
 defineEmits<{
   edit: []

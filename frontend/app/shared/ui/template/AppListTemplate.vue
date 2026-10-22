@@ -22,14 +22,14 @@
       #controls
     >
       <AppListToolbar
-        v-model:search="repoData.search.value"
+        v-model:search="listData.search.value"
         v-model:filters="filters"
         :filter-spec="filterSpec"
         :fixed-fields="fixedFields"
         :available-filters="availableFilters"
         class="py-2"
         :show-search="showSearch"
-        :search-loading="repoData.loading.value"
+        :search-loading="listData.loading.value"
         :search-placeholder="searchPlaceholder"
       >
         <template
@@ -49,12 +49,10 @@
 
     <AppList
       v-bind="listBind"
-      v-model:page="page"
-      v-model:search="repoData.search.value"
+      v-model:search="listData.search.value"
       :class="templateVariant === 'page' && mode === 'table' && tableBleed && '-mx-3 md:-mx-4'"
       @item-click="onItemClick"
       @load-more="handleLoadMore"
-      @page-change="handlePageChange"
       @update:selection="$emit('update:selection', $event)"
     >
       <template
@@ -111,13 +109,13 @@
     :width="detailModalProps?.width || '30rem'"
     :class="detailModalProps?.class"
   >
-    <!-- @vue-generic {T} -->
+    <!-- @vue-generic {T, F} -->
     <AppDetailTemplate
-      v-if="selectedItem && detailRepo"
+      v-if="selectedItem && resource"
       class="mb-0!"
       hide-back-button
       mode="inline"
-      :repo="detailRepo"
+      :resource="resource"
       :item="selectedItem"
       template-variant="flat-section"
       v-bind="detailModalProps"
@@ -135,18 +133,20 @@
   </AppModal>
 </template>
 
-<script setup generic="T extends AppModel" lang="ts">
-import { toValue, watch } from 'vue'
+<script setup generic="T extends ResourceItem, F extends ResourceForm" lang="ts">
+import { watch } from 'vue'
 import type { ViewFilters } from '../app/filters/types'
 import { deepClone } from '~/shared/lib/clone'
+import type { ResourceForm, ResourceItem } from '~/shared/api/resource'
+import { useResourceItem } from '~/shared/api/useResource'
 import AppListToolbar from '../app/AppListToolbar.vue'
 import AppPageView from '../app/AppPageView.vue'
 import AppSection from '../app/AppSection.vue'
 import type { AppListTemplateProps } from './types/template-types'
 import type { AppListProps, ItemClickEvent } from '../app/AppList.vue'
-import type { AppPaginationEvent } from './AppPagination.vue'
+import { useListData } from './composables/useListData'
 
-const props = withDefaults(defineProps<AppListTemplateProps<T>>(), {
+const props = withDefaults(defineProps<AppListTemplateProps<T, F>>(), {
   mode: 'table',
   tableBleed: true,
   showPagination: true,
@@ -154,7 +154,6 @@ const props = withDefaults(defineProps<AppListTemplateProps<T>>(), {
   detailRouteParam: 'id',
   contentClass: '',
   searchParam: 'search',
-  storeInRepo: true,
   autoLoad: true,
   templateVariant: 'page',
   detailMode: 'route',
@@ -167,33 +166,44 @@ const props = withDefaults(defineProps<AppListTemplateProps<T>>(), {
 const emit = defineEmits<{
   itemClick: [event: ItemClickEvent<T>]
   rowSelect: [event: { data: T }]
-  pageChange: [event: AppPaginationEvent]
+  save: [event: AppDetailActionsSaveResult<F, T>]
   'update:selection': any
 }>()
 
 const filters = defineModel<ViewFilters>('filters', { default: () => ({}) })
 
 const router = useRouter()
-const itemsRef = computed<T[] | undefined>(() => props.items)
-const selectedItem = shallowRef<T | null>(null)
+const toast = useToast()
+const selectedItem = shallowRef<F | null>(null)
 const detailModal = ref(false)
-const detailRepo = computed(() => props.repo as AppRepoStore<T> | undefined)
-watch(
-  () => props.repo?.revision,
-  () => {
-    selectedItem.value = null
-    detailModal.value = false
-  },
-  { flush: 'sync' },
-)
 
 const sectionBind = useSectionBind(props)
+const listData = useListData<T, F>(() => props, filters)
 
-const repoData = useRepoData<T>({
-  ...props,
-  items: itemsRef,
-  extraParams: () => ({ ...filters.value, ...toValue(props.extraParams ?? {}) }),
-  storeInRepo: props.storeInRepo,
+// Modal mode shows the row at once, then replaces it with a fresh `[key, id]` record once that has loaded.
+const openedId = ref<string | null>(null)
+let hydratedId: string | null = null
+const opened = props.resource ? useResourceItem(() => props.resource!, openedId) : null
+watch(
+  () => [opened?.data.value, opened?.asyncStatus.value] as const,
+  ([data, status]) => {
+    if (!data || status !== 'idle' || !detailModal.value || !props.resource) return
+    if (selectedItem.value?.id !== data.id || hydratedId === data.id) return
+    hydratedId = data.id
+    selectedItem.value = props.resource.toForm(deepClone(data))
+  },
+)
+watch(
+  () => opened?.error.value,
+  (error) => {
+    if (error && detailModal.value && selectedItem.value?.id === openedId.value)
+      toast.error('Не удалось загрузить запись')
+  },
+)
+watch(detailModal, (open) => {
+  if (open) return
+  openedId.value = null
+  hydratedId = null
 })
 
 const detailModalActionsProps = computed(() => ({
@@ -201,14 +211,6 @@ const detailModalActionsProps = computed(() => ({
   disableRouterAutoResolving: props.detailMode === 'modal',
   ...props.detailModalProps?.actionsProps,
 }))
-
-const page = computed({
-  get: () => repoData.pagination.value.page,
-  set: (value: number) => {
-    repoData.pagination.value.page = value
-  },
-})
-const hasNextPage = computed(() => repoData.pagination.value.has_next)
 
 const listBind = computed(
   () =>
@@ -221,26 +223,19 @@ const listBind = computed(
       searchPlaceholder: props.searchPlaceholder,
       tableVariant: props.tableVariant,
       emptyText: props.emptyText,
-      infiniteScroll: props.infiniteScroll && Boolean(props.repo) && !props.onlyClientSearch,
+      infiniteScroll: props.infiniteScroll && listData.remote,
       showPagination: props.showPagination,
       handleItemClick: props.handleItemClick,
       itemKey: 'id' as keyof T,
-      items: repoData.items.value,
-      loading: repoData.loading.value,
-      pagination: repoData.pagination.value,
-      paginationLoading: repoData.loading.value,
-      searchLoading: repoData.loading.value,
-      error: repoData.error.value ? 'Не удалось загрузить данные' : undefined,
-      hasNextPage: hasNextPage.value,
+      items: listData.items.value,
+      loading: listData.loading.value,
+      searchLoading: listData.loading.value,
+      error: listData.error.value ? 'Не удалось загрузить данные' : undefined,
+      hasNextPage: listData.hasNextPage.value,
       showSearch: props.showSearch,
       hideToolbar: props.templateVariant === 'page',
     }) as AppListProps<T>,
 )
-
-const { updateListItem, deleteListItem } = useListEvents({
-  items: computed(() => repoData.items.value),
-  key: 'id' as keyof T,
-})
 
 const onItemClick = (event: ItemClickEvent<T>) => {
   emit('itemClick', event)
@@ -251,57 +246,35 @@ const handleCreateClick = () => {
   _openItem(null)
 }
 
-const handleSave = (event: AppDetailActionsSaveResult<T>) => {
+const handleSave = (event: AppDetailActionsSaveResult<F, T>) => {
   if (!event.success) return
-  if (event.item) {
-    selectedItem.value = event.item
-    updateListItem(deepClone(event.item))
-  }
-
-  if (props.detailModalProps?.closeOnSave !== false) {
-    detailModal.value = false
-  }
-
-  if (props.reloadAfterSave) {
-    void reload().catch(() => {})
-  }
+  if (event.item) selectedItem.value = event.item
+  emit('save', event)
+  if (props.detailModalProps?.closeOnSave !== false) detailModal.value = false
+  if (props.reloadAfterSave) void reload().catch(() => {})
 }
 
-const handleDetailAction = (event: AppDetailActionsDeleteResult<T>) => {
+const handleDetailAction = (event: AppDetailActionsDeleteResult<F>) => {
   if (!event.success) return
-  if (event.item) {
-    deleteListItem(event.item)
-  }
   detailModal.value = false
 }
 
 const _openItem = (item: T | null) => {
   if (props.detailMode === 'modal') {
-    if (item) selectedItem.value = deepClone(item)
-    else selectedItem.value = props.buildNewItem?.() || props.repo?.decode({})
+    if (!props.resource) return
+    selectedItem.value = item
+      ? props.resource.toForm(deepClone(item))
+      : (props.buildNewItem?.() ?? props.resource.toForm())
+    hydratedId = null
     detailModal.value = true
-    if (item?.id && props.retrieveOnOpen && props.repo) {
-      const openedId = item.id
-      void props.repo
-        .retrieve(openedId, undefined, undefined, { storeInRepo: false })
-        .then((retrieved) => {
-          if (!retrieved || !detailModal.value) return
-          if (String(selectedItem.value?.id) !== String(openedId)) return
-          selectedItem.value = deepClone(retrieved)
-        })
-        .catch(() => {
-          if (detailModal.value && String(selectedItem.value?.id) === String(openedId)) {
-            useToast().error('Не удалось загрузить запись')
-          }
-        })
-    }
+    openedId.value = item?.id && props.retrieveOnOpen ? item.id : null
     return
   }
 
   if (props.detailRouteName && props.detailRouteParam) {
-    let id = item?.id
+    let id: string | number | undefined = item?.id
     if (props.detailRouteId && item) id = props.detailRouteId(item)
-    router.push({
+    void router.push({
       name: props.detailRouteName,
       params: { [props.detailRouteParam]: id || 'new' },
     })
@@ -312,41 +285,15 @@ const openItem = (item: T | null = null) => {
   _openItem(item)
 }
 
-const handlePageChange = async (event: AppPaginationEvent) => {
-  if (!props.repo) return
-
-  try {
-    await repoData.loadItems(undefined, {
-      pagination: event.pagination,
-      mode: event.append ? 'append' : 'replace',
-    })
-    emit('pageChange', event)
-  } catch (error) {
-    console.error('Error loading page:', error)
-  }
-}
-
-const reload = () =>
-  repoData.loadItems(undefined, {
-    pagination: paginationFromServer({ size: repoData.pagination.value.size }),
-  })
+const reload = () => listData.reload()
 
 const handleLoadMore = () => {
-  if (!props.repo || repoData.loading.value) return
-  if (!hasNextPage.value) {
-    if (repoData.error.value) void repoData.loadItems().catch(() => {})
-    return
-  }
-
-  void handlePageChange({
-    append: true,
-    pagination: { ...repoData.pagination.value, page: repoData.pagination.value.page + 1 },
-  })
+  void listData.loadMore()
 }
 
 defineExpose({
   openItem,
   reload,
-  getItems: () => repoData.items.value,
+  getItems: () => listData.items.value,
 })
 </script>

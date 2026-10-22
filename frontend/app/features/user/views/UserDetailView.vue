@@ -1,8 +1,7 @@
 <template>
   <AppDetailTemplate
-    :build-new-item="() => userCodec.decode({ is_superuser: false })"
     title="Пользователь"
-    :repo="useRepo('user')"
+    :resource="userResource"
   >
     <template #default="{ item, isCreating }">
       <AppInput
@@ -48,5 +47,5 @@
 <script setup lang="ts">
 import UserChangePasswordButton from '../components/UserChangePasswordButton.vue'
 import UserTokensSection from '../components/UserTokensSection.vue'
-import { userCodec } from '../models/user'
+import { userResource } from '../resources/user'
 </script>

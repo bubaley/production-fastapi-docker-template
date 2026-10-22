@@ -3,119 +3,73 @@ import { ref, watch } from 'vue'
 
 const setupStorageKey = 'setup:state'
 
-/** The slice of an organization the shell needs; feature models are structurally compatible. */
-export type SetupOrganization = AppModel & { name: string; key: string }
+/** The slice of an organization the shell needs (`OrganizationReadSchema` fits). */
+export type SetupOrganization = { id: string; name: string; key: string }
 
 export type SetupState = {
   organization: SetupOrganization | null
-  theme: string | null
   restored: boolean
 }
 
-type SetupKey = keyof SetupState
+type StoredSetup = { userId?: string | null; organization?: string | null }
 
+export type SetupRestoreContext = {
+  userId: string
+  /** The session's organizations (`GET /auth/me`). */
+  organizations: SetupOrganization[]
+  /** Loads a stored organization the user is not a member of (superusers see every organization). */
+  retrieve?: (id: string) => Promise<SetupOrganization | null>
+}
+
+const readStored = (): StoredSetup => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(setupStorageKey) ?? '{}')
+    return parsed && typeof parsed === 'object' ? (parsed as StoredSetup) : {}
+  } catch {
+    return {}
+  }
+}
+
+/** Current organization (`Organization-Key` on every request), remembered per user in localStorage. */
 export const useSetupStore = defineStore('setup', () => {
-  const state = ref<SetupState>({
-    organization: null,
-    theme: null,
-    restored: false,
-  })
-
-  const isRestoring = ref(false)
+  const state = ref<SetupState>({ organization: null, restored: false })
+  const userId = ref<string | null>(null)
   let generation = 0
 
-  const repoMap = {
-    organization: useRepo('organization'),
-  } as const
-
-  type RepoKey = keyof typeof repoMap
-
-  const isRepoKey = (key: SetupKey): key is RepoKey => {
-    return key in repoMap
+  const persist = () => {
+    if (!import.meta.client || !state.value.restored) return
+    const payload: StoredSetup = { userId: userId.value, organization: state.value.organization?.id ?? null }
+    localStorage.setItem(setupStorageKey, JSON.stringify(payload))
   }
+  watch(() => state.value.organization?.id, persist)
 
-  const parseStoredJson = (value: string): Partial<Record<SetupKey, unknown>> => {
-    try {
-      const parsed = JSON.parse(value)
-      return parsed && typeof parsed === 'object' ? (parsed as Partial<Record<SetupKey, unknown>>) : {}
-    } catch {
-      return {}
-    }
-  }
-
-  const serializeState = (): string => {
-    const payload: Partial<Record<SetupKey, unknown>> = {}
-
-    for (const key of Object.keys(state.value) as SetupKey[]) {
-      const value = state.value[key]
-
-      if (isRepoKey(key)) {
-        payload[key] = (value as AppModel | null)?.id ?? null
-        continue
-      }
-
-      payload[key] = value ?? null
-    }
-
-    return JSON.stringify(payload)
-  }
-
-  const persistState = () => {
-    if (!import.meta.client || isRestoring.value) return
-    localStorage.setItem(setupStorageKey, serializeState())
-  }
-
-  watch(state, persistState, { deep: true })
-
-  const restore = async () => {
+  /**
+   * Picks the organization stored for this user, else the only membership. A stored id from another account is
+   * ignored, so signing in as someone else starts the organization choice again.
+   */
+  const restore = async ({ userId: currentUserId, organizations, retrieve }: SetupRestoreContext) => {
     if (!import.meta.client) return
     const request = ++generation
-    isRestoring.value = true
-    try {
-      const raw = localStorage.getItem(setupStorageKey)
-      const payload = raw ? parseStoredJson(raw) : {}
-
-      const repoTasks: Promise<void>[] = []
-
-      for (const key of Object.keys(state.value) as SetupKey[]) {
-        const storedValue = payload[key]
-        if (isRepoKey(key)) {
-          if (storedValue === null || storedValue === undefined || storedValue === '') {
-            ;(state.value as any)[key] = null
-            continue
-          }
-
-          repoTasks.push(
-            (async () => {
-              const item = await repoMap[key].retrieve(String(storedValue))
-              if (request === generation) (state.value as any)[key] = item || null
-            })(),
-          )
-          continue
-        }
-
-        ;(state.value as any)[key] = storedValue ?? null
-      }
-
-      await Promise.all(repoTasks)
-      if (request === generation) state.value.restored = true
-    } finally {
-      if (request === generation) {
-        isRestoring.value = false
-        persistState()
-      }
-    }
+    const stored = readStored()
+    const storedId = stored.userId === currentUserId ? stored.organization : null
+    let organization = organizations.find((item) => item.id === storedId) ?? null
+    if (!organization && storedId && retrieve) organization = await retrieve(storedId).catch(() => null)
+    if (!organization && !storedId && organizations.length === 1) organization = organizations[0] ?? null
+    if (request !== generation) return
+    userId.value = currentUserId
+    state.value.organization = organization
+    state.value.restored = true
+    persist()
   }
 
-  return {
-    state,
-    restore,
-    reset: () => {
-      generation++
-      isRestoring.value = false
-      state.value.organization = null
-      state.value.restored = false
-      persistState()
-    },
+  /** Sign-out: forget the selection, including the stored one. */
+  const reset = () => {
+    generation++
+    state.value.organization = null
+    state.value.restored = false
+    userId.value = null
+    if (import.meta.client) localStorage.removeItem(setupStorageKey)
   }
+
+  return { state, restore, reset }
 })

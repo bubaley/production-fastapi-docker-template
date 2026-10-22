@@ -1,6 +1,10 @@
 import tailwindcss from '@tailwindcss/vite'
 import { COLOR_MODE_COOKIE, paletteHeadScript } from './app/shared/lib/theme'
 
+// FastAPI as seen from the Nuxt server: SSR requests and the dev proxy. The image sets http://127.0.0.1:8000.
+const apiInternalUrl = process.env.NUXT_API_INTERNAL_URL || `http://localhost:${process.env.BACKEND_PORT || 9000}`
+const clientOnly = { ssr: false }
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -8,13 +12,21 @@ export default defineNuxtConfig({
   experimental: {
     asyncContext: true,
   },
+  // Server-only. Browsers always call the API on the page origin (`/api/v1`, `/ws`).
   runtimeConfig: {
-    public: {
-      baseUrl: undefined,
-      apiPrefix: '/api/v1',
-    },
+    apiInternalUrl,
   },
-  modules: ['@pinia/nuxt', '@nuxtjs/color-mode', './modules/base-auth'],
+  modules: ['@pinia/nuxt', '@pinia/colada-nuxt', '@nuxtjs/color-mode', './modules/dev-proxy'],
+  devProxy: { target: apiInternalUrl },
+  // Hybrid rendering: the signed-in app renders in the browser; public pages (`/`) render on the server.
+  routeRules: {
+    '/home': clientOnly,
+    '/home/**': clientOnly,
+    '/settings': clientOnly,
+    '/settings/**': clientOnly,
+    '/auth': clientOnly,
+    '/ui': clientOnly,
+  },
   app: {
     head: {
       script: [{ innerHTML: paletteHeadScript, tagPosition: 'head' }],
@@ -35,29 +47,16 @@ export default defineNuxtConfig({
   imports: {
     dirs: [
       'composables/**',
-      'features/**/repos/**',
-      'features/**/models/**',
       'features/**/composables/**',
       // shared base
       'shared/composables/**',
       'shared/models/**',
       'shared/stores/**',
       'shared/utils/**',
-      // shared toolkits
-      'shared/toolkits/repo/**',
-      'shared/toolkits/repo/composables/**',
-      'shared/toolkits/repo/types/**',
       // shared ui
       'shared/ui/template/types/**',
       'shared/ui/template/composables/**',
     ],
-  },
-  baseAuth: {
-    apiPrefix: '/api/v1/auth',
-    sessionRefresh: {
-      beforeExpiry: 60 * 30, // 30 minutes
-      interval: 60 * 5, // 5 minutes
-    },
   },
   colorMode: {
     preference: 'system',

@@ -1,21 +1,22 @@
+import { ensureSession } from '~/shared/composables/useSession'
+import { fetchItem } from '~/shared/api/resource'
+import { useApiClient } from '~/shared/api/useResource'
+import { organizationResource } from '~/features/organization/resources/organization'
+
+/** Every app route works inside the selected organization; without one the user goes to `/home/setup` first. */
 export default defineNuxtRouteMiddleware(async (to) => {
-  if (to.path === '/ui' || to.path === '/ui/') return
-  const routeName = String(to.name || '')
-  const isSetupRoute = routeName.startsWith('home-setup')
-  if (routeName.startsWith('auth') || routeName === 'ui') return
-
+  if (import.meta.server || to.meta.auth === false || to.meta.auth === 'guest') return
   const setupStore = useSetupStore()
-
-  if (import.meta.server) return
-
-  try {
-    if (!setupStore.state.restored) await setupStore.restore()
-  } catch {
-    setupStore.state.organization = null
+  if (!setupStore.state.restored) {
+    const session = await ensureSession()
+    if (!session) return
+    const client = useApiClient()
+    await setupStore.restore({
+      userId: session.user.id,
+      organizations: session.organizations,
+      retrieve: (id) => fetchItem(organizationResource, client, id),
+    })
   }
-
-  if (!setupStore.state.organization) {
-    if (isSetupRoute) return
-    return navigateTo({ name: 'home-setup' })
-  }
+  if (setupStore.state.organization || to.meta.organization === false) return
+  return navigateTo({ name: 'home-setup' })
 })

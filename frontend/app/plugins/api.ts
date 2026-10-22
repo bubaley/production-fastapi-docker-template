@@ -1,35 +1,49 @@
-export const normalizeUrl = (baseUrl?: unknown, ...append: unknown[]) => {
-  const url =
-    [baseUrl, ...append]
-      .map((v) => (typeof v === 'string' ? v.replace(/^\/+|\/+$/g, '') : null))
-      .filter((v) => v)
-      .join('/') || '/'
-  if (baseUrl) return url
-  return url.startsWith('/') ? url : `/${url}`
-}
+import { useQueryCache } from '@pinia/colada'
+import { createApiClient } from '~/shared/api/client'
+import { SESSION_KEY } from '~/shared/composables/useSession'
 
-export default defineNuxtPlugin(() => {
-  const config = useRuntimeConfig()
-  const baseUrl = normalizeUrl(config.public.baseUrl, config.public.apiPrefix)
-  const apiFetch = $fetch.create({
-    credentials: 'include',
-    baseURL: baseUrl,
-    retryDelay: 2000,
-    async onRequest({ options }) {
-      const { state } = useSetupStore()
-      const headers = new Headers(options.headers)
-      if (state.organization?.key) headers.set('Organization-Key', state.organization.key)
-      if (import.meta.server) {
-        const cookieHeader = useRequestHeaders(['cookie']).cookie
-        if (cookieHeader) headers.set('Cookie', cookieHeader)
-      }
-      options.headers = headers
-    },
-  })
+/**
+ * Provides `$api`, the generated client for this app instance (one per request on the server):
+ * - browser: same-origin `/api/v1/...` (Caddy in production, the dev proxy in `nuxt dev`); on 401 it refreshes the
+ *   session once and retries; a failed refresh signs out and sends app routes to `/auth`.
+ * - SSR: `NUXT_API_INTERNAL_URL` with the incoming `cookie` header; only GETs run during SSR (CSRF contract).
+ * Every request carries `Organization-Key` of the selected organization.
+ */
+export default defineNuxtPlugin({
+  name: 'api',
+  setup(nuxtApp) {
+    const config = useRuntimeConfig()
+    const setupStore = useSetupStore()
+    const router = useRouter()
+    const cookie = import.meta.server ? useRequestHeaders(['cookie']).cookie : undefined
 
-  return {
-    provide: {
-      api: apiFetch,
-    },
-  }
+    let navigating = false
+    router.beforeEach(() => {
+      navigating = true
+    })
+    router.afterEach(() => {
+      navigating = false
+    })
+    router.onError(() => {
+      navigating = false
+    })
+
+    // A navigation in progress handles the missing session itself (route middleware redirects with `redirect`).
+    const onSignedOut = () =>
+      nuxtApp.runWithContext(() => {
+        useQueryCache().setQueryData([...SESSION_KEY], null)
+        const route = router.currentRoute.value
+        if (navigating || route.meta.auth === false || route.meta.auth === 'guest') return
+        void navigateTo({ name: 'auth', query: { redirect: route.fullPath } })
+      })
+
+    const api = createApiClient({
+      baseUrl: import.meta.server ? config.apiInternalUrl : '',
+      refreshOnUnauthorized: import.meta.client,
+      onSignedOut,
+      headers: () => ({ 'Organization-Key': setupStore.state.organization?.key, cookie }),
+    })
+
+    return { provide: { api } }
+  },
 })

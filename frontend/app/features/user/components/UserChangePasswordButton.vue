@@ -37,20 +37,23 @@
 </template>
 
 <script setup lang="ts">
+import { usersChangePassword } from '~/shared/api/generated'
+import { useApiClient } from '~/shared/api/useResource'
+
 const props = defineProps<{
   userId: string
 }>()
 
-const { session } = useAuth()
+const { user } = useSession()
 const toast = useToast()
-const repo = useRepo('user')
+const client = useApiClient()
 
 const visible = ref(false)
 const currentPassword = ref('')
 const newPassword = ref('')
 const newPasswordRepeat = ref('')
 
-const requireCurrentPassword = computed(() => !session.value?.is_superuser)
+const requireCurrentPassword = computed(() => !user.value?.is_superuser)
 
 const resetForm = () => {
   currentPassword.value = ''
@@ -78,9 +81,14 @@ const submitState = useActionState(
       throw new Error('current')
     }
     try {
-      await repo.changePassword(props.userId, {
-        ...(requireCurrentPassword.value ? { current_password: currentPassword.value } : {}),
-        new_password: newPassword.value,
+      await usersChangePassword({
+        client,
+        throwOnError: true,
+        path: { item_id: props.userId },
+        body: {
+          ...(requireCurrentPassword.value ? { current_password: currentPassword.value } : {}),
+          new_password: newPassword.value,
+        },
       })
     } catch (error) {
       toast.error('Не удалось сменить пароль')

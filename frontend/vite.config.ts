@@ -16,6 +16,8 @@ const ignorePatterns = [
 
 export default defineConfig({
   plugins: [vue()],
+  // Tests run the browser side of Nuxt's compile-time flags.
+  define: { 'import.meta.client': 'true', 'import.meta.server': 'false' },
   resolve: { alias: { '~': fileURLToPath(new URL('./app', import.meta.url)) } },
   test: {
     environment: 'happy-dom',

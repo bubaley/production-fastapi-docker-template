@@ -25,15 +25,15 @@ export function useSelectSource<T>(
     loading.value = false
   }
   const load = async (requestedPage: number) => {
-    const repo = props().repo
-    if (!repo || (!open.value && !props().autoLoad) || props().disabled || loading.value) return
+    const source = props().source
+    if (!source || (!open.value && !props().autoLoad) || props().disabled || loading.value) return
     const requestRevision = revision
     failedPage = requestedPage
     loading.value = true
     pending.value = false
     error.value = null
     try {
-      const result = await repo.list(
+      const result = await source.list(
         {
           ...props().extraParams,
           ...props().query,
@@ -41,18 +41,14 @@ export function useSelectSource<T>(
             ? { [props().searchParam ?? 'search']: search.value.trim() }
             : {}),
         },
-        {
-          pagination: { page: requestedPage, size: props().pageSize ?? 30, total: 0, pages: 0, has_next: false },
-          storeInRepo: false,
-        },
+        { page: requestedPage, size: props().pageSize ?? 30 },
       )
       if (requestRevision !== revision || (!open.value && !props().autoLoad)) return
-      if (!result) throw new Error('Не удалось загрузить варианты')
       remember(result.items)
       items.value = mergeItems(requestedPage === 1 ? [] : items.value, result.items, key)
       page.value = requestedPage
       // Empty pages end pagination even if the server reports an inconsistent has_next.
-      hasMore.value = result.items.length > 0 && result.pagination.has_next
+      hasMore.value = result.items.length > 0 && result.hasNext
     } catch (reason) {
       if (requestRevision === revision) error.value = reason
     } finally {
@@ -65,7 +61,7 @@ export function useSelectSource<T>(
     items.value = []
     page.value = 0
     hasMore.value = false
-    if ((!open.value && !props().autoLoad) || !props().repo || props().disabled) return
+    if ((!open.value && !props().autoLoad) || !props().source || props().disabled) return
     if (delay) {
       pending.value = true
       timer = setTimeout(() => {
@@ -73,18 +69,7 @@ export function useSelectSource<T>(
       }, props().debounce ?? 300)
     } else void load(1)
   }
-  watch(
-    () => props().repo?.revision,
-    () => {
-      invalidate()
-      items.value = []
-      error.value = null
-      page.value = 0
-      hasMore.value = false
-    },
-    { flush: 'sync' },
-  )
-  watch([open, () => props().repo, () => props().disabled, () => props().pageSize], () => restart(false), {
+  watch([open, () => props().source, () => props().disabled, () => props().pageSize], () => restart(false), {
     immediate: true,
     flush: 'sync',
   })

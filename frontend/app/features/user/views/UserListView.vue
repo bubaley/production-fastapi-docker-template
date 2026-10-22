@@ -3,7 +3,7 @@
     title="Пользователи"
     description="Учетные записи пользователей"
     detail-route-name="settings-users-id"
-    :repo="useRepo('user')"
+    :resource="userResource"
   >
     <AppColumn
       field="email"
@@ -32,4 +32,6 @@
   </AppListTemplate>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { userResource } from '../resources/user'
+</script>

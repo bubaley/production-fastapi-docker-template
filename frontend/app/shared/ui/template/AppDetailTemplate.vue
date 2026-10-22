@@ -9,7 +9,7 @@
     >
       <AppDetailActions
         v-if="!actionsProps?.hidden"
-        :repo="repo"
+        :resource="resource"
         v-bind="actionsProps"
         :item="currentItem"
         @cancel="emit('cancel')"
@@ -48,7 +48,7 @@
       <AppDetailActions
         v-if="showFooterActions && !actionsProps?.hidden"
         class="c-detail-actions"
-        :repo="repo"
+        :resource="resource"
         v-bind="actionsProps"
         full-width
         :item="currentItem"
@@ -60,7 +60,8 @@
   </component>
 </template>
 
-<script setup generic="T extends AppModel" lang="ts">
+<script setup generic="T extends ResourceItem, F extends ResourceForm" lang="ts">
+import type { ResourceForm, ResourceItem } from '~/shared/api/resource'
 import AppPageView from '../app/AppPageView.vue'
 import AppSection from '../app/AppSection.vue'
 import type { AppDetailTemplateProps } from './types/template-types'
@@ -68,12 +69,12 @@ import type { AppDetailTemplateProps } from './types/template-types'
 export type { AppDetailTemplateActionsProps, AppDetailTemplateProps } from './types/template-types'
 
 const emit = defineEmits<{
-  save: [event: AppDetailActionsSaveResult<T>]
-  delete: [event: AppDetailActionsDeleteResult<T>]
+  save: [event: AppDetailActionsSaveResult<F, T>]
+  delete: [event: AppDetailActionsDeleteResult<F>]
   cancel: []
 }>()
 
-const props = withDefaults(defineProps<AppDetailTemplateProps<T>>(), {
+const props = withDefaults(defineProps<AppDetailTemplateProps<T, F>>(), {
   detailRouteParam: 'id',
   mode: 'page',
   templateVariant: 'page',
@@ -94,7 +95,8 @@ const {
   loading,
   error,
   loadItem,
-} = useTemplateDetail(props.repo, props.detailRouteParam, props.buildNewItem, props.mode === 'page')
+  setItem,
+} = useTemplateDetail(() => props.resource, props.detailRouteParam, props.buildNewItem, props.mode === 'page')
 
 const currentItem = computed(() => props.item ?? detailItem.value)
 
@@ -107,12 +109,12 @@ const showFooterActions = computed(() => {
   return props.mode === 'inline' || !!props.actionsProps?.hideHeaderActions
 })
 
-const handleSave = (event: AppDetailActionsSaveResult<T>) => {
-  if (event.item) detailItem.value = event.item
+const handleSave = (event: AppDetailActionsSaveResult<F, T>) => {
+  if (event.item && !props.item) setItem(event.item)
   emit('save', event)
 }
 
-const handleDelete = (event: AppDetailActionsDeleteResult<T>) => {
+const handleDelete = (event: AppDetailActionsDeleteResult<F>) => {
   if (props.listRouteName) {
     void router.replace({ name: props.listRouteName })
   }

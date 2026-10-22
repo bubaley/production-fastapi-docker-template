@@ -21,7 +21,7 @@
 import { LogOut, User } from '@lucide/vue'
 import type { AppMenuAction } from '~/shared/ui/app/AppMenu.vue'
 
-const { logout } = useAuth()
+const { logout } = useSession()
 const actions: AppMenuAction[] = [
   {
     label: 'Профиль',
@@ -34,12 +34,11 @@ const actions: AppMenuAction[] = [
     label: 'Выйти',
     icon: LogOut,
     action: async () => {
-      const result = await logout()
-      if (result.error) {
+      try {
+        await logout.mutateAsync()
+      } catch {
         useToast().error('Не удалось выйти. Попробуйте ещё раз')
-        return
       }
-      await navigateTo({ name: 'auth' })
     },
   },
 ]

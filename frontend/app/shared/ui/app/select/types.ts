@@ -11,13 +11,9 @@ export type SelectModel<T, V, Multiple extends boolean, EmitValue extends boolea
     ? V | null
     : T | null
 
-/** Selection owns pagination and never mutates repository list state. */
-export interface SelectRepo<T> {
-  revision?: number
-  list(
-    params?: Record<string, unknown>,
-    config?: import('~/shared/toolkits/repo/types').RepoListConfig,
-  ): Promise<{ items: T[]; pagination: import('~/shared/toolkits/repo/appPagination').AppPagination } | undefined>
+/** Server-backed options: one page per call; the select owns its own pagination and search. */
+export interface SelectSource<T> {
+  list(query: Record<string, unknown>, page: { page: number; size: number }): Promise<{ items: T[]; hasNext: boolean }>
 }
 export interface SelectProps<T> {
   options?: T[]
@@ -35,7 +31,9 @@ export interface SelectProps<T> {
   itemValue?: SelectAccessor<T, SelectValue>
   itemLabel?: SelectAccessor<T, string>
   itemDisabled?: SelectAccessor<T, boolean>
-  repo?: SelectRepo<T>
+  /** API resource the options come from (`organizationResource`); wraps it as a `source`. */
+  resource?: import('~/shared/api/resource').Resource<any, any, any, any>
+  source?: SelectSource<T>
   query?: Record<string, unknown>
   debounce?: number
   pageSize?: number

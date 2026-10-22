@@ -1,8 +1,11 @@
 import { computed, onBeforeUnmount, shallowRef, toValue, watch, type MaybeRefOrGetter } from 'vue'
 import type { ViewFilters, ViewFilterSpec } from './types'
+import { fetchItem } from '~/shared/api/resource'
+import { useApiClient } from '~/shared/api/useResource'
 
 /** Resolve restored IDs independently from option search/pagination, with bounded concurrency. */
 export function useFilterSelectedItems(spec: MaybeRefOrGetter<ViewFilterSpec>, filters: MaybeRefOrGetter<ViewFilters>) {
+  const client = toValue(spec).fields.some((field) => field.resource) ? useApiClient() : null
   const cache = shallowRef<Record<string, object>>({})
   const pending = new Set<string>()
   const failed = new Set<string>()
@@ -34,11 +37,17 @@ export function useFilterSelectedItems(spec: MaybeRefOrGetter<ViewFilterSpec>, f
     Object.entries(toValue(filters)).flatMap(([key, value]) => {
       const [name, lookup] = key.split('__')
       const field = toValue(spec).fields.find((field) => field.field === name)
-      if (!field?.repo?.retrieve || lookup === 'isnull') return []
-      const repo = field.repo
+      const resource = field?.resource
+      if (!resource?.sdk.retrieve || !client || lookup === 'isnull') return []
       return (Array.isArray(value) ? value : [value]).flatMap((id) =>
         (typeof id === 'string' && id !== '') || typeof id === 'number'
-          ? [{ key: `${name}:${id}`, id: id as string | number, retrieve: (id: string | number) => repo.retrieve!(id) }]
+          ? [
+              {
+                key: `${name}:${id}`,
+                id: id as string | number,
+                retrieve: (id: string | number) => fetchItem(resource, client, String(id)),
+              },
+            ]
           : [],
       )
     }),

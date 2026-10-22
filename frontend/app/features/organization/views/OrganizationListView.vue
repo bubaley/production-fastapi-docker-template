@@ -2,7 +2,7 @@
   <AppListTemplate
     title="Организации"
     detail-route-name="settings-organizations-id"
-    :repo="useRepo('organization')"
+    :resource="organizationResource"
     search-param="name"
     :filter-spec="filterSpec"
     :fixed-fields="[{ field: 'key', mode: 'single' }]"
@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
 import type { ViewFilterSpec } from '~/shared/ui/app/filters/types'
+import { organizationResource } from '../resources/organization'
 
 const filterSpec: ViewFilterSpec = {
   fields: [{ field: 'key', label: 'Ключ', kind: 'text', lookups: ['icontains', 'exact'] }],

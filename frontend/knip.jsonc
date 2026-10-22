@@ -1,12 +1,11 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["tests/**/*.test.ts", "scripts/*.mjs"],
+  // colada.options.ts is loaded by @pinia/colada-nuxt by file name.
+  "entry": ["tests/**/*.test.ts", "scripts/*.mjs", "colada.options.ts"],
   "ignore": [
-    // Kept for the realtime work in later stages (websocket fan-out); not wired into the UI yet.
+    // Documented for organization realtime; no backend event is sent yet, so nothing uses it.
     "app/shared/composables/useWebSocket.ts",
-    // Written by `pnpm gen:api`; only the parts the descriptors use are reachable.
-    "app/shared/api/generated/**",
   ],
-  // vue-tsc runs through `nuxt typecheck`; ofetch and h3 come with Nuxt.
-  "ignoreDependencies": ["vue-tsc", "ofetch", "h3"],
+  // vue-tsc runs through `nuxt typecheck`.
+  "ignoreDependencies": ["vue-tsc"],
 }

@@ -13,7 +13,7 @@ import AppLayout from '~/shared/components/layout/AppLayout.vue'
 import type { NavigationSection } from '~/shared/components/layout/drawer/AppLayoutDrawer.vue'
 import OrganizationPicker from '~/features/organization/components/OrganizationPicker.vue'
 
-const { session } = useAuth()
+const { user } = useSession()
 
 const navigationSections = computed<NavigationSection[]>(() => {
   const result: NavigationSection[] = [
@@ -25,7 +25,7 @@ const navigationSections = computed<NavigationSection[]>(() => {
       ],
     },
   ]
-  if (session.value?.is_superuser) {
+  if (user.value?.is_superuser) {
     result[0]?.items.push({ to: { name: 'settings-users' }, label: 'Пользователи', icon: Users })
   }
   return result

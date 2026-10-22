@@ -1,52 +1,30 @@
 <template>
   <div
-    v-if="showPagination"
+    v-if="hasNext"
     class="flex justify-center"
   >
     <div class="mt-4 flex justify-center lg:mt-0">
       <AppButton
-        v-if="pagination.has_next"
         label="Показать еще"
         :loading="loading"
         variant="secondary"
-        @click="handlePageChange(model + 1, true)"
+        @click="emit('loadMore')"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-
-export type AppPaginationEvent = {
-  pagination: AppPagination
-  append: boolean
-}
-
 export type AppPaginationProps = {
-  pagination: AppPagination
+  hasNext: boolean
   loading?: boolean
 }
 
-const props = withDefaults(defineProps<AppPaginationProps>(), {
+withDefaults(defineProps<AppPaginationProps>(), {
   loading: false,
 })
 
 const emit = defineEmits<{
-  pageChange: [event: AppPaginationEvent]
+  loadMore: []
 }>()
-
-const model = defineModel<number>({ default: 1 })
-
-const showPagination = computed(() => props.pagination.has_next || props.pagination.pages > 1)
-
-const handlePageChange = (page: number, append: boolean) => {
-  emit('pageChange', {
-    append: append,
-    pagination: {
-      ...props.pagination,
-      page,
-    },
-  })
-}
 </script>

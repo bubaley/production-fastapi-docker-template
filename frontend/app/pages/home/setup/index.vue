@@ -7,7 +7,7 @@
         description="Выберите организацию для продолжения"
         detail-mode="modal"
         mode="list"
-        :repo="useRepo('organization')"
+        :resource="organizationResource"
         search-param="name"
         filter
       >
@@ -39,25 +39,23 @@
 <script setup lang="ts">
 import { Layers } from '@lucide/vue'
 import SetupCard from '~/features/setup/components/SetupCard.vue'
+import { organizationResource, type Organization } from '~/features/organization/resources/organization'
 
 const setupStore = useSetupStore()
 
-type SetupListRef<T extends AppModel> = {
-  openItem: (item: T | null) => void
+const organizationListRef = ref<{ openItem: (item: Organization | null) => void } | null>(null)
+
+const handleItemClick = (item: Organization) => {
+  setupStore.state.organization = item
+  void navigateTo({ name: 'home' }, { replace: true })
 }
 
-const organizationListRef = ref<SetupListRef<Organization> | null>(null)
-
-const handleItemClick = (item: AppModel) => {
-  setupStore.state.organization = item as Organization
-  navigateTo({ name: 'home' }, { replace: true })
-}
-
-const handleItemEdit = (item: AppModel) => {
-  organizationListRef.value?.openItem(item as Organization)
+const handleItemEdit = (item: Organization) => {
+  organizationListRef.value?.openItem(item)
 }
 
 definePageMeta({
   layout: 'setup',
+  organization: false,
 })
 </script>

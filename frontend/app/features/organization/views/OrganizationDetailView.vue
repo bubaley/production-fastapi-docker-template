@@ -1,8 +1,7 @@
 <template>
   <AppDetailTemplate
-    :build-new-item="() => organizationCodec.decode({})"
     title="Организация"
-    :repo="useRepo('organization')"
+    :resource="organizationResource"
     :back-action="() => navigateTo({ name: 'settings-organizations' })"
   >
     <template #default="{ item }">
@@ -13,10 +12,11 @@
       <AppInput
         v-model="item.key"
         label="Ключ"
+        :disabled="Boolean(item.id)"
       />
       <OrganizationMembersList
         v-if="item.id"
-        :organization="item"
+        :organization-id="item.id"
         class="mt-6 mb-0!"
       />
     </template>
@@ -25,5 +25,5 @@
 
 <script setup lang="ts">
 import OrganizationMembersList from './OrganizationMembersList.vue'
-import { organizationCodec } from '../models/organization'
+import { organizationResource } from '../resources/organization'
 </script>

@@ -2,16 +2,16 @@
   <AppListTemplate
     detail-mode="modal"
     template-variant="section"
-    :build-new-item="() => organizationUserCodec.decode({ organization_id: organization.id, user_id: null })"
-    :repo="useRepo('organizationUser')"
-    :extra-params="{ organization_id: organization.id }"
+    :build-new-item="() => organizationUserResource.toForm({ organization_id: organizationId })"
+    :resource="organizationUserResource"
+    :extra-params="{ organization_id: organizationId }"
     title="Участники организации"
   >
     <template #detail-modal="{ detailItem }">
       <AppSelect
         v-model="detailItem.user"
         label="Пользователь"
-        :repo="useRepo('user')"
+        :resource="userResource"
         :disabled="Boolean(detailItem.id)"
         option-label="email"
       />
@@ -32,7 +32,11 @@
 </template>
 
 <script setup lang="ts">
+import { userResource } from '~/features/user/resources/user'
+import { organizationUserResource } from '../resources/organizationUser'
+
+// Members are added to the organization being viewed, not to the selected one (`organization_id` in the body).
 defineProps<{
-  organization: Organization
+  organizationId: string
 }>()
 </script>
