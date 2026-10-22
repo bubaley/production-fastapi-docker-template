@@ -20,12 +20,3 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     type: str = 'bearer'
-
-
-class RegisterRequest(BaseModel):
-    """Schema for user registration request."""
-
-    email: str
-    password: str
-    first_name: str
-    last_name: str

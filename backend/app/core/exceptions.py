@@ -30,10 +30,6 @@ class AppException(Exception):
         return cls(error_data=ErrorData.from_exception(code=code, message=message, exception=exception))
 
 
-class RollbackTransactionException(Exception):
-    pass
-
-
 def _format_http_exception_detail(detail: Any) -> str:
     if isinstance(detail, str):
         return detail

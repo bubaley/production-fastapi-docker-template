@@ -17,7 +17,7 @@ class AuthViewSet(BaseGenericViewSet):
     read_schema = UserReadSchema
 
     def get_permissions(self):
-        if self.action in ['login', 'refresh', 'logout', 'register']:
+        if self.action in ['login', 'refresh', 'logout']:
             return []
         return [IsAuthenticated()]
 
@@ -47,19 +47,6 @@ class AuthViewSet(BaseGenericViewSet):
         """Get current authenticated user information."""
         result = self.user
         return result
-
-    # @action(methods=['POST'], response_model=UserSchema)
-    # async def register(self, data: RegisterRequest):
-    #     """Register a new user with hashed password."""
-    #     user_data = data.model_dump(exclude={'password'})
-    #     user = User(**user_data)
-    #     user.set_password(data.password)
-    #     await user.save()
-    #     organization = await Organization.create(name='Основная', key='main')
-    #     await organization.users.add(user)
-    #     user.organization = organization
-    #     await user.save()
-    #     return user
 
     @action(methods=['POST'], response_model=TokenResponse)
     async def refresh(self, request: Request, response: Response, data: RefreshTokenRequest | None = None):
