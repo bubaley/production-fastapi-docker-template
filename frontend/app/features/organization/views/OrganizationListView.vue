@@ -27,5 +27,3 @@ const filterSpec: ViewFilterSpec = {
   fields: [{ field: 'key', label: 'Ключ', kind: 'text', lookups: ['icontains', 'exact'] }],
 }
 </script>
-
-<style scoped lang="scss"></style>
