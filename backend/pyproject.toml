@@ -1,6 +1,6 @@
 [project]
 name = "fastapi-nuxt-template"
-version = "0.8.0"
+version = "0.9.0"
 description = "Full-stack starter template with FastAPI and Nuxt"
 readme = "README.md"
 requires-python = ">=3.14"

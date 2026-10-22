@@ -3,6 +3,27 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.9.0] - 2026-10-22
+
+### Features
+- **auth:** cookie-only sessions with an Origin check for unsafe requests (0650667)
+- **api:** stable OpenAPI contract and make openapi (f49a5ff)
+- **frontend:** cookie session, generated client and Pinia Colada data layer (2c5383c)
+- **frontend:** server-rendered public landing page (6ac4ab0)
+- **backend:** auto-discover domain models and routers (48cfb52)
+- **tooling:** scaffold a domain with make new-domain (4daf6c4)
+- **tooling:** bootstrap a new product with make init (72e7404)
+- **tooling:** Claude Code hooks that block migrations and format edits (04c7c0c)
+- **tooling:** Claude Code skills and review subagents (863be09)
+
+### Bug fixes
+- **organization:** add members to the organization named in the body (8920083)
+- **tooling:** ignore here-documents and quoted newlines in the migration hook (3a04bc5)
+- **tooling:** point make init next steps at make createsuperuser (32c666a)
+- **backend:** build the database pool at startup and shield the readiness probe (7b8361e)
+
+### Build
+- **frontend:** generate a typed API client from openapi.json (8dbd191)
 ## [0.8.0] - 2026-10-22
 
 ### Features
