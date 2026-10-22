@@ -13,6 +13,7 @@ This file is an index. Do not copy patterns here — follow the linked docs.
 | How to add a frontend feature, model, repo, view? | [docs/frontend-concept.md](docs/frontend-concept.md) — canonical code: `frontend/app/features/organization/` |
 | When to write backend tests, where they live? | [docs/backend-concept.md](docs/backend-concept.md#tests) — canonical: `backend/app/domains/organization/tests/test_organization.py` |
 | How to run the project locally? | [README.md](README.md) |
+| What is being modernized right now, and which decisions are fixed? | [docs/roadmap.md](docs/roadmap.md) |
 
 If the knowledge graph is missing or stale, index the repo with codebase-memory. Do not invent architecture from memory. Do not invent product capabilities that are not in [docs/product.md](docs/product.md).
 
