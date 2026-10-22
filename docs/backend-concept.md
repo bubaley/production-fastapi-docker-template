@@ -223,6 +223,17 @@ Domains are discovered, not registered (`app/core/discovery.py`):
 4. `tenant_scope` on every model (`Scope(...)` or `Unscoped(reason=...)`).
 5. Tell the user a migration is needed (`make mm` then `make m`). Do not run it unless they ask.
 
+## Scaffolding
+
+`make new-domain name=<snake_name> title="Проекты" item_title="Проект"` (`scripts/scaffold/new_domain.py`, optional `plural=<snake_plural>`) generates an organization-scoped CRUD entity with one `name` field, mirroring `organization`:
+
+| Side | Files |
+|---|---|
+| Backend | `domains/<name>/` `models.py` (`organization` FK, `tenant_scope` via organization), `schemas.py` (create/update/read), `filters.py` (`name` icontains), `views.py` (thin viewset, `routers`), `services/`, `tests/test_<name>.py` (CRUD + tenant isolation) |
+| Frontend | `features/<camelName>/resources/<camelName>.ts`, `views/<Name>ListView.vue` + `<Name>DetailView.vue`, `pages/settings/<plural-kebab>/index.vue` + `[id].vue`, an entry in `app/navigation/settings.ts` |
+
+It validates the name (singular snake_case, up to 24 characters, not a kernel domain), refuses to overwrite anything and runs no migrations. Then: replace the placeholder field with the real ones, ask the user for `make mm` + `make m`, `make gen-client`, run the new tests (`--sqlite` until the migration exists), update [product.md](product.md). The `/new-domain` skill (`.claude/skills/new-domain/`) walks through it.
+
 ---
 
 ## Auth and tokens

@@ -1,0 +1,17 @@
+<template>
+  <AppListTemplate
+    title="${title}"
+    detail-route-name="${route}-id"
+    :resource="${camel}Resource"
+    search-param="name"
+  >
+    <AppColumn
+      field="name"
+      header="Наименование"
+    />
+  </AppListTemplate>
+</template>
+
+<script setup lang="ts">
+import { ${camel}Resource } from '../resources/${camel}'
+</script>

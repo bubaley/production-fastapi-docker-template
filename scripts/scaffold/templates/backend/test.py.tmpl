@@ -1,0 +1,66 @@
+import pytest
+
+from app.domains.${name}.models import ${Name}
+
+URL = '/api/v1/${plural_kebab}'
+
+
+@pytest.mark.asyncio
+async def test_${name}_crud(api_client, user_factory, organization_factory, auth_headers):
+    user = await user_factory()
+    organization = await organization_factory(members=(user,))
+    headers = await auth_headers(user, organization)
+
+    created = await api_client.post(URL, headers=headers, json={'name': 'First'})
+    assert created.status_code == 201
+    item_id = created.json()['id']
+    assert (await ${Name}.get(id=item_id)).organization_id == organization.id
+
+    listed = await api_client.get(URL, headers=headers, params={'name': 'fir'})
+    assert listed.status_code == 200
+    assert [row['id'] for row in listed.json()['data']] == [item_id]
+
+    updated = await api_client.patch(f'{URL}/{item_id}', headers=headers, json={'name': 'Renamed'})
+    assert updated.status_code == 200
+    assert updated.json()['name'] == 'Renamed'
+
+    retrieved = await api_client.get(f'{URL}/{item_id}', headers=headers)
+    assert retrieved.json()['name'] == 'Renamed'
+
+    deleted = await api_client.delete(f'{URL}/{item_id}', headers=headers)
+    assert deleted.status_code == 204
+    assert not await ${Name}.exists(id=item_id)
+
+
+@pytest.mark.asyncio
+async def test_${name}_is_isolated_by_organization(
+    api_client,
+    user_factory,
+    organization_factory,
+    membership_factory,
+    auth_headers,
+):
+    user = await user_factory()
+    outsider = await user_factory()
+    own = await organization_factory(members=(user,))
+    second = await organization_factory()
+    await membership_factory(user, second)
+    foreign = await organization_factory(members=(outsider,))
+    item = await ${Name}.create(organization=own, name='Own')
+
+    in_second = await api_client.get(URL, headers=await auth_headers(user, second))
+    assert in_second.status_code == 200
+    assert in_second.json()['data'] == []
+
+    outsider_headers = await auth_headers(outsider, foreign)
+    assert (await api_client.get(URL, headers=outsider_headers)).json()['data'] == []
+    assert (await api_client.get(f'{URL}/{item.id}', headers=outsider_headers)).status_code == 404
+    deleted = await api_client.delete(f'{URL}/{item.id}', headers=outsider_headers)
+    assert deleted.status_code == 404
+    assert await ${Name}.exists(id=item.id)
+
+    # A foreign Organization-Key is not resolved, exactly like a missing one.
+    for headers in (await auth_headers(outsider, own), await auth_headers(user)):
+        response = await api_client.get(URL, headers=headers)
+        assert response.status_code == 400
+        assert response.json()['data'] is None

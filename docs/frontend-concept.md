@@ -120,7 +120,7 @@ Page meta drives the global middleware (`app/middleware/`):
 1. Backend endpoint (see [backend-concept.md](backend-concept.md)), then `make gen-client` and commit `openapi.json` + `generated/`.
 2. `features/<name>/resources/<entity>.ts`: types and `defineResource` with the generated SDK functions.
 3. Views on `AppListTemplate` / `AppDetailTemplate` with `:resource="…"`; custom calls through `useResource*` or an SDK function with `useApiClient()`.
-4. A thin page in `pages/`, a drawer item in the layout; public pages get `auth: false` and SEO meta.
+4. A thin page in `pages/`, a drawer item (`app/navigation/settings.ts` for settings); public pages get `auth: false` and SEO meta. `make new-domain` generates steps 2–4 for a settings CRUD entity.
 5. Tests for non-trivial descriptor logic or composables (`tests/resource.test.ts` shows the pattern with a real Colada cache).
 
 ---
@@ -312,11 +312,11 @@ import ProjectListView from '~/features/project/views/ProjectListView.vue'
 </script>
 ```
 
-**Drawer** — `layouts/settings.vue` `navigationSections`:
+**Drawer** — the settings drawer is data: `app/navigation/settings.ts` (`settingsNavigation`), rendered by `layouts/settings.vue`. Add an entry above the marker line (`make new-domain` does it); `superuserOnly: true` hides it from other users:
 
 ```typescript
-// import { Folder } from '@lucide/vue'
-{ to: { name: 'settings-projects' }, label: 'Проекты', icon: Folder }
+import { Folder } from '@lucide/vue'
+{ to: { name: 'settings-projects' }, label: 'Проекты', icon: Folder },
 ```
 
 Resources are plain modules: import them where they are used; there is no registry.

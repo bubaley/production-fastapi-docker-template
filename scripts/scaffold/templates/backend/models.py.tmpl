@@ -1,0 +1,25 @@
+from uuid import UUID
+
+from tortoise import fields
+
+from app.core.models import BaseModel
+from app.core.scope import Scope
+
+
+class ${Name}(BaseModel):
+    organization = fields.ForeignKeyField(
+        'models.Organization',
+        related_name='${plural}',
+        on_delete=fields.CASCADE,
+    )
+    organization_id: UUID
+    name = fields.CharField(max_length=255)
+
+    tenant_scope = Scope(
+        user='organization__org_users__user_id',
+        organization='organization_id',
+    )
+
+    class Meta:
+        table = '${name}'
+        ordering = ('created_at',)

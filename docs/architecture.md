@@ -26,7 +26,7 @@ Same change, all of this (skip a row only if it does not apply):
 
 | Layer | Done when |
 |---|---|
-| Backend | Domain files (`models`, `schemas`, `filters`, `views` exporting `routers`); models and routers are auto-discovered. Declare **`tenant_scope`** on every model. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
+| Backend | Domain files (`models`, `schemas`, `filters`, `views` exporting `routers`) — `make new-domain name=<snake_name>` scaffolds them with the frontend feature; models and routers are auto-discovered. Declare **`tenant_scope`** on every model. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
 | Tests | Non-trivial rules get pytest next to the domain (`domains/<name>/tests/`). See [backend-concept.md](backend-concept.md#tests). Canonical: `domains/organization/tests/test_organization.py` |
 | Frontend | `make gen-client` (schema + generated client committed), feature resource descriptor, views on `AppListTemplate` / `AppDetailTemplate`, thin page, drawer item if needed. User-facing copy in **Russian** |
 | Realtime | Org events go through **`OrganizationWebSocketService`**, not a new websocket stack |
@@ -133,6 +133,7 @@ frontend/app/
   features/               # One folder per business module (mirrors a backend domain)
   pages/                  # Nuxt routes — thin wrappers over feature views
   layouts/                # Shell + drawer navigation (default, settings, setup, auth)
+  navigation/             # Drawer entries as data (settings.ts)
   shared/                 # API layer, UI kit, composables, utils
   middleware/             # Session and organization guards (page meta `auth`, `organization`)
   plugins/                # `$api`: the generated client per app instance
@@ -169,6 +170,7 @@ Same idea already exists in the UI kit: `shared/ui/app/date-picker/` (components
 |---|---|
 | `pages/**/*.vue` | Route only. Import a feature view; no business logic, no API calls. `definePageMeta({ auth: false })` marks a public page |
 | `layouts/*.vue` | Chrome and **drawer items**. Nuxt route names come from the file path: `settings/organizations/[id].vue` → `settings-organizations-id` |
+| `navigation/settings.ts` | Settings drawer entries as data (`settingsNavigation`); `make new-domain` appends to it |
 
 Rendering is hybrid (`routeRules` in `nuxt.config.ts`): app routes (`/home/**`, `/settings/**`, `/auth`, `/ui`) render in the browser; public pages (`/`) render on the server with SEO meta. See [frontend-concept.md](frontend-concept.md#rendering).
 

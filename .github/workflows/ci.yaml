@@ -46,6 +46,7 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
+              - 'scripts/**'
               - '.python-version'
               - 'Makefile'
               - '.github/workflows/ci.yaml'
