@@ -159,7 +159,7 @@ jobs:
       - name: pre-commit (yaml, eol, large files, pyupgrade, bandit, uv lock, pyproject)
         env:
           SKIP: ruff-check,ruff-format,ty
-        run: uvx pre-commit@4.6.2 run --all-files --show-diff-on-failure
+        run: uvx --python 3.14 pre-commit@4.6.2 run --all-files --show-diff-on-failure
 
   image:
     name: Image build and smoke test

@@ -29,9 +29,7 @@ dependencies = [
     "typer>=0.27.3",
     "uvicorn[standard]>=0.54.0",
 ]
-
-[project.optional-dependencies]
-otel = [
+optional-dependencies.otel = [
     "fastapi[opentelemetry]>=0.161.0",
 ]
 
@@ -62,7 +60,8 @@ lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.bandit]
 exclude_dirs = [ "*/migrations/*", "*/tests/*", "tests" ]
-skips = [ "B101" ]
+# B105 flags any string constant named like `token` or `password` (cookie names, error messages, test fixtures).
+skips = [ "B101", "B105" ]
 
 [tool.pytest]
 ini_options.testpaths = [ "app" ]
