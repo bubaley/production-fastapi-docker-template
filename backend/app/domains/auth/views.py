@@ -24,8 +24,11 @@ class AuthViewSet(BaseGenericViewSet):
     @action(methods=['POST'], response_model=TokenResponse)
     async def login(self, response: Response, data: LoginRequest):
         """Authenticate user and return JWT token."""
-        user = await User.filter(email=data.email).first()
-        if not user or not user.verify_password(data.password):
+        # iexact also matches accounts stored before emails were normalized to lowercase.
+        user = await User.filter(email__iexact=data.email).first()
+        if not user:
+            await User.verify_dummy_password(data.password)
+        if not user or not await user.verify_password_async(data.password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid email or password')
         access_token = AuthService.create_access_token(user)
         access_token.set_cookie(response)

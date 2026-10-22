@@ -125,7 +125,7 @@ async def api_client(db):
 def user_factory(db):
     async def create_user(*, is_superuser: bool = False) -> User:
         user = User(email=f'{uuid4()}@example.test', first_name='Test', last_name='User', is_superuser=is_superuser)
-        user.set_password('test-password')
+        await user.set_password_async('test-password')
         await user.save()
         return user
 

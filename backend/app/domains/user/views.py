@@ -62,7 +62,7 @@ class UserViewSet(BaseModelViewSet[User]):
         if isinstance(v, BaseModel):
             raw = v.model_dump(exclude_unset=True)
             if raw.get('password'):
-                obj.set_password(raw['password'])
+                await obj.set_password_async(raw['password'])
 
     async def perform_destroy(self, obj: User) -> None:
         if obj.id == self.user.id:
@@ -76,9 +76,9 @@ class UserViewSet(BaseModelViewSet[User]):
         if not actor.is_superuser:
             if actor.id != user.id:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Forbidden')
-            if not data.current_password or not user.verify_password(data.current_password):
+            if not data.current_password or not await user.verify_password_async(data.current_password):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid current password')
-        user.set_password(data.new_password)
+        await user.set_password_async(data.new_password)
         await user.save()
         return await UserReadSchema.from_tortoise_orm(user)
 

@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     # encryption settings
     secret_key: str = Field(None, validate_default=True, min_length=64)
     encryption_key: str = Field(None, validate_default=True, min_length=32, max_length=32)
+    # Optional secret mixed into password hashes; empty means no pepper. Choose it before users sign up
+    # and never change it (empty -> value counts as a change): hashes made with another pepper stop verifying.
+    # Hashes from before this setting existed depend on SECRET_KEY until the user logs in again and they are
+    # re-hashed, so rotating SECRET_KEY locks out only users who have not logged in since the upgrade.
+    password_pepper: str = ''
 
     # cache settings
     cache_redis_url: str | None = None

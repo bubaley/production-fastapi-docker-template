@@ -1,10 +1,12 @@
 from pydantic import BaseModel
 
+from app.core.fields.email_field import NormalizedEmail
+
 
 class LoginRequest(BaseModel):
     """Schema for user login request."""
 
-    email: str
+    email: NormalizedEmail
     password: str
 
 
