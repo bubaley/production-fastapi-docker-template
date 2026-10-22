@@ -98,7 +98,7 @@ jobs:
       SQL_USER: postgres
       SQL_PASSWORD: postgres
       SQL_DATABASE: postgres
-      CACHE_REDIS_URL: redis://localhost:6379/0
+      REDIS_URL: redis://localhost:6379/0
       BROKER_REDIS_URL: redis://localhost:6379/1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

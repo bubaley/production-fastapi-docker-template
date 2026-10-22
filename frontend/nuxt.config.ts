@@ -67,6 +67,10 @@ export default defineNuxtConfig({
     // Cookie storage lets SSR render the right `data-theme` without a flash.
     storage: 'cookie',
   },
+  nitro: {
+    // Caddy serves the precompressed files (`file_server precompressed`).
+    compressPublicAssets: { gzip: true, brotli: true },
+  },
   vite: {
     plugins: [tailwindcss()],
   },

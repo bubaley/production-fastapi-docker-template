@@ -93,6 +93,7 @@ ENV PATH="/app/backend/.venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     NODE_ENV=production \
+    LOG_FORMAT=json \
     XDG_CONFIG_HOME=/tmp/xdg/config \
     XDG_DATA_HOME=/tmp/xdg/data \
     # s6-overlay: stop the container when migrate fails or a service dies (see finish scripts),

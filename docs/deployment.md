@@ -75,7 +75,7 @@ The container reads the same settings as local development (`.env.example`). Pro
 |---|---|---|
 | `APP_IMAGE` | `fastapi-nuxt-template:local` | Image compose runs; the deploy step pins it to `registry/name@sha256:…` in the server's `.env` |
 | `APP_ENTRY_PORT` | `127.0.0.1:8080` | Host binding of Caddy's port; keep it on loopback behind a host proxy |
-| `REDIS_PASSWORD` | empty | Optional; Redis requires it and compose puts it into `CACHE_REDIS_URL` / `BROKER_REDIS_URL`. Use URL-safe characters (e.g. `openssl rand -hex 32`) |
+| `REDIS_PASSWORD` | empty | Optional; Redis requires it and compose puts it into `REDIS_URL` / `BROKER_REDIS_URL`. Use URL-safe characters (e.g. `openssl rand -hex 32`) |
 | `BACKEND_WORKERS` | `2` | uvicorn worker processes |
 | `TASKIQ_WORKERS` | `1` | Taskiq worker processes |
 | `TASKIQ_SCHEDULER` | `true` | Run the scheduler in this container; keep exactly one per deployment |
