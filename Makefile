@@ -17,7 +17,13 @@ FRONTEND_PORT ?= $(or $(call dotenv,FRONTEND_PORT),9001)
 TASKIQ_WORKERS ?= $(or $(call dotenv,TASKIQ_WORKERS),1)
 TASKIQ_UPDATE_INTERVAL ?= $(or $(call dotenv,TASKIQ_UPDATE_INTERVAL),10)
 
-GUNICORN_WORKERS ?= $(or $(call dotenv,GUNICORN_WORKERS),1)
+# Docker image for docker-build / docker-run (production services run under s6-overlay, see docker/).
+IMAGE ?= fastapi-nuxt-template:local
+APP_VERSION ?= $(shell sed -n 's/.*"version"[^"]*"\([^"]*\)".*/\1/p' version.json)
+GIT_SHA ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
+# Extra `docker build` flags, e.g. DOCKER_BUILD_FLAGS="--build-arg PYTHON_IMAGE=mirror.gcr.io/library/python:3.14.9-slim-trixie".
+DOCKER_BUILD_FLAGS ?=
+SMOKE_PROJECT ?=$(or $(call dotenv,COMPOSE_PROJECT_NAME),fastapi-nuxt-template)-smoke
 
 # Extra pytest args for check-backend / test-backend, e.g. PYTEST_ARGS=--sqlite when Postgres is not running.
 PYTEST_ARGS ?= --keepdb
@@ -78,23 +84,21 @@ test: test-backend ## run backend tests
 test-backend: ## run backend pytest suite (PYTEST_ARGS=--sqlite without Postgres)
 	cd $(BACKEND_DIR) && $(UV) run manage.py test $(PYTEST_ARGS)
 
-# ----------- PRODUCTION ----------- #
+# ----------- DOCKER ----------- #
 
-run-prod-backend: migrate ## apply migrations, then run gunicorn
-	cd $(BACKEND_DIR) && python -m gunicorn app.main:app --bind 0.0.0.0:8000 --workers $(GUNICORN_WORKERS) -k uvicorn.workers.UvicornWorker --timeout 120
+docker-build: ## build the production image (IMAGE, APP_VERSION from version.json, GIT_SHA from git)
+	docker build --build-arg APP_VERSION=$(APP_VERSION) --build-arg GIT_SHA=$(GIT_SHA) \
+		--build-arg BUILD_DATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ) $(DOCKER_BUILD_FLAGS) -t $(IMAGE) .
 
-run-prod-frontend: ## run built frontend SSR server
-	node $(FRONTEND_DIR)/server/index.mjs
+docker-run: ## run IMAGE with PostgreSQL + Redis from compose.yaml, wait until healthy (project <name>-smoke)
+	APP_IMAGE=$(IMAGE) docker compose -f compose.yaml -p $(SMOKE_PROJECT) up -d --wait --wait-timeout 180
 
-run-prod-taskiq: ## run taskiq worker in backend context
-	$(MAKE) run-taskiq
-
-run-prod-caddy: ## run caddy reverse proxy
-	caddy run --config Caddyfile
+docker-stop: ## stop the docker-run stack and delete its volumes
+	docker compose -f compose.yaml -p $(SMOKE_PROJECT) down -v
 
 # ----------- QUALITY ----------- #
 
-.PHONY: check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help
+.PHONY: check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
 
 check: check-backend check-frontend ## run every CI check without changing files
 
