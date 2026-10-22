@@ -1,5 +1,0 @@
-{
-  "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["tests/**/*.test.ts", "scripts/*.mjs"],
-  "ignoreDependencies": ["@iconify-json/lucide", "@iconify-json/svg-spinners", "vue-tsc", "ofetch", "h3"]
-}
