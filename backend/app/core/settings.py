@@ -51,7 +51,7 @@ class Settings(BaseSettings):
 
     # JWT settings
     jwt_algorithm: str = 'HS256'
-    jwt_access_token_expire_minutes: int = 60 * 24  # 24 hours
+    jwt_access_token_expire_minutes: int = 15  # short-lived; clients refresh on 401
     jwt_refresh_token_expire_minutes: int = 60 * 24 * 30  # 30 days
     # Tokens issued before claim versioning (`id` instead of `sub`, no `jti`/`ver`). Disable once they have expired.
     jwt_accept_legacy_tokens: bool = True

@@ -138,9 +138,15 @@ async def db(request: pytest.FixtureRequest):
         yield ctx
 
 
+TEST_ORIGIN = 'http://test'
+
+
 @pytest.fixture
 async def api_client(db):
-    async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
+    """Behaves like a same-origin browser: keeps cookies and sends `Origin` (needed by the CSRF check)."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url=TEST_ORIGIN, headers={'Origin': TEST_ORIGIN}
+    ) as client:
         yield client
 
 

@@ -30,6 +30,10 @@ def _bearer(token: str) -> dict[str, str]:
     return {'Authorization': f'Bearer {token}'}
 
 
+def _refresh_cookie(token: str) -> dict[str, str]:
+    return {'Cookie': f'refresh_token={token}'}
+
+
 def test_tokens_issued_by_python_jose_still_validate(monkeypatch):
     monkeypatch.setattr(settings, 'secret_key', LEGACY_SECRET_KEY)
     claims = TokenService.decode(LEGACY_JOSE_TOKEN, TokenType.ACCESS)
@@ -85,15 +89,15 @@ async def test_legacy_refresh_token_is_exchanged_once(api_client, user_factory, 
     monkeypatch.setattr(settings, 'refresh_reuse_leeway_seconds', 0)
     user = await user_factory()
     legacy = _legacy_token(user, 'refresh')
-    first = await api_client.post('/api/v1/auth/refresh', json={'refresh_token': legacy})
+    first = await api_client.post('/api/v1/auth/refresh', headers=_refresh_cookie(legacy))
     assert first.status_code == 200
-    rotated = first.json()['refresh_token']
+    rotated = first.cookies['refresh_token']
     claims = TokenService.decode(rotated, TokenType.REFRESH)
     assert claims is not None
     assert claims.jti is not None
     # Replaying the legacy token is reuse: the session it started is revoked.
-    assert (await api_client.post('/api/v1/auth/refresh', json={'refresh_token': legacy})).status_code == 401
-    assert (await api_client.post('/api/v1/auth/refresh', json={'refresh_token': rotated})).status_code == 401
+    assert (await api_client.post('/api/v1/auth/refresh', headers=_refresh_cookie(legacy))).status_code == 401
+    assert (await api_client.post('/api/v1/auth/refresh', headers=_refresh_cookie(rotated))).status_code == 401
 
 
 @pytest.mark.asyncio
@@ -103,7 +107,7 @@ async def test_expired_tokens_are_rejected(api_client, user_factory, monkeypatch
     monkeypatch.setattr(settings, 'jwt_refresh_token_expire_minutes', -1)
     pair = await AuthService.start_session(user)
     assert (await api_client.get('/api/v1/auth/me', headers=_bearer(pair.access.token))).status_code == 401
-    response = await api_client.post('/api/v1/auth/refresh', json={'refresh_token': pair.refresh.token})
+    response = await api_client.post('/api/v1/auth/refresh', headers=_refresh_cookie(pair.refresh.token))
     assert response.status_code == 401
 
 
@@ -115,13 +119,13 @@ async def test_logout_does_not_depend_on_selected_organization(api_client, user_
         '/api/v1/auth/logout',
         headers={**_bearer(pair.access.token), 'Organization-Key': 'no-longer-accessible'},
     )
-    assert response.status_code == 200
+    assert response.status_code == 204
 
 
 @pytest.mark.asyncio
 async def test_logout_accepts_expired_or_invalid_credentials(api_client):
     response = await api_client.post('/api/v1/auth/logout', headers={'Authorization': 'Bearer invalid'})
-    assert response.status_code == 200
+    assert response.status_code == 204
 
 
 @pytest.mark.parametrize(

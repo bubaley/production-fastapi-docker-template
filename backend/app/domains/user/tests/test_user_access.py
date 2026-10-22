@@ -21,8 +21,8 @@ async def test_token_owner_cannot_be_changed(api_client, user_factory, method):
     assert stored.user_id == actor.id
     response = await api_client.get('/api/v1/auth/me', headers={'Authorization': f'Token {token["value"]}'})
     assert response.status_code == 200
-    assert response.json()['id'] == str(actor.id)
-    assert response.json()['is_superuser'] is False
+    assert response.json()['user']['id'] == str(actor.id)
+    assert response.json()['user']['is_superuser'] is False
 
 
 @pytest.mark.asyncio
