@@ -1,5 +1,4 @@
 const repoMap = {
-  auth: useAuthRepo,
   organization: useOrganizationRepo,
   organizationUser: useOrganizationUserRepo,
   user: useUserRepo,

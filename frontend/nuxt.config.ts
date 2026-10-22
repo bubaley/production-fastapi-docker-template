@@ -47,7 +47,6 @@ export default defineNuxtConfig({
       'shared/stores/**',
       'shared/utils/**',
       // shared toolkits
-      'shared/toolkits/authentication/**',
       'shared/toolkits/repo/**',
       'shared/toolkits/repo/composables/**',
       'shared/toolkits/repo/types/**',

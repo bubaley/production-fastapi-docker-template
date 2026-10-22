@@ -1,6 +1,6 @@
 # Architecture
 
-Full-stack template: FastAPI REST API (`/api/v1`) + Nuxt SPA. Data is scoped by the current user and organization (`FilterObjectsManager` on the backend, `Organization-Key` on the frontend).
+Full-stack template: FastAPI REST API (`/api/v1`) + Nuxt 4 app with server-side rendering (Nuxt default; the Nitro server also proxies auth, see below). The approved move to hybrid rendering (client-only app routes, SSR for public pages) is tracked in [roadmap.md](roadmap.md). Data is scoped by the current user and organization (`FilterObjectsManager` on the backend, `Organization-Key` on the frontend).
 
 What the app does (purpose, scenarios): [product.md](product.md).
 
@@ -16,9 +16,9 @@ What the app does (purpose, scenarios): [product.md](product.md).
 - Cross-cutting infrastructure (auth kernel, S3, base viewset) → `backend/app/core/` or `frontend/app/shared/`.
 - Pages are thin: they only mount a feature view. Layouts own navigation.
 
-Canonical examples: `backend/app/domains/organization/`, `frontend/app/features/organization/`. Live UI primitives: `/ui` (public static catalogue); `/home/ui` redirects there. The catalogue uses local sample data and does not expose organization resources.
+Canonical examples: `backend/app/domains/organization/`, `frontend/app/features/organization/`. Live UI primitives: `/ui` (public static catalogue). The catalogue uses local sample data and does not expose organization resources.
 
-`AppPageView` combines `AppPage` and `PageHeader` for one page heading and a bounded scrolling body. The fixed regions are header, subheader before the divider, controls after the divider, and footer; HomeView demonstrates them. `AppSection` groups content structurally; use `AppCard` for a visible surface. App controls share the Tasker control sizes and semantic light/dark tokens. Feature data still goes through the existing repo/codec toolkit.
+`AppPageView` combines `AppPage` and `PageHeader` for one page heading and a bounded scrolling body. The fixed regions are header, subheader before the divider, controls after the divider, and footer; HomeView demonstrates them. `AppSection` groups content structurally; use `AppCard` for a visible surface. App controls share one set of control sizes (`shared/ui/app/types/control.ts`) and semantic light/dark tokens. Feature data still goes through the existing repo/codec toolkit.
 
 ### New capability — definition of done
 
@@ -41,7 +41,7 @@ Same change, all of this (skip a row only if it does not apply):
 ```
 backend/app/
   main.py                 # FastAPI app: middleware, /api/v1 routers, /ws, /health
-  conftest.py             # Shared pytest fixtures (in-memory Tortoise `db`)
+  conftest.py             # Shared pytest fixtures: `db` on a PostgreSQL test database (`--sqlite` for in-memory, `--keepdb` to reuse)
   core/                   # Application kernel — not a business domain
   domains/                # One folder per business module
   shared/                 # Cross-domain services, utils, permissions
@@ -120,6 +120,9 @@ services/invoice_builder/
 ## Frontend tree
 
 ```
+frontend/
+  modules/base-auth/      # Local Nuxt module: session auth over JWT cookies (see below)
+  server/                 # Nitro server utils used by base-auth (`utils/cookie.ts`)
 frontend/app/
   features/               # One folder per business module (mirrors a backend domain)
   pages/                  # Nuxt routes — thin wrappers over feature views
@@ -171,11 +174,24 @@ Same idea already exists in the UI kit: `shared/ui/app/date-picker/` (components
 | `ui/app/<cluster>/` | A primitive that needs several files (`select`, `date-picker`, `filters`) |
 | `composables/` | App-wide composables (`useRepo`, `useActionState`, `useToast`) |
 | `toolkits/repo/` | Generic repo/codec/pagination — do not fork this per feature |
-| `toolkits/authentication/` | Token storage and auth client |
 | `utils/` | Small frontend helpers |
 | `lib/` | Class-name composition (`cn`) for shadcn primitives; explicitly tracked despite Python `lib/` ignore rules |
 | `components/` | App chrome that is not a generic primitive (layout header, drawer) |
 | `stores/` | Rare app-level stores (setup wizard) |
+
+### `modules/base-auth/` and `server/` — current auth
+
+Current state; [roadmap.md](roadmap.md) stage 5 replaces it with FastAPI-owned HttpOnly cookies and removes the Nitro proxy.
+
+| Path | Why it exists |
+|---|---|
+| `modules/base-auth/index.ts` | Registers the module (`baseAuth` key in `nuxt.config.ts`): server handler, `useAuth`, `$auth` plugin, global middleware |
+| `runtime/server/api/auth/[...all].ts` | Nitro handler at `/api/auth/*` (`login`, `logout`, `refresh`, `me`, `tokens`) that calls FastAPI `/api/v1/auth/*` and sets `access_token` / `refresh_token` cookies |
+| `runtime/composables/useAuth.ts` | `session`, login/logout and periodic refresh on the client |
+| `runtime/middleware/auth.global.ts` | Loads tokens and session during SSR (skips `/ui`) |
+| `server/utils/cookie.ts` | `getCookieValue` — reads a cookie from the request or from fresh `Set-Cookie` headers |
+
+App-level redirects (`/auth`, `/home/setup`) live in `app/middleware/`. Business requests go through `$api` (`app/plugins/`), which forwards the request cookie during SSR.
 
 ---
 
