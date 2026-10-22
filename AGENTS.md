@@ -11,6 +11,7 @@ This file is an index. Do not copy patterns here — follow the linked docs.
 | Where does a new file go? What is each folder for? | [docs/architecture.md](docs/architecture.md) |
 | How to add a backend domain, model, viewset, service? | [docs/backend-concept.md](docs/backend-concept.md) — canonical code: `backend/app/domains/organization/` |
 | How to add a frontend feature, model, repo, view? | [docs/frontend-concept.md](docs/frontend-concept.md) — canonical code: `frontend/app/features/organization/` |
+| Auth contract (cookies, CSRF, SSR), OpenAPI conventions, `make openapi`? | [docs/backend-concept.md](docs/backend-concept.md#auth-and-tokens) and [#openapi-contract](docs/backend-concept.md#openapi-contract) |
 | When to write backend tests, where they live? | [docs/backend-concept.md](docs/backend-concept.md#tests) — canonical: `backend/app/domains/organization/tests/test_organization.py` |
 | How to run the project locally? | [README.md](README.md) |
 | How is the image built, released and deployed? | [docs/deployment.md](docs/deployment.md) — `Dockerfile`, `docker/rootfs/`, `.github/workflows/ci.yaml` |

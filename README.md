@@ -75,6 +75,7 @@ Other useful commands: `make mm` (create migrations), `make help`.
 | `make check` | Everything CI checks, read-only: `check-backend` + `check-frontend` |
 | `make check-backend` | `ruff check`, `ruff format --check`, `ty check`, pytest (`PYTEST_ARGS`, default `--keepdb`; `PYTEST_ARGS=--sqlite` without Postgres) |
 | `make check-frontend` | `pnpm check` (format check, Oxlint + ESLint for Vue templates, typecheck, Vitest, architecture guard); `BUILD=1` adds `nuxt build` |
+| `make openapi` | Write the OpenAPI schema to `frontend/openapi.json` (no database needed); commit it with API changes |
 | `make test` / `make t` | Run backend tests (pytest, same `PYTEST_ARGS`) |
 | `make docker-build` | Build the production image (`IMAGE`, default `fastapi-nuxt-template:local`; version from `version.json`) |
 | `make docker-run` | Run `IMAGE` with PostgreSQL + Redis from `compose.yaml` (project `<COMPOSE_PROJECT_NAME>-smoke`) and wait until healthy |

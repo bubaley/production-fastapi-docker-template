@@ -42,7 +42,8 @@ Order: 1 → 2 → (3, 4, 6 in parallel) → 5 → 7.
 ## Known follow-ups
 
 - Stage 2: Oxlint runs without type-aware rules (tsgolint cannot resolve types exported from `.vue` files). `nuxt dev` prints `NUXT_B5004` for the Vite+ `vite.config.ts` (expected; Nuxt ignores the file).
-- Stage 5: the refresh cookie path is `/api/v1/auth`; the Nitro auth proxy cannot see it, so session refresh in Nuxt is broken until the proxy is removed. Shorten the access-token lifetime (24h → ~15 min) once the 401 interceptor exists.
+- Stage 5a (backend contract) is done: cookie-only auth API, CSRF Origin check, OpenAPI contract in `frontend/openapi.json`. Until stage 5b lands, the current frontend is partly broken against it: the session comes from `GET /auth/me`, which now returns `{user, organizations}` instead of the bare user; the Nitro proxy (`modules/base-auth`) calls refresh/logout server-to-server with the cookie but without `Origin`, which the CSRF check rejects (403); access tokens live 15 minutes and there is no 401 interceptor yet.
+- Temporary fastapi-ronin workaround: `split_put_patch_routes` in `backend/app/core/openapi.py` (called in `main.py`) splits ronin's combined PUT/PATCH route so operationIds stay unique. The fix (separate `update`/`partial_update` routes, partial PATCH body) is on ronin branch `fix/split-put-patch-operations`, not released. After upgrading ronin: delete the function and its call, run `make openapi` (PATCH bodies become `Patched<UpdateSchema>`), regenerate the client.
 - Stage 3: none of the workflows have run on GitHub yet; registry/deploy variables and secrets are listed in [deployment.md](deployment.md).
-- Stage 5: adding a member from the organization page uses the organization in the header (`Organization-Key`), not the organization being viewed. Fix with the new data layer.
+- Stage 5b: `POST /organization-users` now requires `organization_id` in the body (the header is ignored there); the organization page must send the viewed organization's id.
 - Optional data migration: lowercase existing `user.email` values so login can drop `iexact`.

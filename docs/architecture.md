@@ -56,7 +56,9 @@ Owns process-wide wiring. Do not put organization/user business rules here.
 |---|---|
 | `settings.py` | Env-backed config |
 | `database.py` | Tortoise `MODELS` list and ORM setup. **Register every new domain models module here.** |
-| `auth.py` | Current user / org (`AuthState`) |
+| `auth.py` | Credential resolution (cookie → `Token` → `Bearer`), current user / org (`AuthState`) |
+| `csrf.py` | Trusted-origin check for cookie-authenticated unsafe requests and websocket handshakes |
+| `openapi.py` | OpenAPI conventions: operationIds, error responses, security schemes (`make openapi` → `frontend/openapi.json`) |
 | `viewsets.py` | `BaseModelViewSet` / `BaseReadOnlyViewSet` — auth, pagination, scoping |
 | `models.py` | `BaseModel` (`id`, `created_at`, `updated_at`) and base schemas |
 | `broker.py` | Taskiq |
@@ -68,7 +70,8 @@ Owns process-wide wiring. Do not put organization/user business rules here.
 
 `core/services/websocket_service.py` is the single websocket transport. Secure
 channels deny access until a domain supplies an explicit policy.
-`OrganizationWebSocketService` reuses `core/auth.py` credential resolution and
+`OrganizationWebSocketService` reuses `core/auth.py` credential resolution (the
+access cookie for browsers) and
 checks membership before accepting a connection. Business membership workflows
 live in `domains/organization/services/organization_service.py`.
 

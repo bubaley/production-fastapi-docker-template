@@ -116,6 +116,10 @@ class ProjectViewSet(BaseModelViewSet[Project]):
     filterset_class = ProjectFilterSet
 ```
 
+Routes and their operationIds (see [OpenAPI contract](#openapi-contract)): `list` (GET), `create` (POST), `retrieve` (GET), `update` (PUT), `partial_update` (PATCH), `destroy` (DELETE), plus one per `@action` named after the method. PUT and PATCH both run with `self.action == 'update'`.
+
+The viewset declares the optional `Organization-Key` header in OpenAPI on all its routes when the model is organization-scoped (`Scope(organization=...)`) or has an `organization` FK filled from the header on create. Set `organization_header = False` when the organization comes from the body instead (`OrganizationUserViewSet`), `True` to force it.
+
 Custom create/destroy/queryset: `perform_create`, `perform_destroy`, `get_queryset` — see `OrganizationViewSet` / `OrganizationUserViewSet`. Superuser exceptions live on the viewset, not in `FilterObjectsManager`. If an action does more than wire CRUD, call a service — do not grow the viewset.
 
 `BaseModelViewSet` requires `IsAuthenticated`. Lookup is UUID. Pagination: `page` / `page_size` (default `page_size=100`). Pagination appends `id` to the ordering (`with_stable_ordering`), so a non-unique `Meta.ordering` such as `created_at` still yields stable pages; keep `Meta.ordering` for the business order only.
@@ -160,7 +164,9 @@ The user rule always applies, so a forged or stale `Organization-Key` cannot wid
 Example: `OrganizationService` is a class in `domains/organization/services/organization_service.py`. If that class later needs several private helpers, turn it into `services/organization_service/organization_service.py` plus sibling modules — not a pile of functions in `utils/`.
 
 `OrganizationService.create` saves the organization and the actor's membership in
-one transaction. Membership addition, update and removal validate access through
+one transaction. A membership is created for the organization named in the body
+(`POST /organization-users` with `organization_id` + `user_id`), never the
+`Organization-Key` one: members are managed from the organization's own page. Membership addition, update and removal validate access through
 `validate_membership_change`; duplicate membership uses the database uniqueness constraint.
 The viewsets only delegate these workflows to the service.
 
@@ -217,21 +223,72 @@ Raise `AppException.from_attrs(ErrorCode.FORBIDDEN, 'Cannot modify this organiza
 
 ## Auth and tokens
 
-Lifecycle lives in `AuthService` (`domains/auth/services/auth_service.py`); JWT encoding in `TokenService`; how tokens travel (cookies, `Authorization`) in `domains/auth/transport.py`. Viewsets only call the service and set/clear cookies.
+FastAPI owns auth. Lifecycle lives in `AuthService` (`domains/auth/services/auth_service.py`); JWT encoding in `TokenService`; how tokens travel in `domains/auth/transport.py`; credential resolution and CSRF in `core/auth.py` + `core/csrf.py`. Viewsets only call the service and set/clear cookies. **Tokens never appear in a response body.**
+
+### Endpoints (`/api/v1/auth`)
+
+| Endpoint | Auth | Request | Response |
+|---|---|---|---|
+| `POST /login` | public | `{email, password}` | 200 `SessionSchema` `{user, organizations, access_expires_at, refresh_expires_at}`; sets both cookies |
+| `POST /refresh` | public; reads only the `refresh_token` cookie | no body | 200 `SessionExpirySchema` `{access_expires_at, refresh_expires_at}`; rotates both cookies. 401 without/with an invalid cookie |
+| `POST /logout` | public (works with expired credentials) | no body | 204; revokes the session family, clears cookies |
+| `POST /logout-all` | authenticated | no body | 204; invalidates every JWT of the user, clears cookies |
+| `GET /me` | authenticated | — | 200 `MeSchema` `{user, organizations}` — `user.is_superuser`; `organizations` are the user's memberships (also for superusers) |
+
+`POST /users/{id}/change-password` returns fresh cookies when users change their own password.
+
+### Cookies
+
+| Cookie | Path | Lifetime | Attributes |
+|---|---|---|---|
+| `access_token` | `/` | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` (15) | HttpOnly, `SameSite=COOKIE_SAMESITE` (lax), `Secure=COOKIE_SECURE` |
+| `refresh_token` | `REFRESH_COOKIE_PATH` (`/api/v1/auth`) | `JWT_REFRESH_TOKEN_EXPIRE_MINUTES` (30 days) | same |
+
+A client keeps no token: on 401 it calls `POST /auth/refresh` once and retries; a 401 from refresh means signed out.
+
+### Request authentication
+
+Credentials resolve in order, first valid wins: `access_token` cookie → `Authorization: Token <api token>` → `Authorization: Bearer <access JWT>`. An expired cookie does not hide a valid header. Bearer stays for tests (`auth_headers`) and server-side scripts that mint tokens with `AuthService.start_session`; the API never hands a JWT to clients. Websockets use the same resolution — browsers authenticate with the access cookie (same origin, no token in the URL).
+
+### CSRF
+
+An unsafe request (`POST`/`PUT`/`PATCH`/`DELETE`) that relies on the auth cookies — authenticated by the access cookie, or a public auth route carrying an auth cookie — must send `Origin` (fallback: `Referer`) equal to the request host or listed in `CORS_ORIGINS`; otherwise 403 `FORBIDDEN` `Origin not allowed`. `Origin: null` is rejected. Safe methods are never checked; requests authenticated by an `Authorization` header are exempt (a cross-site page cannot set it). `SameSite=Lax` is the first layer; the Origin check also covers same-site attackers.
+
+### SSR contract
+
+During SSR, Nitro calls FastAPI server-to-server (internal URL `http://127.0.0.1:8000` in the image) and forwards the incoming request's `Cookie` header. That works for **GET** without `Origin`. Nitro should not issue unsafe requests during SSR; if it must, it forwards the browser's `Origin` too (the public origin must then be in `CORS_ORIGINS`, since the Host is the internal one). An expired access cookie during SSR yields 401: render anonymous or client-only and let the browser refresh; if Nitro refreshes itself, it must relay `Set-Cookie` to the browser.
+
+### Lifecycle rules
 
 | Rule | Detail |
 |---|---|
 | Claims | `sub`, `type` (`access`/`refresh`), `iat`, `exp`, `jti`, `ver` (= `User.token_version`), `sid` (session family) |
 | Legacy tokens | `id` instead of `sub`, no `jti`/`ver`: accepted while `JWT_ACCEPT_LEGACY_TOKENS=true`; a legacy refresh token is exchanged once. Turn the flag off (and later delete the branch in `TokenService.decode`) once tokens issued before this change have expired (refresh lifetime, 30 days by default) |
 | Refresh rotation | Every refresh revokes the presented token (`RefreshSession`) and issues a new pair in the same family. Reusing a rotated token revokes the whole family; within `REFRESH_REUSE_LEEWAY_SECONDS` (parallel tabs) it only gets 401 |
-| Global invalidation | `AuthService.invalidate_user_tokens(user)` bumps `token_version` and revokes all refresh sessions. Called by password change, `POST /auth/logout-all`, deactivation (`is_active=False`). A self password change returns fresh cookies |
+| Global invalidation | `AuthService.invalidate_user_tokens(user)` bumps `token_version` and revokes all refresh sessions. Called by password change, `POST /auth/logout-all`, deactivation (`is_active=False`) |
 | Inactive users | `is_active=False` cannot log in, refresh or use any token, API tokens included |
-| Cookies | `access_token` on `/`, `refresh_token` on `REFRESH_COOKIE_PATH` (`/api/v1/auth`), HttpOnly |
 | API tokens | `Authorization: Token …`; optional `expires_at`; `last_used_at` written at most every `API_TOKEN_TOUCH_INTERVAL_SECONDS`; a request authenticated by an API token cannot create API tokens (`AuthState.auth_method`) |
 | Login protection | Failed logins counted per client IP + email (`login_rate_limiter`, Redis, memory fallback); over `LOGIN_RATE_LIMIT_ATTEMPTS` → 429 with `Retry-After`. Unknown email, wrong password and inactive user return the same 401 |
 | Input | `NewPassword` (min `PASSWORD_MIN_LENGTH`) for every password a user sets; `NormalizedEmail` (validated, lowercased) for emails that are stored; `LoginEmail` (lowercased only) for login |
 
 Superuser-only user fields (`is_superuser`, `is_active`) are guarded in `UserService.validate_update`.
+
+---
+
+## OpenAPI contract
+
+The schema is the frontend's API contract: `make openapi` (`manage.py openapi --output ../frontend/openapi.json`, no database or Redis) writes `frontend/openapi.json`, which is committed and feeds the generated client. `app/core/tests/test_openapi.py` fails when the committed file is stale, when operationIds collide or break the convention, and when FastAPI warns while building the schema. Conventions live in `app/core/openapi.py`:
+
+| Convention | How |
+|---|---|
+| operationId | `<first tag>_<route name>`, snake_case: `organizations_list`, `organizations_partial_update`, `organization_users_create`, `auth_login`, `users_change_password`. Generated client functions take these names, so renaming a route or tag is a breaking change |
+| Tags | One per router, plural kebab-case resource (`organization-users`) |
+| Errors | `api_router` has `responses=ERROR_RESPONSES`: every operation documents `ErrorResponse` (`{data: null, error: {code, message, details}, success: false}`) for 400/401/403/404/409/422/429/500 |
+| Security | `cookieAuth` (apiKey cookie `access_token`), `tokenAuth` (apiKey header `Authorization`, `Token …`), `bearerAuth` (HTTP bearer JWT). Public auth routes (`PUBLIC_PATHS` in `core/auth.py`) declare `security: []` |
+| Response models | Every endpoint has one: a return annotation on `@action` (or `response_model=`), `status_code=204` with `-> None` for empty responses, `status_code=201` for creation |
+| List responses | `PageResponse` → `<ReadSchema>Page` (`{data, meta: {page, page_size, has_next}}`) |
+
+When adding an endpoint: give the router a tag, the action a meaningful method name and a return type (a schema, not `dict`), raise `AppException` for errors (the envelope is already documented), then run `make openapi` and commit the JSON with the change.
 
 ---
 
@@ -295,10 +352,10 @@ app/shared/tests/test_<subject>.py        # cross-domain services (scoping, asyn
 | Fixture | Use |
 |---|---|
 | `db` | Tortoise context |
-| `api_client` | The real ASGI app over `httpx2` (no lifespan: no Redis, no broker startup) |
+| `api_client` | The real ASGI app over `httpx2` (no lifespan: no Redis, no broker startup). Keeps cookies and sends `Origin: http://test` like a same-origin browser, so cookie sessions pass the CSRF check |
 | `user_factory(is_superuser=, is_active=, email=)` | Users with password `TEST_PASSWORD` (`test-password`) |
 | `organization_factory(members=(user,), name=)`, `membership_factory(user, org)` | Tenants |
-| `auth_headers(user, org=None)` | `await auth_headers(user, org)` → Bearer token of a fresh session plus `Organization-Key` |
+| `auth_headers(user, org=None)` | `await auth_headers(user, org)` → Bearer token of a fresh session plus `Organization-Key`. With cookies in the client jar the cookie wins (resolution order); pass `'Cookie': ''` to test a header credential alone |
 | `websocket_fanout` | Subscribes registered websocket services to the in-memory pub/sub |
 
 Get tokens through `auth_headers` or `AuthService.start_session(user)`, never by hand-encoding JWTs. `asyncio_mode = "auto"`; `@pytest.mark.asyncio` is still written for clarity. Prefer `TestClient` without `db` when persistence is not required (`app/core/tests/test_exceptions.py`).

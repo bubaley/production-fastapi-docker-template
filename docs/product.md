@@ -33,7 +33,7 @@ Do not invent capabilities that are not listed here. When a scenario changes, up
 
 ### Settings
 
-- **Организации** — list / create / edit (`name` + unique `key`), members. `key` is the tenancy id (header `Organization-Key`). В списке доступны поиск по названию, постоянный фильтр по точному ключу и добавляемое условие «ключ содержит»; условия применяются совместно и остаются на экране при прокрутке.
+- **Организации** — list / create / edit (`name` + unique `key`), members (added to the organization being viewed, not the active one). `key` is the tenancy id (header `Organization-Key`). В списке доступны поиск по названию, постоянный фильтр по точному ключу и добавляемое условие «ключ содержит»; условия применяются совместно и остаются на экране при прокрутке.
 - **Пользователи** (superuser only) — directory and passwords. Users are created here, then attached to an org as members. **Токены** — named API tokens; the secret is shown once (`Authorization: Token …`).
 - **Профиль** — current user, change password, own tokens.
 
