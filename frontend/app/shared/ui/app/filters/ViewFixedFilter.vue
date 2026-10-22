@@ -20,7 +20,7 @@ const props = withDefaults(
     size?: AppControlSize
     disabled?: boolean
   }>(),
-  { locale: 'ru', size: 'default' },
+  { locale: 'ru', size: 'md' },
 )
 const model = defineModel<ViewFilters>({ required: true })
 const optionalRow = computed(() => conditionRows([props.field], model.value)[0])

@@ -1,23 +1,23 @@
 <template>
   <AppCard
-    variant="outlined"
     interactive
     class="mb-4 flex w-full p-4"
   >
     <div class="flex w-full items-center gap-4">
-      <Icon
-        :name="icon"
-        size="30"
-        class="fg-tertiary"
+      <AppIcon
+        :icon="icon"
+        :size="30"
+        tone="muted"
       />
       <div class="flex flex-col">
         <div class="text-lg font-bold">{{ item.name }}</div>
-        <div class="fg-secondary text-sm">{{ item.key }}</div>
+        <div class="text-sm text-muted-foreground">{{ item.key }}</div>
       </div>
       <div class="ml-auto">
         <AppButton
-          severity="secondary"
-          icon="lucide:pencil"
+          variant="secondary"
+          :icon="Pencil"
+          aria-label="Изменить организацию"
           @click.stop="$emit('edit')"
         />
       </div>
@@ -26,6 +26,8 @@
 </template>
 
 <script setup lang="ts">
+import type { Component } from 'vue'
+import { Pencil } from '@lucide/vue'
 import type { Organization } from '~/features/organization/models/organization'
 
 defineEmits<{
@@ -34,6 +36,6 @@ defineEmits<{
 
 defineProps<{
   item: Organization
-  icon: string
+  icon: Component
 }>()
 </script>

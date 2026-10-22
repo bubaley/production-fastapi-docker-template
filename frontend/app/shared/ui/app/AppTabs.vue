@@ -19,7 +19,6 @@ const props = withDefaults(
     ariaLabel?: string
     variant?: 'segment'
     contentClass?: string
-    size?: 'small' | 'large'
     selectClass?: string | string[] | Record<string, boolean>
   }>(),
   {

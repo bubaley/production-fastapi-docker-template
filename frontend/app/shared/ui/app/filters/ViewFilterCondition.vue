@@ -7,7 +7,7 @@ import AppSelect from '../AppSelect.vue'
 import AppIcon from '../AppIcon.vue'
 import AppDataLabel from '../AppDataLabel.vue'
 import type { AppControlSize } from '../types/control'
-import { appControlStyles, appSelectIconSize } from '~/shared/ui/app/types/control'
+import { appControlSizeVar, appSelectIconSize, appSelectValueSizeClasses } from '~/shared/ui/app/types/control'
 import type { AppLabelConfig } from '~/shared/ui/app/types/label-types'
 import type { ViewFilterField, FilterValue } from './types'
 import { filterIcon, filterLookupLabel } from './filterPresentation'
@@ -26,7 +26,7 @@ const props = withDefaults(
     locale?: 'ru' | 'en'
     size?: AppControlSize
   }>(),
-  { locale: 'ru', size: 'default', removable: true, clearable: true },
+  { locale: 'ru', size: 'md', removable: true, clearable: true },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: unknown]; lookup: [value: string]; remove: [] }>()
 const hasValue = computed(() =>
@@ -46,20 +46,19 @@ function appearance(item: unknown): AppLabelConfig | undefined {
 </script>
 <template>
   <div
-    :style="inline ? { '--filter-height': appControlStyles.input[size].height } : undefined"
-    :class="
+    :class="[
+      inline && appControlSizeVar[size],
       inline
         ? 'compound-filter flex max-w-full shrink-0 items-center overflow-hidden rounded-md border border-input bg-background [&_[data-app-select-trigger]]:rounded-none [&_button]:rounded-none [&_button]:focus-visible:ring-inset [&_input]:rounded-none [&_input]:focus-visible:ring-inset'
-        : 'grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[1fr_1fr_2fr_auto] sm:items-end'
-    "
+        : 'grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[1fr_1fr_2fr_auto] sm:items-end',
+    ]"
   >
     <span
       :class="
         inline
-          ? 'flex shrink-0 items-center gap-1 px-2 whitespace-nowrap text-foreground'
+          ? ['flex shrink-0 items-center gap-1 px-2 whitespace-nowrap text-foreground', appSelectValueSizeClasses[size]]
           : 'flex items-center gap-1 pb-2 text-sm'
       "
-      :style="inline ? appControlStyles.selectValue[size] : undefined"
     >
       <AppIcon
         :icon="filterIcon(field)"
@@ -200,12 +199,12 @@ function appearance(item: unknown): AppLabelConfig | undefined {
 <style scoped>
 /* The outer frame owns the border; sections fit inside its two border pixels. */
 .compound-filter {
-  height: var(--filter-height);
+  height: var(--control-size);
 }
 .compound-filter :deep([data-app-select-trigger]),
 .compound-filter :deep(input),
 .compound-filter :deep(button) {
-  min-height: calc(var(--filter-height) - 2px) !important;
-  height: calc(var(--filter-height) - 2px) !important;
+  min-height: calc(var(--control-size) - 2px) !important;
+  height: calc(var(--control-size) - 2px) !important;
 }
 </style>

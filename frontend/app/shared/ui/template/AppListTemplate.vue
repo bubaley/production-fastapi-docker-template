@@ -138,7 +138,7 @@
 <script setup generic="T extends AppModel" lang="ts">
 import { toValue, watch } from 'vue'
 import type { ViewFilters } from '../app/filters/types'
-import { cloneDeep } from 'lodash-es'
+import { deepClone } from '~/shared/lib/clone'
 import AppListToolbar from '../app/AppListToolbar.vue'
 import AppPageView from '../app/AppPageView.vue'
 import AppSection from '../app/AppSection.vue'
@@ -255,7 +255,7 @@ const handleSave = (event: AppDetailActionsSaveResult<T>) => {
   if (!event.success) return
   if (event.item) {
     selectedItem.value = event.item
-    updateListItem(cloneDeep(event.item))
+    updateListItem(deepClone(event.item))
   }
 
   if (props.detailModalProps?.closeOnSave !== false) {
@@ -277,7 +277,7 @@ const handleDetailAction = (event: AppDetailActionsDeleteResult<T>) => {
 
 const _openItem = (item: T | null) => {
   if (props.detailMode === 'modal') {
-    if (item) selectedItem.value = cloneDeep(item)
+    if (item) selectedItem.value = deepClone(item)
     else selectedItem.value = props.buildNewItem?.() || props.repo?.decode({})
     detailModal.value = true
     if (item?.id && props.retrieveOnOpen && props.repo) {
@@ -287,7 +287,7 @@ const _openItem = (item: T | null) => {
         .then((retrieved) => {
           if (!retrieved || !detailModal.value) return
           if (String(selectedItem.value?.id) !== String(openedId)) return
-          selectedItem.value = cloneDeep(retrieved)
+          selectedItem.value = deepClone(retrieved)
         })
         .catch(() => {
           if (detailModal.value && String(selectedItem.value?.id) === String(openedId)) {

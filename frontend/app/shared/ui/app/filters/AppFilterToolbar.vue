@@ -27,7 +27,7 @@ const props = withDefaults(
     size?: AppControlSize
     disabled?: boolean
   }>(),
-  { locale: 'ru', size: 'default', showAdd: true },
+  { locale: 'ru', size: 'md', showAdd: true },
 )
 const filters = defineModel<ViewFilters>({ required: true })
 const search = defineModel<string>('search', { default: '' })

@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
+import { COLOR_MODE_COOKIE, paletteHeadScript } from './app/shared/lib/theme'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -13,15 +14,12 @@ export default defineNuxtConfig({
       apiPrefix: '/api/v1',
     },
   },
-  modules: [
-    '@nuxt/icon',
-    '@nuxt/fonts',
-    '@pinia/nuxt',
-    '@nuxtjs/color-mode',
-    '@nuxtjs/google-fonts',
-    './modules/base-auth',
-    'dayjs-nuxt',
-  ],
+  modules: ['@pinia/nuxt', '@nuxtjs/color-mode', './modules/base-auth'],
+  app: {
+    head: {
+      script: [{ innerHTML: paletteHeadScript, tagPosition: 'head' }],
+    },
+  },
   components: [
     {
       path: '~/shared/ui/app',
@@ -50,7 +48,6 @@ export default defineNuxtConfig({
       'shared/toolkits/repo/composables/**',
       'shared/toolkits/repo/types/**',
       // shared ui
-      'shared/ui/app/composables/**',
       'shared/ui/template/types/**',
       'shared/ui/template/composables/**',
     ],
@@ -66,13 +63,9 @@ export default defineNuxtConfig({
     preference: 'system',
     fallback: 'dark',
     dataValue: 'theme',
-    storageKey: 'colorScheme',
-  },
-  googleFonts: {
-    families: {
-      Inter: '100..900',
-    },
-    display: 'swap',
+    storageKey: COLOR_MODE_COOKIE,
+    // Cookie storage lets SSR render the right `data-theme` without a flash.
+    storage: 'cookie',
   },
   vite: {
     plugins: [tailwindcss()],
@@ -80,12 +73,7 @@ export default defineNuxtConfig({
   typescript: {
     typeCheck: false,
   },
-  css: [
-    '~/assets/styles/tailwind.css',
-    '~/assets/styles/global.scss',
-    '~/assets/styles/variables.scss',
-    '~/assets/styles/template.scss',
-  ],
+  css: ['~/assets/styles/tailwind.css'],
   devServer: {
     port: 9001,
     host: 'localhost',

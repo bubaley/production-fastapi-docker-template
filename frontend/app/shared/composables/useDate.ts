@@ -1,16 +1,20 @@
-import dayjs, { type Dayjs } from 'dayjs'
-import utc from 'dayjs/plugin/utc.js'
-import ru from 'dayjs/locale/ru.js'
-import en from 'dayjs/locale/en.js'
+import {
+  CalendarDateTime,
+  fromAbsolute,
+  getLocalTimeZone,
+  parseDate as parseCalendarDate,
+  parseDateTime,
+  toCalendarDate,
+  toCalendarDateTime,
+} from '@internationalized/date'
 import { onMounted, ref, toValue, type MaybeRefOrGetter } from 'vue'
-
-dayjs.extend(utc)
-dayjs.locale(ru, undefined, true)
-dayjs.locale(en, undefined, true)
+import { formatDatePattern } from '~/shared/lib/dateFormat'
 
 export type DateFormat = 'shortcut'
 export type DateType = 'date' | 'datetime'
 export type DateLocale = 'ru' | 'en'
+/** A wall-clock date and time in the viewer's zone (or the shared SSR offset before hydration). */
+export type AppDateValue = CalendarDateTime
 
 const RELATIVE_DAYS: Record<DateLocale, Record<number, string>> = {
   ru: { [-2]: 'Позавчера', [-1]: 'Вчера', 0: 'Сегодня', 1: 'Завтра', 2: 'Послезавтра' },
@@ -30,54 +34,71 @@ const WEEKDAYS_SHORT = {
   en: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
 }
 
+const pad = (value: number) => String(value).padStart(2, '0')
+const startOfDay = (value: AppDateValue) => new CalendarDateTime(value.year, value.month, value.day)
+/** 0 = Sunday … 6 = Saturday, independent of locale. */
+const weekday = (value: AppDateValue) => new Date(Date.UTC(value.year, value.month - 1, value.day)).getUTCDay()
+const currentOffset = () => -new Date().getTimezoneOffset()
+const TIME_ZONE_SUFFIX = /(?:Z|[+-]\d{2}:?\d{2})$/i
+
+/** Wall clock of an instant: in the local zone, or at a fixed UTC offset (minutes) for SSR/hydration. */
+const wallClock = (instant: number, offset: number | null) =>
+  offset === null
+    ? toCalendarDateTime(fromAbsolute(instant, getLocalTimeZone()))
+    : toCalendarDateTime(fromAbsolute(instant + offset * 60_000, 'UTC'))
+
 export const useDate = (locale: MaybeRefOrGetter<DateLocale> = 'ru') => {
   // Hydration shares the server clock/offset; local time is applied only after mounting.
   const reference = useState<number>('app-date-reference', () => Date.now())
-  const offset = useState<number>('app-date-offset', () => dayjs().utcOffset())
+  const offset = useState<number>('app-date-offset', currentOffset)
   const mounted = ref(false)
   onMounted(() => {
     reference.value = Date.now()
-    offset.value = dayjs().utcOffset()
+    offset.value = currentOffset()
     mounted.value = true
   })
-  const localized = (value: Dayjs) => value.locale(toValue(locale))
+  const zoneOffset = () => (mounted.value ? null : offset.value)
+
   const now = (type: DateType = 'datetime') => {
-    const value = localized(mounted.value ? dayjs(reference.value) : dayjs(reference.value).utcOffset(offset.value))
-    return type === 'date' ? value.startOf('day') : value
+    const value = wallClock(reference.value, zoneOffset())
+    return type === 'date' ? startOfDay(value) : value
   }
-  const parseDate = (date?: string | null, config?: { isUtc?: boolean; type?: DateType }) => {
+
+  const parseDate = (date?: string | null, config?: { isUtc?: boolean; type?: DateType }): AppDateValue | null => {
     if (!date) return null
     const { isUtc = true, type = 'datetime' } = config ?? {}
-    // Calendar dates describe a day, not an instant, and must never shift across time zones.
-    const calendarDate = type === 'date' || /^\d{4}-\d{2}-\d{2}$/.test(date)
-    const value = mounted.value
-      ? calendarDate
-        ? dayjs(date.slice(0, 10))
-        : isUtc
-          ? dayjs.utc(date).local()
-          : dayjs(date)
-      : calendarDate
-        ? dayjs.utc(date.slice(0, 10)).utcOffset(offset.value, true)
-        : isUtc
-          ? dayjs.utc(date).utcOffset(offset.value)
-          : dayjs.utc(date).utcOffset(offset.value, true)
-    return value.isValid() ? localized(type === 'date' ? value.startOf('day') : value) : null
+    try {
+      // Calendar dates describe a day, not an instant, and must never shift across time zones.
+      if (type === 'date' || /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return toCalendarDateTime(parseCalendarDate(date.slice(0, 10)))
+      }
+      const normalized = date.trim().replace(' ', 'T')
+      const hasZone = TIME_ZONE_SUFFIX.test(normalized)
+      if (!isUtc && !hasZone) return parseDateTime(normalized.slice(0, 19))
+      const instant = Date.parse(hasZone ? normalized : `${normalized}Z`)
+      return Number.isFinite(instant) ? wallClock(instant, zoneOffset()) : null
+    } catch {
+      return null
+    }
   }
-  const relativeDay = (date: Dayjs, config?: { disableRelativeDay?: boolean; useShortWeekday?: boolean }) => {
+
+  const relativeDay = (date: AppDateValue, config?: { disableRelativeDay?: boolean; useShortWeekday?: boolean }) => {
     const current = now('date')
-    const diff = date.startOf('day').diff(current, 'day')
+    const diff = toCalendarDate(date).compare(toCalendarDate(current))
     const relative = RELATIVE_DAYS[toValue(locale)][diff]
     if (!config?.disableRelativeDay && relative) return relative
     const firstWeekday = toValue(locale) === 'ru' ? 1 : 0
-    const weekStart = current.subtract((current.day() - firstWeekday + 7) % 7, 'day')
-    const day = date.startOf('day')
-    if (day.isBefore(weekStart) || day.isAfter(weekStart.add(6, 'day'))) return null
+    const weekStart = current.subtract({ days: (weekday(current) - firstWeekday + 7) % 7 })
+    const day = startOfDay(date)
+    if (day.compare(weekStart) < 0 || day.compare(weekStart.add({ days: 6 })) > 0) return null
     const labels = config?.useShortWeekday ? WEEKDAYS_SHORT : WEEKDAYS
-    return labels[toValue(locale)][date.day()] ?? null
+    return labels[toValue(locale)][weekday(date)] ?? null
   }
+
   const formatDate = (
-    input: Dayjs | null | string,
+    input: AppDateValue | null | string,
     config?: {
+      /** `shortcut` (relative day or "2 окт") or a pattern such as `DD.MM.YYYY HH:mm`. */
       format?: DateFormat | string
       type?: DateType
       includeSeconds?: boolean
@@ -87,13 +108,14 @@ export const useDate = (locale: MaybeRefOrGetter<DateLocale> = 'ru') => {
     },
   ): string | null => {
     const { format = 'shortcut', type = 'datetime' } = config ?? {}
-    const date = typeof input === 'string' ? parseDate(input, { type }) : input ? localized(input) : null
+    const date = typeof input === 'string' ? parseDate(input, { type }) : input
     if (!date) return null
-    if (format !== 'shortcut') return date.format(format)
+    if (format !== 'shortcut') return formatDatePattern(date, format, toValue(locale))
     const relative = config?.disableRelative ? null : relativeDay(date, config)
-    const year = date.year() === now().year() ? '' : ` ${date.format('YYYY')}`
-    const label = relative ?? `${date.date()} ${MONTHS_SHORT[toValue(locale)][date.month()]}${year}`
-    return type === 'date' ? label : `${label} ${date.format(config?.includeSeconds ? 'HH:mm:ss' : 'HH:mm')}`
+    const year = date.year === now().year ? '' : ` ${date.year}`
+    const label = relative ?? `${date.day} ${MONTHS_SHORT[toValue(locale)][date.month - 1]}${year}`
+    const time = `${pad(date.hour)}:${pad(date.minute)}${config?.includeSeconds ? `:${pad(date.second)}` : ''}`
+    return type === 'date' ? label : `${label} ${time}`
   }
   return { parseDate, formatDate, now }
 }

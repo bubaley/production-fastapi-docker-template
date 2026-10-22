@@ -6,14 +6,14 @@
     <template #title>Главная</template>
     <template #prefix>
       <AppIcon
-        icon="lucide:home"
-        class="text-muted-foreground"
+        :icon="House"
+        tone="muted"
       />
     </template>
     <template #actions>
       <AppTemplateActions
         class="flex-wrap justify-end"
-        size="small"
+        size="sm"
         :actions="actions"
       />
     </template>
@@ -30,7 +30,7 @@
       <div class="flex flex-wrap items-center justify-between gap-3 py-3">
         <AppInput
           v-model="search"
-          icon="lucide:search"
+          :icon="Search"
           placeholder="Найти возможность страницы"
           class="w-full sm:max-w-xs"
         />
@@ -55,7 +55,6 @@
           <AppCard
             v-for="feature in visibleFeatures"
             :key="feature.title"
-            variant="outlined"
           >
             <AppSection
               :title="feature.title"
@@ -109,6 +108,7 @@
 </template>
 
 <script setup lang="ts">
+import { Building2, House, Palette, Search, Settings } from '@lucide/vue'
 const search = ref('')
 const showExamples = ref(true)
 const resetExample = () => {
@@ -157,7 +157,7 @@ const visibleFeatures = computed(() => {
 const actions: AppTemplateAction[] = [
   {
     label: 'Настройки',
-    icon: 'lucide:settings',
+    icon: Settings,
     variant: 'secondary',
     action: async () => {
       await navigateTo({ name: 'settings-profile' })
@@ -165,7 +165,7 @@ const actions: AppTemplateAction[] = [
   },
   {
     label: 'Сменить организацию',
-    icon: 'lucide:building-2',
+    icon: Building2,
     variant: 'outline',
     action: async () => {
       await navigateTo({ name: 'home-setup' })
@@ -173,7 +173,7 @@ const actions: AppTemplateAction[] = [
   },
   {
     label: 'Компоненты интерфейса',
-    icon: 'lucide:palette',
+    icon: Palette,
     variant: 'outline',
     action: async () => {
       await navigateTo({ name: 'ui' })

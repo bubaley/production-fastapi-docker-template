@@ -15,20 +15,10 @@ const props = defineProps<
     overlayStyle?: StyleValue
     showClose?: boolean
     closeLabel?: string
-    motion?: 'modal' | 'left' | 'right'
   }
 >()
 const emits = defineEmits<DialogContentEmits>()
-const delegatedProps = reactiveOmit(
-  props,
-  'class',
-  'style',
-  'overlayClass',
-  'overlayStyle',
-  'showClose',
-  'closeLabel',
-  'motion',
-)
+const delegatedProps = reactiveOmit(props, 'class', 'style', 'overlayClass', 'overlayStyle', 'showClose', 'closeLabel')
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
@@ -38,7 +28,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       :style="overlayStyle"
       :class="
         cn(
-          'fixed inset-0 z-[var(--app-overlay-z,1000)] bg-black/55 backdrop-blur-[3px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
+          'fixed inset-0 z-overlay bg-black/55 backdrop-blur-[3px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
           overlayClass,
         )
       "
@@ -48,12 +38,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       :style="props.style"
       :class="
         cn(
-          'fixed top-1/2 left-1/2 z-[var(--app-overlay-z,1010)] grid max-h-[calc(100dvh-2rem)] w-[calc(100%_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl border border-overlay-border bg-background p-6 text-card-foreground shadow-xl duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
-          props.motion === 'left'
-            ? 'duration-300 data-[state=closed]:slide-out-to-left data-[state=open]:duration-200 data-[state=open]:slide-in-from-left'
-            : props.motion === 'right'
-              ? 'duration-300 data-[state=closed]:slide-out-to-right data-[state=open]:duration-200 data-[state=open]:slide-in-from-right'
-              : 'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+          'fixed top-1/2 left-1/2 z-overlay grid max-h-[calc(100dvh-2rem)] w-[calc(100%_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl border border-border-strong bg-background p-6 text-card-foreground shadow-xl duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
           props.class,
         )
       "

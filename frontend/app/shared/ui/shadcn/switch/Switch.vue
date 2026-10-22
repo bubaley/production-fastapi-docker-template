@@ -21,7 +21,7 @@ const forwarded = useForwardPropsEmits(props, emits)
   >
     <SwitchThumb
       data-slot="switch-thumb"
-      class="pointer-events-none block size-4 rounded-full bg-foreground shadow transition-transform data-[state=checked]:translate-x-[14px] data-[state=unchecked]:translate-x-0"
+      class="pointer-events-none block size-4 rounded-full bg-foreground shadow transition-transform data-[state=checked]:translate-x-[14px] data-[state=checked]:bg-primary-foreground data-[state=unchecked]:translate-x-0"
     />
   </SwitchRoot>
 </template>

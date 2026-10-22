@@ -55,19 +55,16 @@ const confirmLoading = ref(false)
 const declineLoading = ref(false)
 
 const actions = computed<AppTemplateAction[]>(() => {
-  const { hidden: _declineHidden, ...declineProps } = props.declineProps || {}
-  const { hidden: _confirmHidden, ...confirmProps } = props.confirmProps || {}
-
   const declineAction: AppTemplateAction = {
-    ...declineProps,
-    severity: 'secondary',
+    variant: 'secondary',
+    ...props.declineProps,
     fluid: true,
     label: props.declineText,
     loading: declineLoading.value,
     action: _handleDecline,
   }
   const confirmAction: AppTemplateAction = {
-    ...confirmProps,
+    ...props.confirmProps,
     fluid: true,
     label: props.confirmText,
     loading: confirmLoading.value,

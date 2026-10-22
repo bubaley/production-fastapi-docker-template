@@ -45,9 +45,7 @@ const handleInteractOutside = (event: InteractOutsideEvent) => {
   const isPortalledOverlayInteraction = originalPath.some(
     (target) =>
       target instanceof Element &&
-      (target.closest('[data-reka-popper-content-wrapper]') ||
-        target.closest('[data-sonner-toaster]') ||
-        target.closest('.viewer-container')),
+      (target.closest('[data-reka-popper-content-wrapper]') || target.closest('[data-sonner-toaster]')),
   )
 
   if (!isTop.value || props.preventOutsideClose || isDevToolsInteraction || isPortalledOverlayInteraction)

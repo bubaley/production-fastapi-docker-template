@@ -27,9 +27,8 @@ export type AppMenuAction = {
   key?: string
   hidden?: boolean
   loading?: boolean
-  severity?: string
   action?: () => void | Promise<void>
-  icon?: Component | string
+  icon?: Component
   checked?: boolean
   disabled?: boolean
   destructive?: boolean
@@ -152,7 +151,7 @@ defineExpose({
           :role="action.checked !== undefined ? 'menuitemradio' : 'menuitem'"
           :aria-checked="action.checked"
           :class="
-            action.destructive || action.severity === 'danger'
+            action.destructive
               ? 'text-destructive hover:text-destructive focus:bg-destructive/10 focus:text-destructive'
               : 'text-foreground/75 hover:text-foreground focus:text-foreground'
           "

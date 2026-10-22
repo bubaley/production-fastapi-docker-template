@@ -1,10 +1,15 @@
-import type { CSSProperties } from 'vue'
 import type { AppIconSize } from '../AppIcon.vue'
+
+// Shared control vocabulary. Heights and text sizes come from the `--size-control-*` / `--font-size-control-*`
+// tokens in theme.css (utilities `h-control-*`, `text-control-*`); change geometry there, not here.
+export type AppControlSize = 'xs' | 'sm' | 'md' | 'lg'
+export type AppButtonSize = AppControlSize | 'icon-xs' | 'icon-sm' | 'icon' | 'icon-lg'
 export type AppFieldVariant = 'outline' | 'secondary' | 'ghost' | 'active-outline'
+
 export const appControlIconSize: Record<AppButtonSize, AppIconSize> = {
   xs: 'xs',
   sm: 'sm',
-  default: 'sm',
+  md: 'sm',
   lg: 'md',
   'icon-xs': 'xs',
   'icon-sm': 'sm',
@@ -12,106 +17,37 @@ export const appControlIconSize: Record<AppButtonSize, AppIconSize> = {
   'icon-lg': 'lg',
 }
 
-export type AppControlSize = 'xs' | 'sm' | 'default' | 'lg'
-export type AppButtonSize = AppControlSize | 'icon-xs' | 'icon-sm' | 'icon' | 'icon-lg'
+export const appSelectIconSize: Record<AppControlSize, AppIconSize> = { xs: 'xs', sm: 'xs', md: 'sm', lg: 'md' }
 
-export const appControlRadiusClasses: Record<AppButtonSize, string> = {
-  xs: 'rounded-sm',
-  sm: 'rounded-md',
-  default: 'rounded-md',
-  lg: 'rounded-md',
-  'icon-xs': 'rounded-sm',
-  'icon-sm': 'rounded-md',
-  icon: 'rounded-md',
-  'icon-lg': 'rounded-md',
+/** Text inputs: fixed height, horizontal padding, font size and radius. */
+export const appInputSizeClasses: Record<AppControlSize, string> = {
+  xs: 'h-control-xs rounded-sm px-2 text-control-xs',
+  sm: 'h-control-sm rounded-md px-2.5 text-control-sm',
+  md: 'h-control-md rounded-md px-3 text-control-md',
+  lg: 'h-control-lg rounded-md px-3.5 text-control-md',
 }
 
-// Edit shared control geometry here. Components below only consume the resulting styles.
-const height: Record<AppControlSize, string> = {
-  xs: '22px',
-  sm: '26px',
-  default: '2.25rem',
-  lg: '2.5rem',
-}
-const inputPaddingX: Record<AppControlSize, string> = {
-  xs: '0.5rem',
-  sm: '0.625rem',
-  default: '0.75rem',
-  lg: '0.875rem',
-}
-const selectPaddingX: Record<AppControlSize, string> = {
-  xs: '0.375rem',
-  sm: '0.5rem',
-  default: '0.5rem',
-  lg: '0.75rem',
-}
-const selectPaddingY: Record<AppControlSize, string> = {
-  xs: '0',
-  sm: '0.125rem',
-  default: '0.25rem',
-  lg: '0.375rem',
-}
-const buttonPaddingX: Record<AppControlSize, string> = {
-  xs: '0.625rem',
-  sm: '0.75rem',
-  default: '1rem',
-  lg: '1.5rem',
-}
-const fieldFontSize: Record<AppControlSize, string> = {
-  xs: '0.75rem',
-  sm: '0.8525rem',
-  default: '0.875rem',
-  lg: '0.875rem',
-}
-const buttonFontSize: Record<AppControlSize, string> = {
-  xs: '0.75rem',
-  sm: '0.8525rem',
-  default: '0.875rem',
-  lg: '0.875rem',
+/** Select-like triggers grow with chips, so they get a minimum height. */
+export const appSelectSizeClasses: Record<AppControlSize, string> = {
+  xs: 'min-h-control-xs rounded-sm px-1.5',
+  sm: 'min-h-control-sm rounded-md px-2',
+  md: 'min-h-control-md rounded-md px-2',
+  lg: 'min-h-control-lg rounded-md px-3',
 }
 
-const input = Object.fromEntries(
-  (Object.keys(height) as AppControlSize[]).map((size) => [
-    size,
-    { height: height[size], paddingInline: inputPaddingX[size], fontSize: fieldFontSize[size], lineHeight: '1.25' },
-  ]),
-) as Record<AppControlSize, CSSProperties>
+export const appSelectValueSizeClasses: Record<AppControlSize, string> = {
+  xs: 'py-0 text-control-xs',
+  sm: 'py-0.5 text-control-sm',
+  md: 'py-1 text-control-md',
+  lg: 'py-1.5 text-control-md',
+}
 
-const select = Object.fromEntries(
-  (Object.keys(height) as AppControlSize[]).map((size) => [
-    size,
-    { minHeight: height[size], paddingInline: selectPaddingX[size] },
-  ]),
-) as Record<AppControlSize, CSSProperties>
-
-const selectValue = Object.fromEntries(
-  (Object.keys(height) as AppControlSize[]).map((size) => [
-    size,
-    { paddingBlock: selectPaddingY[size], fontSize: fieldFontSize[size], lineHeight: '1.25' },
-  ]),
-) as Record<AppControlSize, CSSProperties>
-
-const button: Record<AppButtonSize, CSSProperties> = {
-  ...Object.fromEntries(
-    (Object.keys(height) as AppControlSize[]).map((size) => [
-      size,
-      {
-        height: height[size],
-        paddingInline: buttonPaddingX[size],
-        fontSize: buttonFontSize[size],
-        lineHeight: '1.25',
-        paddingBlock: '0',
-      },
-    ]),
-  ),
-  'icon-xs': { width: height.xs, height: height.xs },
-  'icon-sm': { width: height.sm, height: height.sm },
-  icon: { width: height.default, height: height.default },
-  'icon-lg': { width: height.lg, height: height.lg },
-} as Record<AppButtonSize, CSSProperties>
-
-export const appControlStyles = { button, input, select, selectValue }
+/** Exposes the control height as `--control-size` for compound controls (filter chips, square add buttons). */
+export const appControlSizeVar: Record<AppControlSize, string> = {
+  xs: '[--control-size:var(--size-control-xs)]',
+  sm: '[--control-size:var(--size-control-sm)]',
+  md: '[--control-size:var(--size-control-md)]',
+  lg: '[--control-size:var(--size-control-lg)]',
+}
 
 export const activeOutlineClasses = 'border-primary bg-primary/10 text-primary hover:bg-primary/20'
-
-export const appSelectIconSize: Record<AppControlSize, AppIconSize> = { xs: 'xs', sm: 'xs', default: 'sm', lg: 'md' }

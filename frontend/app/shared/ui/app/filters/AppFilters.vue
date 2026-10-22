@@ -8,7 +8,7 @@ import { filterIcon } from './filterPresentation'
 import ViewFilterCondition from './ViewFilterCondition.vue'
 import AppSelect from '~/shared/ui/app/AppSelect.vue'
 import type { FilterValue, ViewFilters, ViewFilterField, ViewFilterSpec } from './types'
-import { appControlIconSize, appControlStyles } from '~/shared/ui/app/types/control'
+import { appControlIconSize, appControlSizeVar } from '~/shared/ui/app/types/control'
 import type { AppControlSize } from '../types/control'
 const props = withDefaults(
   defineProps<{
@@ -27,7 +27,7 @@ const props = withDefaults(
   {
     lockedFilters: () => ({}),
     locale: 'ru',
-    size: 'default',
+    size: 'md',
     showAdd: true,
   },
 )
@@ -149,11 +149,11 @@ function add(fieldName: unknown) {
         inline && [
           'shrink-0 transition-opacity group-hover/filters:pointer-events-auto group-hover/filters:opacity-100 group-hover/toolbar:pointer-events-auto group-hover/toolbar:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100',
           !alwaysShowAdd && !addOpen && 'pointer-events-none opacity-0',
+          appControlSizeVar[size],
         ]
       "
-      :style="inline ? { '--add-filter-size': appControlStyles.input[size].height } : undefined"
       :locale="locale"
-      class="text-muted-foreground [&_[data-app-select-trigger]]:w-[var(--add-filter-size)] [&_[data-app-select-trigger]]:justify-center [&_[data-app-select-trigger]]:!px-0"
+      class="text-muted-foreground [&_[data-app-select-trigger]]:w-[var(--control-size)] [&_[data-app-select-trigger]]:justify-center [&_[data-app-select-trigger]]:!px-0"
       @update:model-value="add"
     >
       <template

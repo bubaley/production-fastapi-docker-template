@@ -6,7 +6,7 @@ import AppField from '../AppField.vue'
 import AppClearButton from '../AppClearButton.vue'
 import AppIcon from '../AppIcon.vue'
 import PickerTimeSelect from './PickerTimeSelect.vue'
-import { appControlStyles } from '../types/control'
+import { appInputSizeClasses } from '../types/control'
 import { DEFAULT_DATE_MASK, formatPickerValue, parsePickerText } from './format'
 import type { DatePickerProps } from './types'
 const props = withDefaults(defineProps<DatePickerProps & { active?: boolean; label: string }>(), {
@@ -78,8 +78,11 @@ defineExpose({ commit, reset })
     <template #default="field">
       <div
         class="flex min-w-0 items-center gap-2 rounded-md border bg-secondary text-secondary-foreground shadow-none transition-colors hover:bg-accent"
-        :style="appControlStyles.input.default"
-        :class="[mode === 'range' && active ? 'border-foreground/80' : 'border-transparent', disabled && 'opacity-50']"
+        :class="[
+          appInputSizeClasses.md,
+          mode === 'range' && active ? 'border-foreground/80' : 'border-transparent',
+          disabled && 'opacity-50',
+        ]"
         :data-active="active || undefined"
         @focusin="emit('activate')"
       >

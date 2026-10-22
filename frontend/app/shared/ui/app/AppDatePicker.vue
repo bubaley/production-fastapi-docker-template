@@ -2,7 +2,7 @@
 import { useOverlayStack } from './useOverlayStack'
 import { computed, ref, watch } from 'vue'
 import { CalendarDays } from '@lucide/vue'
-import { Popover, PopoverContent, PopoverPortal, PopoverTrigger } from '~/shared/ui/shadcn/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '~/shared/ui/shadcn/popover'
 import AppButton from './AppButton.vue'
 import AppField from './AppField.vue'
 import PickerPanel from './date-picker/PickerPanel.vue'
@@ -178,27 +178,25 @@ const width = computed(
             </AppButton>
           </slot>
         </PopoverTrigger>
-        <PopoverPortal>
-          <PopoverContent
-            align="start"
-            :aria-label="label || (locale === 'en' ? 'Choose date' : 'Выбор даты')"
-            :side-offset="6"
-            :collision-padding="12"
-            class="z-[var(--app-overlay-z)] max-h-[min(90dvh,var(--reka-popover-content-available-height))] max-w-[calc(100vw-24px)] overflow-y-auto rounded-xl shadow-xl outline-none"
-            :style="{ width: `${width}px`, ...overlayStyle }"
-          >
-            <PickerPanel
-              v-bind="props"
-              :id="`${field.id}-input`"
-              ref="panel"
-              v-model="model"
-              v-model:range="range"
-              :mode="effectiveMode"
-              :described-by="field.describedBy"
-              @apply="open = false"
-            />
-          </PopoverContent>
-        </PopoverPortal>
+        <PopoverContent
+          align="start"
+          :aria-label="label || (locale === 'en' ? 'Choose date' : 'Выбор даты')"
+          :side-offset="6"
+          :collision-padding="12"
+          class="max-h-[min(90dvh,var(--reka-popover-content-available-height))] w-auto max-w-[calc(100vw-24px)] overflow-y-auto rounded-xl border-0 bg-transparent p-0 shadow-xl"
+          :style="{ width: `${width}px`, ...overlayStyle }"
+        >
+          <PickerPanel
+            v-bind="props"
+            :id="`${field.id}-input`"
+            ref="panel"
+            v-model="model"
+            v-model:range="range"
+            :mode="effectiveMode"
+            :described-by="field.describedBy"
+            @apply="open = false"
+          />
+        </PopoverContent>
       </Popover>
     </template>
   </AppField>

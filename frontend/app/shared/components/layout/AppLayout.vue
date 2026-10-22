@@ -1,6 +1,13 @@
 <template>
   <div class="flex h-screen min-h-0 flex-col">
-    <AppLayoutHeader />
+    <AppLayoutHeader>
+      <template
+        v-if="$slots['header-context']"
+        #context
+      >
+        <slot name="header-context" />
+      </template>
+    </AppLayoutHeader>
 
     <div class="flex min-h-0 flex-1">
       <AppLayoutDrawer
