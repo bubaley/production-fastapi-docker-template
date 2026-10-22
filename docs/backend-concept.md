@@ -194,6 +194,18 @@ The viewset calls `validate_issue` then `issue`. It does not load models or enco
 
 ---
 
+## Errors
+
+Every error response uses one envelope (`ResultData`, `app/core/exceptions.py`):
+
+```json
+{"data": null, "error": {"code": "NOT_FOUND", "message": "Not found", "details": {}}, "success": false}
+```
+
+Raise `AppException.from_attrs(ErrorCode.FORBIDDEN, 'Cannot modify this organization')` for business errors; its status follows the code (`UNAUTHORIZED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `CONFLICT` 409, otherwise 400). A plain `HTTPException` also works: the status picks the code (400/422 `VALIDATION_ERROR`, 401, 403, 404, 409, other 4xx `APP_ERROR`, 5xx `UNHANDLED_ERROR`). Request/pydantic validation → 422 with `details.errors`. Tortoise `DoesNotExist` → 404, `IntegrityError` → 409 without the database message. Unexpected exceptions → 500 `Internal server error`; the exception is logged, never returned.
+
+---
+
 ## Registration
 
 1. `app/core/database.py` — `'app.domains.project.models'` in `MODELS`
