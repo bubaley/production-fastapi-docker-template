@@ -173,6 +173,7 @@ Same idea already exists in the UI kit: `shared/ui/app/date-picker/` (components
 | `toolkits/repo/` | Generic repo/codec/pagination — do not fork this per feature |
 | `toolkits/authentication/` | Token storage and auth client |
 | `utils/` | Small frontend helpers |
+| `lib/` | Class-name composition (`cn`) for shadcn primitives; explicitly tracked despite Python `lib/` ignore rules |
 | `components/` | App chrome that is not a generic primitive (layout header, drawer) |
 | `stores/` | Rare app-level stores (setup wizard) |
 
