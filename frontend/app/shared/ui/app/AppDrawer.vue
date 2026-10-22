@@ -5,8 +5,15 @@ import { useOverlayStack } from './useOverlayStack'
 
 defineOptions({ inheritAttrs: false })
 const props = withDefaults(
-  defineProps<{ side?: 'left' | 'right'; width?: number; overlay?: boolean; title?: string; description?: string; closeLabel?: string }>(),
-  { side: 'left', width: 280, title: 'Панель' }
+  defineProps<{
+    side?: 'left' | 'right'
+    width?: number
+    overlay?: boolean
+    title?: string
+    description?: string
+    closeLabel?: string
+  }>(),
+  { side: 'left', width: 280, title: 'Панель' },
 )
 const model = defineModel<boolean>({ default: false })
 const overlayOpen = computed(() => !!props.overlay && model.value)
@@ -27,7 +34,7 @@ const shellTarget = '#app-shell-drawer'
       :overlay-style="backdropStyle"
       :class="[
         'inset-y-0 max-h-dvh max-w-[100vw] translate-x-0 translate-y-0 rounded-none border-0 bg-[var(--ds-sidebar)] text-foreground',
-        side === 'right' ? 'left-auto right-0 border-l border-border' : 'left-0 right-auto border-r border-border'
+        side === 'right' ? 'right-0 left-auto border-l border-border' : 'right-auto left-0 border-r border-border',
       ]"
       @interact-outside="!isTop && $event.preventDefault()"
     >
@@ -55,15 +62,30 @@ const shellTarget = '#app-shell-drawer'
 </template>
 
 <style scoped>
-.drawer-left-enter-active, .drawer-left-leave-active,
-.drawer-right-enter-active, .drawer-right-leave-active {
+.drawer-left-enter-active,
+.drawer-left-leave-active,
+.drawer-right-enter-active,
+.drawer-right-leave-active {
   transition: transform 300ms ease;
 }
-.drawer-left-enter-active, .drawer-right-enter-active { transition-duration: 200ms; }
-.drawer-left-enter-from, .drawer-left-leave-to { transform: translateX(-100%); }
-.drawer-right-enter-from, .drawer-right-leave-to { transform: translateX(100%); }
+.drawer-left-enter-active,
+.drawer-right-enter-active {
+  transition-duration: 200ms;
+}
+.drawer-left-enter-from,
+.drawer-left-leave-to {
+  transform: translateX(-100%);
+}
+.drawer-right-enter-from,
+.drawer-right-leave-to {
+  transform: translateX(100%);
+}
 @media (prefers-reduced-motion: reduce) {
-  .drawer-left-enter-active, .drawer-left-leave-active,
-  .drawer-right-enter-active, .drawer-right-leave-active { transition: none; }
+  .drawer-left-enter-active,
+  .drawer-left-leave-active,
+  .drawer-right-enter-active,
+  .drawer-right-leave-active {
+    transition: none;
+  }
 }
 </style>

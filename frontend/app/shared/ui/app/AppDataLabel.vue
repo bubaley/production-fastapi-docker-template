@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { EMPTY_DATA_LABEL, semanticColorClasses, semanticColorVariables, type AppLabelConfig, type AppSemanticColor } from './types/label-types'
+import {
+  EMPTY_DATA_LABEL,
+  semanticColorClasses,
+  semanticColorVariables,
+  type AppLabelConfig,
+  type AppSemanticColor,
+} from './types/label-types'
 import type { AppIconSize } from './AppIcon.vue'
 
 export type AppDataLabelSize = AppIconSize | 'xl'
@@ -22,26 +28,33 @@ export type AppDataLabelProps = {
 const props = withDefaults(defineProps<AppDataLabelProps>(), { size: 'md', variant: 'default' })
 const rawValue = computed(() => props.value ?? props.config?.label ?? null)
 const hasValue = computed(() => rawValue.value !== null && rawValue.value !== '')
-const displayValue = computed(() => hasValue.value ? String(rawValue.value) : EMPTY_DATA_LABEL)
+const displayValue = computed(() => (hasValue.value ? String(rawValue.value) : EMPTY_DATA_LABEL))
 const resolvedIcon = computed(() => props.icon || props.config?.icon)
 const resolvedColor = computed(() => props.color || props.config?.tone || props.config?.color)
 const surfaceStyle = computed(() => {
   const color = resolvedColor.value && semanticColorVariables[resolvedColor.value]
   if (!color) return undefined
-  return props.variant === 'soft' ? { backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }
-    : props.variant === 'outline' ? { borderColor: `color-mix(in srgb, ${color} 45%, transparent)` } : undefined
+  return props.variant === 'soft'
+    ? { backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }
+    : props.variant === 'outline'
+      ? { borderColor: `color-mix(in srgb, ${color} 45%, transparent)` }
+      : undefined
 })
-const iconSize = computed(() => props.size === 'xl' ? 'lg' : props.size)
+const iconSize = computed(() => (props.size === 'xl' ? 'lg' : props.size))
 const compact = computed(() => !props.label)
-const textSize = computed(() => props.size === 'xl' ? 'text-xl font-semibold' : props.size === 'xs' ? 'text-xs' : 'text-sm')
+const textSize = computed(() =>
+  props.size === 'xl' ? 'text-xl font-semibold' : props.size === 'xs' ? 'text-xs' : 'text-sm',
+)
 </script>
 <template>
   <span
     class="inline-flex min-w-0"
     :class="[
-      compact ? 'items-center' : 'items-start', size === 'xs' ? 'gap-1' : 'gap-2',
+      compact ? 'items-center' : 'items-start',
+      size === 'xs' ? 'gap-1' : 'gap-2',
       variant !== 'default' && 'rounded-md px-2 py-1',
-      variant === 'soft' && 'bg-muted/60', variant === 'outline' && 'border border-border',
+      variant === 'soft' && 'bg-muted/60',
+      variant === 'outline' && 'border border-border',
       resolvedColor && semanticColorClasses[resolvedColor],
     ]"
     :style="surfaceStyle"
@@ -68,11 +81,12 @@ const textSize = computed(() => props.size === 'xl' ? 'text-xl font-semibold' : 
         {{ label }}
         <slot name="label-append" />
         <AppMenu v-if="$slots['label-tooltip']">
-          <template #trigger><AppButton
-            icon="lucide:circle-help"
-            size="icon-xs"
-            variant="ghost"
-            aria-label="Подробнее о поле"
+          <template #trigger
+            ><AppButton
+              icon="lucide:circle-help"
+              size="icon-xs"
+              variant="ghost"
+              aria-label="Подробнее о поле"
           /></template>
           <div class="max-w-xs px-2 py-1.5 text-sm"><slot name="label-tooltip" /></div>
         </AppMenu>

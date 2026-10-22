@@ -15,14 +15,14 @@ const props = withDefaults(
     mode?: 'palette' | 'hex'
     colors?: string[]
   }>(),
-  { mode: 'palette', colors: () => [...appColorPalette] }
+  { mode: 'palette', colors: () => [...appColorPalette] },
 )
 const model = defineModel<string | null>({ default: null })
 const field = computed({
   get: () => model.value ?? '',
   set: (value) => {
     model.value = value
-  }
+  },
 })
 const valid = computed(() => /^#[0-9a-f]{6}$/i.test(field.value))
 const isPaletteColor = (value: string | null | undefined) =>
@@ -33,13 +33,13 @@ watch(
   (value) => {
     if (value && /^#[0-9a-f]{6}$/i.test(value) && !isPaletteColor(value)) customColor.value = value.toLowerCase()
   },
-  { immediate: true }
+  { immediate: true },
 )
 const pickerColor = computed(() =>
-  props.mode === 'palette' ? customColor.value : valid.value ? field.value : '#7779ed'
+  props.mode === 'palette' ? customColor.value : valid.value ? field.value : '#7779ed',
 )
 const customSelected = computed(
-  () => !isPaletteColor(model.value) && model.value?.toLowerCase() === customColor.value.toLowerCase()
+  () => !isPaletteColor(model.value) && model.value?.toLowerCase() === customColor.value.toLowerCase(),
 )
 function choose(value: unknown) {
   if (props.disabled) return
@@ -93,7 +93,8 @@ function choose(value: unknown) {
       <span
         v-if="label"
         class="block text-sm font-medium"
-      >{{ label }}</span>
+        >{{ label }}</span
+      >
       <div
         class="flex max-w-64 flex-wrap gap-2"
         :aria-label="label || 'Цвет'"
@@ -113,7 +114,8 @@ function choose(value: unknown) {
           <span
             v-if="model?.toLowerCase() === color.toLowerCase()"
             :style="{ color: tinycolor(color).isLight() ? '#000' : '#fff' }"
-          >✓</span>
+            >✓</span
+          >
         </button>
         <AppMenu
           :disabled="disabled"
@@ -129,7 +131,7 @@ function choose(value: unknown) {
               :class="customSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background'"
               :style="{
                 backgroundColor: customColor,
-                color: tinycolor(customColor).isLight() ? '#000' : '#fff'
+                color: tinycolor(customColor).isLight() ? '#000' : '#fff',
               }"
             >
               <AppIcon

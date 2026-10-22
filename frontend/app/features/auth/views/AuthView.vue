@@ -58,10 +58,20 @@ const loginHandler = async () => {
   authLoading.value = true
   try {
     const result = await login({ email: email.value, password: password.value })
-    if (result.error) { toast.error('Неверная почта или пароль'); return }
+    if (result.error) {
+      toast.error('Неверная почта или пароль')
+      return
+    }
     const redirect = router.currentRoute.value.query.redirect
-    await router.replace(typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : { name: 'home' })
-  } catch { toast.error('Не удалось войти. Попробуйте ещё раз') }
-  finally { authLoading.value = false }
+    await router.replace(
+      typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+        ? redirect
+        : { name: 'home' },
+    )
+  } catch {
+    toast.error('Не удалось войти. Попробуйте ещё раз')
+  } finally {
+    authLoading.value = false
+  }
 }
 </script>

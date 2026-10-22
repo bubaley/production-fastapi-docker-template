@@ -10,7 +10,7 @@ const props = withDefaults(
     color?: string
     showValue?: boolean
   }>(),
-  { value: 0, min: 0, max: 100, size: 40, thickness: 0.16, showValue: true }
+  { value: 0, min: 0, max: 100, size: 40, thickness: 0.16, showValue: true },
 )
 const normalized = computed(() => {
   const range = props.max - props.min
@@ -56,6 +56,7 @@ const stroke = computed(() => Math.max(1, Math.min(20, props.thickness * 40)))
     <span
       v-if="showValue"
       class="relative"
-    ><slot>{{ Math.round(normalized) }}%</slot></span>
+      ><slot>{{ Math.round(normalized) }}%</slot></span
+    >
   </span>
 </template>

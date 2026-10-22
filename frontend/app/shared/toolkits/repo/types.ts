@@ -67,7 +67,12 @@ export type AppRepo<T extends AppModel> = {
     config?: RepoListConfig,
     onError?: RepoOnError,
   ) => Promise<{ items: T[]; pagination: AppPagination } | undefined>
-  retrieve: (id: string | number, params?: Record<string, unknown>, onError?: RepoOnError, config?: RepoRetrieveConfig) => Promise<T | undefined>
+  retrieve: (
+    id: string | number,
+    params?: Record<string, unknown>,
+    onError?: RepoOnError,
+    config?: RepoRetrieveConfig,
+  ) => Promise<T | undefined>
   create: (object: T, onError?: RepoOnError) => Promise<T | undefined>
   update: (object: T, onError?: RepoOnError) => Promise<T | undefined>
   delete: (object: T, onError?: RepoOnError) => Promise<any | undefined>

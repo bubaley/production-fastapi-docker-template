@@ -2,9 +2,29 @@
 import AppModal from './AppModal.vue'
 import AppButton from './AppButton.vue'
 const model = defineModel<boolean>({ default: false })
-withDefaults(defineProps<{ loading?: boolean; title?: string; description?: string; cancelLabel?: string; discardLabel?: string; saveLabel?: string; closeLabel?: string }>(), { title: 'Сохранить изменения?', description: 'У вас есть несохранённые изменения.', cancelLabel: 'Отмена', discardLabel: 'Не сохранять', saveLabel: 'Сохранить' })
+withDefaults(
+  defineProps<{
+    loading?: boolean
+    title?: string
+    description?: string
+    cancelLabel?: string
+    discardLabel?: string
+    saveLabel?: string
+    closeLabel?: string
+  }>(),
+  {
+    title: 'Сохранить изменения?',
+    description: 'У вас есть несохранённые изменения.',
+    cancelLabel: 'Отмена',
+    discardLabel: 'Не сохранять',
+    saveLabel: 'Сохранить',
+  },
+)
 const emit = defineEmits<{ save: []; discard: []; cancel: [] }>()
-function cancel() { model.value = false; emit('cancel') }
+function cancel() {
+  model.value = false
+  emit('cancel')
+}
 </script>
 <template>
   <AppModal

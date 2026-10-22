@@ -2,7 +2,6 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 dayjs.extend(utc)
 
-
 const formats = {
   date: 'DD.MM.YYYY',
   time: 'HH:mm',

@@ -46,7 +46,7 @@ const toggle = () => {
       :disabled="disabled"
       class="peer sr-only"
       @change="toggle"
-    >
+    />
     <span
       aria-hidden="true"
       class="relative box-border block size-[18px] min-h-[18px] min-w-[18px] shrink-0 overflow-hidden rounded border border-border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50"

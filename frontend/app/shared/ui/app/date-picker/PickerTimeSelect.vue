@@ -7,7 +7,7 @@ import { maskClockInput } from './format'
 import { useOverlayStack } from '../useOverlayStack'
 const props = withDefaults(
   defineProps<{ modelValue: string | null; label: string; disabled?: boolean; locale?: 'ru' | 'en'; step?: number }>(),
-  { locale: 'ru', step: 15 }
+  { locale: 'ru', step: 15 },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: string | null]; activate: [] }>()
 const open = ref(false)
@@ -43,7 +43,7 @@ watch(
       emit('activate')
     } else commit()
   },
-  { flush: 'sync' }
+  { flush: 'sync' },
 )
 function select(value: string | null) {
   dirty.value = false
@@ -71,7 +71,7 @@ defineExpose({ commit })
         size="sm"
         :disabled="disabled"
         :aria-label="label"
-        class="shrink-0 border-0 px-1.5 font-normal tabular-nums shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-[color:var(--ds-field-hover)]"
+        class="shrink-0 border-0 px-1.5 font-normal tabular-nums shadow-none hover:bg-[color:var(--ds-field-hover)] focus-visible:ring-0 focus-visible:ring-offset-0"
         :class="!modelValue && 'text-muted-foreground'"
       >
         {{ modelValue ? format(modelValue) : '00:00:00' }}
@@ -96,7 +96,7 @@ defineExpose({ commit })
           inputmode="numeric"
           autocomplete="off"
           :disabled="disabled"
-          class="mb-1.5 [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-input"
+          class="mb-1.5 [&_input]:focus-visible:border-input [&_input]:focus-visible:ring-0"
           maxlength="8"
           @update:model-value="edit"
           @keydown.enter.prevent="commit() && (open = false)"

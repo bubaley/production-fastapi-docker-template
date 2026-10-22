@@ -21,13 +21,13 @@ export function useOverlayStack(open: Ref<boolean>) {
         stack.push({ id, layer: layer.value })
       }
     },
-    { immediate: true, flush: 'sync' }
+    { immediate: true, flush: 'sync' },
   )
   onScopeDispose(unregister)
 
   return {
     backdropStyle: computed(() => ({ '--app-overlay-z': layer.value })),
     contentStyle: computed(() => ({ '--app-overlay-z': layer.value + 1 })),
-    isTop: computed(() => stack.at(-1)?.id === id)
+    isTop: computed(() => stack.at(-1)?.id === id),
   }
 }

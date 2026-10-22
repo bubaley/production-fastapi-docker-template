@@ -16,7 +16,15 @@ describe('page composition', () => {
     const wrapper = mount(AppPageView, {
       props: { title: 'Главная', description: 'Описание' },
       global,
-      slots: { prefix: '<span>Иконка</span>', 'title-append': '<span>Метка</span>', actions: '<button>Действие</button>', subheader: '<div>До разделителя</div>', controls: '<div>После разделителя</div>', default: '<div>Содержимое</div>', footer: '<div>Итоги</div>' },
+      slots: {
+        prefix: '<span>Иконка</span>',
+        'title-append': '<span>Метка</span>',
+        actions: '<button>Действие</button>',
+        subheader: '<div>До разделителя</div>',
+        controls: '<div>После разделителя</div>',
+        default: '<div>Содержимое</div>',
+        footer: '<div>Итоги</div>',
+      },
     })
     expect(wrapper.findAll('h1')).toHaveLength(1)
     expect(wrapper.text().match(/Описание/g)).toHaveLength(1)
@@ -24,8 +32,13 @@ describe('page composition', () => {
     expect(wrapper.get('footer').text()).toBe('Итоги')
     expect(wrapper.get('header').text()).toContain('Действие')
     const regions = wrapper.get('section').element.children
-    expect(Array.from(regions).map(region => region.textContent?.trim())).toEqual([
-      'ИконкаГлавнаяМеткаОписаниеДействие', 'До разделителя', '', 'После разделителя', 'Содержимое', 'Итоги',
+    expect(Array.from(regions).map((region) => region.textContent?.trim())).toEqual([
+      'ИконкаГлавнаяМеткаОписаниеДействие',
+      'До разделителя',
+      '',
+      'После разделителя',
+      'Содержимое',
+      'Итоги',
     ])
   })
 
@@ -33,7 +46,10 @@ describe('page composition', () => {
     const title = mount(AppPageView, { global, slots: { title: 'Особый заголовок', subtitle: 'Старая панель' } })
     expect(title.get('h1').text()).toBe('Особый заголовок')
     expect(title.text()).toContain('Старая панель')
-    const header = mount(AppPageView, { global, slots: { header: '<h1>Своя шапка</h1>', subtitle: 'Старая панель', subheader: 'Новая панель' } })
+    const header = mount(AppPageView, {
+      global,
+      slots: { header: '<h1>Своя шапка</h1>', subtitle: 'Старая панель', subheader: 'Новая панель' },
+    })
     expect(header.findAll('h1')).toHaveLength(1)
     expect(header.text()).toContain('Новая панель')
     expect(header.text()).not.toContain('Старая панель')

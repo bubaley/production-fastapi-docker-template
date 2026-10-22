@@ -39,9 +39,9 @@ export function useFilterSelectedItems(spec: MaybeRefOrGetter<ViewFilterSpec>, f
       return (Array.isArray(value) ? value : [value]).flatMap((id) =>
         (typeof id === 'string' && id !== '') || typeof id === 'number'
           ? [{ key: `${name}:${id}`, id: id as string | number, retrieve: (id: string | number) => repo.retrieve!(id) }]
-          : []
+          : [],
       )
-    })
+    }),
   )
   watch(
     desired,
@@ -59,7 +59,7 @@ export function useFilterSelectedItems(spec: MaybeRefOrGetter<ViewFilterSpec>, f
       }
       pump()
     },
-    { immediate: true }
+    { immediate: true },
   )
   onBeforeUnmount(() => {
     disposed = true

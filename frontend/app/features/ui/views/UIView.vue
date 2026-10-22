@@ -6,7 +6,11 @@ import UiLayoutShowcase from '../components/UiLayoutShowcase.vue'
 import UiTemplatesShowcase from '../components/UiTemplatesShowcase.vue'
 const tab = ref('components')
 const colorMode = useColorMode()
-const tabs = [{ label: 'Components', value: 'components' }, { label: 'Layout', value: 'layout' }, { label: 'Templates', value: 'templates' }]
+const tabs = [
+  { label: 'Components', value: 'components' },
+  { label: 'Layout', value: 'layout' },
+  { label: 'Templates', value: 'templates' },
+]
 </script>
 <template>
   <AppPageView

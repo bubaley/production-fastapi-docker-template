@@ -40,7 +40,12 @@ onMounted(() => {
 })
 onBeforeUnmount(() => observer?.disconnect())
 const model = defineModel<string | null>({ default: '' })
-const text = computed({ get: () => model.value ?? '', set: (value: string | number) => { model.value = String(value) } })
+const text = computed({
+  get: () => model.value ?? '',
+  set: (value: string | number) => {
+    model.value = String(value)
+  },
+})
 watch(model, () => void nextTick(resize))
 </script>
 <template>
@@ -69,7 +74,7 @@ watch(model, () => void nextTick(resize))
           autoGrow && 'min-h-0 resize-none overflow-hidden',
           variant === 'ghost' &&
             'border-transparent bg-transparent shadow-none hover:border-border focus-visible:border-ring',
-          error && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
+          error && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30',
         ]"
         @input="resize"
       />

@@ -28,7 +28,7 @@ export function formatPickerValue(
   value: string | null | undefined,
   mask = DEFAULT_DATE_MASK,
   time = false,
-  locale = 'ru'
+  locale = 'ru',
 ): string {
   if (!value) return ''
   if (value.startsWith('now')) return value
@@ -43,7 +43,7 @@ export function parsePickerText(
   mask = DEFAULT_DATE_MASK,
   time = false,
   locale = 'ru',
-  smart = false
+  smart = false,
 ): string | null | undefined {
   const value = text.trim()
   if (!value) return null
@@ -53,7 +53,7 @@ export function parsePickerText(
     const parsed = dayjs(value, format, locale, true)
     if (!parsed.isValid()) continue
     const result = parsed.format(
-      format === dateMask ? 'YYYY-MM-DD' : format.includes('ss') ? 'YYYY-MM-DDTHH:mm:ss' : 'YYYY-MM-DDTHH:mm'
+      format === dateMask ? 'YYYY-MM-DD' : format.includes('ss') ? 'YYYY-MM-DDTHH:mm:ss' : 'YYYY-MM-DDTHH:mm',
     )
     if (resolvePickerValue(result)) return result
   }

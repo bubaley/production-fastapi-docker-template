@@ -22,7 +22,7 @@ const id = computed(() => (typeof attrs.id === 'string' ? attrs.id : generatedId
       :value="val"
       :disabled="disable || disabled"
       class="size-4 border-input accent-primary focus-visible:ring-2 focus-visible:ring-ring"
-    >
+    />
     <slot>{{ label }}</slot>
   </label>
 </template>

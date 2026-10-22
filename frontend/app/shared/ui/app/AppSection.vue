@@ -45,6 +45,8 @@ withDefaults(defineProps<AppSectionProps>(), { display: 'column', titleSize: 'lg
       </p>
       <slot name="subtitle" />
     </header>
-    <div :class="display === 'column' ? 'flex min-w-0 flex-col gap-4' : 'flex min-w-0 flex-wrap items-center gap-4'"><slot /></div>
+    <div :class="display === 'column' ? 'flex min-w-0 flex-col gap-4' : 'flex min-w-0 flex-wrap items-center gap-4'">
+      <slot />
+    </div>
   </section>
 </template>

@@ -37,10 +37,7 @@ const resolveWsBaseUrl = (): string | undefined => {
   }
 }
 
-export const useWebSocketService = (
-  channel: MaybeRefOrGetter<string | null>,
-  options: UseWebSocketOptions = {},
-) => {
+export const useWebSocketService = (channel: MaybeRefOrGetter<string | null>, options: UseWebSocketOptions = {}) => {
   const wsBaseUrl = resolveWsBaseUrl()
 
   const wsUrl = computed(() => {

@@ -10,7 +10,7 @@ import {
   appControlStyles,
   appControlIconSize,
   type AppFieldVariant,
-  type AppControlSize
+  type AppControlSize,
 } from './types/control'
 
 defineOptions({ inheritAttrs: false })
@@ -43,18 +43,26 @@ const props = withDefaults(defineProps<AppInputProps>(), { type: 'text', size: '
 const model = defineModel<string | null>({ default: '' })
 const localValue = ref(model.value ?? '')
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
-watch(model, value => { clearTimeout(debounceTimer); localValue.value = value ?? '' })
+watch(model, (value) => {
+  clearTimeout(debounceTimer)
+  localValue.value = value ?? ''
+})
 onBeforeUnmount(() => clearTimeout(debounceTimer))
 const inputModel = computed({
   get: () => localValue.value,
   set: (value: string | number) => {
     localValue.value = String(value)
     clearTimeout(debounceTimer)
-    if (props.debounce) debounceTimer = setTimeout(() => { model.value = localValue.value }, props.debounce)
+    if (props.debounce)
+      debounceTimer = setTimeout(() => {
+        model.value = localValue.value
+      }, props.debounce)
     else model.value = localValue.value
   },
 })
-const effectiveIcon = computed(() => props.loading ? 'svg-spinners:180-ring' : props.icon || (props.isSearch ? 'lucide:search' : undefined))
+const effectiveIcon = computed(() =>
+  props.loading ? 'svg-spinners:180-ring' : props.icon || (props.isSearch ? 'lucide:search' : undefined),
+)
 const attrs = useAttrs()
 const inputRef = ref<{ $el: HTMLInputElement }>()
 const emit = defineEmits<{ clear: [] }>()
@@ -100,7 +108,7 @@ const describedBy = (message?: string) => [attrs['aria-describedby'], message].f
           :style="{
             ...appControlStyles.input[props.size],
             ...($slots.prepend || effectiveIcon ? { paddingLeft: '2.5rem' } : {}),
-            ...($slots.append || (clearable && clearInline) ? { paddingRight: '2.5rem' } : {})
+            ...($slots.append || (clearable && clearInline) ? { paddingRight: '2.5rem' } : {}),
           }"
           :class="[
             appControlRadiusClasses[props.size],
@@ -110,17 +118,18 @@ const describedBy = (message?: string) => [attrs['aria-describedby'], message].f
             variant === 'secondary' &&
               'border-transparent bg-secondary text-secondary-foreground shadow-none enabled:hover:bg-accent',
             variant === 'ghost' && 'border-transparent bg-transparent shadow-none',
-            error && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30'
+            error && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30',
           ]"
         />
         <span
           v-if="$slots.prepend || effectiveIcon"
           class="absolute left-3 flex"
           :class="!model ? 'text-muted-foreground' : variant === 'active-outline' ? 'text-primary' : 'text-foreground'"
-        ><slot name="prepend"><AppIcon
-          :icon="effectiveIcon"
-          :size="appControlIconSize[size]"
-        /></slot></span>
+          ><slot name="prepend"
+            ><AppIcon
+              :icon="effectiveIcon"
+              :size="appControlIconSize[size]" /></slot
+        ></span>
         <AppClearButton
           v-if="clearable && model && !disabled && !readonly"
           :size="size"
@@ -129,7 +138,7 @@ const describedBy = (message?: string) => [attrs['aria-describedby'], message].f
           class="absolute right-2 transition-opacity"
           :class="
             !clearInline &&
-              'opacity-0 pointer-events-none group-hover/input:opacity-100 group-hover/input:pointer-events-auto group-focus-within/input:opacity-100 group-focus-within/input:pointer-events-auto'
+            'pointer-events-none opacity-0 group-focus-within/input:pointer-events-auto group-focus-within/input:opacity-100 group-hover/input:pointer-events-auto group-hover/input:opacity-100'
           "
           :label="attrs['lang'] === 'en' ? 'Clear' : 'Очистить'"
           @click="clear"
@@ -137,7 +146,8 @@ const describedBy = (message?: string) => [attrs['aria-describedby'], message].f
         <span
           v-else-if="$slots.append"
           class="absolute right-1 flex text-muted-foreground"
-        ><slot name="append" /></span>
+          ><slot name="append"
+        /></span>
       </span>
     </template>
   </AppField>

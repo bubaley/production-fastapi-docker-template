@@ -3,7 +3,7 @@
     v-if="showPagination"
     class="flex justify-center"
   >
-    <div class="flex justify-center mt-4 lg:mt-0">
+    <div class="mt-4 flex justify-center lg:mt-0">
       <AppButton
         v-if="pagination.has_next"
         label="Показать еще"

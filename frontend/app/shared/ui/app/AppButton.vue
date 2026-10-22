@@ -9,7 +9,7 @@ import {
   appControlRadiusClasses,
   appControlStyles,
   appControlIconSize,
-  type AppButtonSize
+  type AppButtonSize,
 } from './types/control'
 
 export type AppButtonProps = {
@@ -40,32 +40,54 @@ const props = withDefaults(defineProps<AppButtonProps>(), {
   textVariant: 'base',
   size: 'default',
   iconPosition: 'start',
-  type: 'button'
+  type: 'button',
 })
 const router = useRouter()
 const slots = useSlots()
 const emit = defineEmits<{ click: [event: MouseEvent] }>()
-const controlSize = computed(() => props.size === 'small' ? 'sm' : props.size === 'large' ? 'lg' : props.icon && !props.label && !slots.default && props.size === 'default' ? 'icon' : props.size)
-const buttonVariant = computed(() => props.text || props.variant === 'text' ? 'ghost' : props.outlined || props.variant === 'outlined' || props.variant === 'active-outline' ? 'outline' : props.severity === 'danger' ? 'destructive' : props.severity === 'secondary' ? 'secondary' : props.variant)
+const controlSize = computed(() =>
+  props.size === 'small'
+    ? 'sm'
+    : props.size === 'large'
+      ? 'lg'
+      : props.icon && !props.label && !slots.default && props.size === 'default'
+        ? 'icon'
+        : props.size,
+)
+const buttonVariant = computed(() =>
+  props.text || props.variant === 'text'
+    ? 'ghost'
+    : props.outlined || props.variant === 'outlined' || props.variant === 'active-outline'
+      ? 'outline'
+      : props.severity === 'danger'
+        ? 'destructive'
+        : props.severity === 'secondary'
+          ? 'secondary'
+          : props.variant,
+)
 const textVariantClasses = computed(() => {
   if (props.textVariant !== 'muted') return undefined
-  const hoverClass = buttonVariant.value === 'primary'
-    ? 'hover:text-primary-foreground focus-visible:text-primary-foreground'
-    : buttonVariant.value === 'default' || buttonVariant.value === 'destructive'
-      ? 'hover:text-background focus-visible:text-background'
-      : buttonVariant.value === 'link'
-        ? 'hover:text-primary focus-visible:text-primary'
-        : buttonVariant.value === 'secondary'
-          ? 'hover:text-secondary-foreground focus-visible:text-secondary-foreground'
-          : 'hover:text-foreground focus-visible:text-foreground'
+  const hoverClass =
+    buttonVariant.value === 'primary'
+      ? 'hover:text-primary-foreground focus-visible:text-primary-foreground'
+      : buttonVariant.value === 'default' || buttonVariant.value === 'destructive'
+        ? 'hover:text-background focus-visible:text-background'
+        : buttonVariant.value === 'link'
+          ? 'hover:text-primary focus-visible:text-primary'
+          : buttonVariant.value === 'secondary'
+            ? 'hover:text-secondary-foreground focus-visible:text-secondary-foreground'
+            : 'hover:text-foreground focus-visible:text-foreground'
   return ['text-muted-foreground', hoverClass]
 })
-function handleClick(event: MouseEvent) { emit('click', event); if (props.to) void router.push(props.to) }
+function handleClick(event: MouseEvent) {
+  emit('click', event)
+  if (props.to) void router.push(props.to)
+}
 </script>
 
 <template>
   <Button
-    class="cursor-pointer disabled:cursor-not-allowed disabled:pointer-events-auto"
+    class="cursor-pointer disabled:pointer-events-auto disabled:cursor-not-allowed"
     :type="type"
     :variant="buttonVariant"
     :size="controlSize"
@@ -77,7 +99,7 @@ function handleClick(event: MouseEvent) { emit('click', event); if (props.to) vo
       textVariantClasses,
       fluid && 'w-full',
       variant === 'ghost' && 'hover:bg-[color:var(--ds-field-hover)]',
-      variant === 'active-outline' && activeOutlineClasses
+      variant === 'active-outline' && activeOutlineClasses,
     ]"
     @click="handleClick"
   >

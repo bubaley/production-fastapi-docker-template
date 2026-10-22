@@ -4,10 +4,7 @@ export const useUserRepo = defineStore('userRepo', () => {
   const config = getRepoConfig({ resource: 'users', codec: userCodec })
   const { state, actions } = createAppRepo(config)()
 
-  const changePassword = (
-    id: string,
-    data: { current_password?: string; new_password: string },
-  ) =>
+  const changePassword = (id: string, data: { current_password?: string; new_password: string }) =>
     actions.send({
       method: 'post',
       id,

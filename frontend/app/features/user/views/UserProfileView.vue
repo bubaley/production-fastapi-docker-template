@@ -10,8 +10,8 @@
           size="xlarge"
         />
         <div>
-          <div class="break-all text-xl font-bold">{{ data.email }}</div>
-          <div class="text-muted-foreground mt-1">{{ data.first_name }} {{ data.last_name }}</div>
+          <div class="text-xl font-bold break-all">{{ data.email }}</div>
+          <div class="mt-1 text-muted-foreground">{{ data.first_name }} {{ data.last_name }}</div>
           <UserChangePasswordButton
             v-if="userId"
             :user-id="userId"

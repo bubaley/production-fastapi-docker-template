@@ -7,7 +7,10 @@ import AppListTemplate from '../app/shared/ui/template/AppListTemplate.vue'
 import { useRepoData } from '../app/shared/toolkits/repo/composables/useRepoData'
 
 const pagination = (page = 1) => ({ page, size: 50, total: 500, pages: 10, has_next: page < 10 })
-const response = (page: number) => ({ pagination: pagination(page), items: Array.from({ length: 50 }, (_, index) => ({ id: String((page - 1) * 50 + index + 1) })) })
+const response = (page: number) => ({
+  pagination: pagination(page),
+  items: Array.from({ length: 50 }, (_, index) => ({ id: String((page - 1) * 50 + index + 1) })),
+})
 beforeEach(() => {
   vi.stubGlobal('ref', ref)
   vi.stubGlobal('shallowRef', shallowRef)
@@ -19,26 +22,50 @@ beforeEach(() => {
   vi.stubGlobal('paginationFromServer', (raw = {}) => ({ ...pagination(), has_next: false, ...raw }))
 })
 afterEach(() => vi.unstubAllGlobals())
-const createList = (repo: unknown, props = {}, slots = {}) => mount(AppListTemplate, {
-  props: { repo: repo as never, ...props },
-  slots,
-  global: { components: { AppPage }, stubs: {
-    AppInput: { props: ['modelValue'], emits: ['update:modelValue'], template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />' },
-    AppTitle: true,
-    AppBackButton: true,
-    AppList: { name: 'AppList', props: ['items', 'infiniteScroll'], emits: ['loadMore'], template: '<div><span v-for="item in items" :key="item.id">{{ item.id }}</span><button @click="$emit(\'loadMore\')">Ещё</button></div>' },
-    AppButton: true,
-    AppModal: true,
-    AppDetailTemplate: true,
-  } },
-})
+const createList = (repo: unknown, props = {}, slots = {}) =>
+  mount(AppListTemplate, {
+    props: { repo: repo as never, ...props },
+    slots,
+    global: {
+      components: { AppPage },
+      stubs: {
+        AppInput: {
+          props: ['modelValue'],
+          emits: ['update:modelValue'],
+          template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+        },
+        AppTitle: true,
+        AppBackButton: true,
+        AppList: {
+          name: 'AppList',
+          props: ['items', 'infiniteScroll'],
+          emits: ['loadMore'],
+          template:
+            '<div><span v-for="item in items" :key="item.id">{{ item.id }}</span><button @click="$emit(\'loadMore\')">Ещё</button></div>',
+        },
+        AppButton: true,
+        AppModal: true,
+        AppDetailTemplate: true,
+      },
+    },
+  })
 
 describe('list template pagination', () => {
   it('keeps search and filters outside the scrolling body while wiring search back to the query', async () => {
-    const repo = { list: vi.fn((query, config) => Promise.resolve(query.name
-      ? { items: [{ id: '500' }], pagination: { ...pagination(), has_next: false } }
-      : response(config.pagination.page))) }
-    const wrapper = createList(repo, { searchParam: 'name', debounce: 0 }, { filters: '<div data-test="filters">Фильтры</div>' })
+    const repo = {
+      list: vi.fn((query, config) =>
+        Promise.resolve(
+          query.name
+            ? { items: [{ id: '500' }], pagination: { ...pagination(), has_next: false } }
+            : response(config.pagination.page),
+        ),
+      ),
+    }
+    const wrapper = createList(
+      repo,
+      { searchParam: 'name', debounce: 0 },
+      { filters: '<div data-test="filters">Фильтры</div>' },
+    )
     await flushPromises()
     expect(wrapper.get('main').find('input').exists()).toBe(false)
     expect(wrapper.get('main').find('[data-test="filters"]').exists()).toBe(false)
@@ -61,7 +88,12 @@ describe('list template pagination', () => {
     expect(wrapper.findAll('span')).toHaveLength(100)
     wrapper.findComponent(AppListToolbar).vm.$emit('update:filters', { key: 'sample', active: false, count: 0 })
     await flushPromises()
-    expect(repo.list.mock.calls.at(-1)?.[0]).toEqual({ key: 'sample', active: false, count: 0, organization_id: 'scope' })
+    expect(repo.list.mock.calls.at(-1)?.[0]).toEqual({
+      key: 'sample',
+      active: false,
+      count: 0,
+      organization_id: 'scope',
+    })
     expect(repo.list.mock.calls.at(-1)?.[1].pagination.page).toBe(1)
     expect(wrapper.findAll('span')).toHaveLength(50)
     wrapper.findComponent(AppListToolbar).vm.$emit('update:filters', {})
@@ -82,13 +114,15 @@ describe('list template pagination', () => {
     }
     await wrapper.get('button').trigger('click')
     expect(repo.list).toHaveBeenCalledTimes(10)
-    expect(new Set(wrapper.findAll('span').map(node => node.text())).size).toBe(500)
+    expect(new Set(wrapper.findAll('span').map((node) => node.text())).size).toBe(500)
     wrapper.unmount()
   })
 
   it('ignores repeated load-more events while a page is pending', async () => {
     let resolve!: (value: ReturnType<typeof response>) => void
-    const pending = new Promise<ReturnType<typeof response>>(yes => { resolve = yes })
+    const pending = new Promise<ReturnType<typeof response>>((yes) => {
+      resolve = yes
+    })
     const repo = { list: vi.fn().mockResolvedValueOnce(response(1)).mockReturnValueOnce(pending) }
     const wrapper = createList(repo)
     await flushPromises()

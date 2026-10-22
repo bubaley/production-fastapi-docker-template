@@ -10,5 +10,6 @@ const accessibleLabel = computed(() => props.label || 'Нет данных')
     class="inline-block text-muted-foreground"
     :aria-label="accessibleLabel"
     :title="accessibleLabel"
-  >—</span>
+    >—</span
+  >
 </template>

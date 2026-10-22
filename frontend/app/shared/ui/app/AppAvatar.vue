@@ -9,10 +9,10 @@
       :src="src!"
       :alt="initial"
       @error="imageFailed = true"
-    >
+    />
     <span
       v-else-if="!hasDefaultSlot"
-      class="app-avatar__initial text-white font-semibold"
+      class="app-avatar__initial font-semibold text-white"
     >
       {{ initial }}
     </span>

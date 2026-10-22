@@ -13,7 +13,11 @@ beforeEach(() => {
   })
   vi.spyOn(console, 'warn').mockImplementation(() => {})
 })
-afterEach(() => { dayjs.locale('en'); vi.unstubAllGlobals(); vi.restoreAllMocks() })
+afterEach(() => {
+  dayjs.locale('en')
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
 describe('SSR date label formatting', () => {
   it('uses Russian week boundaries and labels regardless of global dayjs locale', () => {
     const scope = effectScope()

@@ -17,7 +17,7 @@
       <OrganizationMembersList
         v-if="item.id"
         :organization="item"
-        class="mb-0! mt-6"
+        class="mt-6 mb-0!"
       />
     </template>
   </AppDetailTemplate>

@@ -31,7 +31,6 @@ export const paginationCodec = createCodec<AppPagination>({
       pages = raw.meta.has_next ? page + 1 : page
     }
 
-
     return {
       page,
       size: raw?.meta?.page_size || DEFAULT_PAGE_SIZE,

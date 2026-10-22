@@ -3,11 +3,30 @@ import { useUiDemoRepo, uiDemoCodec } from '../composables/useUiDemoRepo'
 const repo = useUiDemoRepo()
 const detail = ref(uiDemoCodec.decode({ name: 'New project', owner: 'Anna Smith' }))
 const toast = useToast()
-const actionLabels = { save: 'Save', cancel: 'Cancel', delete: 'Delete', deleteTitle: 'Delete project?', deleteDescription: 'This removes the demo project.', close: 'Close', saved: 'Saved', deleted: 'Deleted', saveError: 'Could not save', deleteError: 'Could not delete' }
+const actionLabels = {
+  save: 'Save',
+  cancel: 'Cancel',
+  delete: 'Delete',
+  deleteTitle: 'Delete project?',
+  deleteDescription: 'This removes the demo project.',
+  close: 'Close',
+  saved: 'Saved',
+  deleted: 'Deleted',
+  saveError: 'Could not save',
+  deleteError: 'Could not delete',
+}
 const tableState = ref('normal')
 const tableVariant = ref<'default' | 'outline'>('default')
-const tableVariants = [{ label: 'default', value: 'default' }, { label: 'outline', value: 'outline' }]
-const states = [{ label: 'Data', value: 'normal' }, { label: 'Loading', value: 'loading' }, { label: 'Empty', value: 'empty' }, { label: 'Error', value: 'error' }]
+const tableVariants = [
+  { label: 'default', value: 'default' },
+  { label: 'outline', value: 'outline' },
+]
+const states = [
+  { label: 'Data', value: 'normal' },
+  { label: 'Loading', value: 'loading' },
+  { label: 'Empty', value: 'empty' },
+  { label: 'Error', value: 'error' },
+]
 </script>
 <template>
   <div class="space-y-10">
@@ -86,7 +105,11 @@ const states = [{ label: 'Data', value: 'normal' }, { label: 'Loading', value: '
           detail-mode="modal"
           template-variant="section"
           :build-new-item="() => uiDemoCodec.decode({})"
-          :detail-modal-props="{ title: 'Project', closeLabel: 'Close', actionsProps: { disableRouterAutoResolving: true, labels: actionLabels } }"
+          :detail-modal-props="{
+            title: 'Project',
+            closeLabel: 'Close',
+            actionsProps: { disableRouterAutoResolving: true, labels: actionLabels },
+          }"
         >
           <AppColumn
             field="name"

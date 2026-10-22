@@ -1,6 +1,5 @@
 export type TemplateVariant = 'page' | 'section' | 'flat-section'
 
-
 export type ActionDisplayMode = 'label' | 'icon' | 'both'
 
 export const colorTokens = [

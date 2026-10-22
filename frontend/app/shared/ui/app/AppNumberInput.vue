@@ -17,7 +17,7 @@ const text = computed({
   set: (value: string) => {
     const number = value === '' ? null : Number(value)
     if (number === null || Number.isFinite(number)) emit('update:modelValue', number)
-  }
+  },
 })
 </script>
 <template>

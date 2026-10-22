@@ -48,7 +48,10 @@ export const useActionState = <T>(fn: (...args: any[]) => Promise<T> | T, params
   }
   const schedule = () => {
     clearTimeout(timer)
-    if (params?.debounce) timer = setTimeout(() => { void run() }, params.debounce)
+    if (params?.debounce)
+      timer = setTimeout(() => {
+        void run()
+      }, params.debounce)
     else void run()
   }
   const execute = (...args: any[]) => {

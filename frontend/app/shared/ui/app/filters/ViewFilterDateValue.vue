@@ -16,17 +16,17 @@ const props = withDefaults(
     locale?: 'ru' | 'en'
     disabled?: boolean
   }>(),
-  { size: 'default', locale: 'ru' }
+  { size: 'default', locale: 'ru' },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: FilterValue] }>()
 const range = computed<DatePickerRange>(() => ({
   start: Array.isArray(props.modelValue) ? String(props.modelValue[0] || '') || null : null,
-  end: Array.isArray(props.modelValue) ? String(props.modelValue[1] || '') || null : null
+  end: Array.isArray(props.modelValue) ? String(props.modelValue[1] || '') || null : null,
 }))
 function updateRange(value: DatePickerRange) {
   emit('update:modelValue', [
     dateFilterValue(value.start, props.field.kind === 'datetime', false),
-    dateFilterValue(value.end, props.field.kind === 'datetime', true)
+    dateFilterValue(value.end, props.field.kind === 'datetime', true),
   ])
 }
 </script>
@@ -46,7 +46,14 @@ function updateRange(value: DatePickerRange) {
     :locale="locale"
     @update:range="updateRange"
     @update:model-value="
-      emit('update:modelValue', dateFilterValue(typeof $event === 'string' ? $event : null, field.kind === 'datetime', lookup === 'lte' || lookup === 'lt'))
+      emit(
+        'update:modelValue',
+        dateFilterValue(
+          typeof $event === 'string' ? $event : null,
+          field.kind === 'datetime',
+          lookup === 'lte' || lookup === 'lt',
+        ),
+      )
     "
   >
     <template #trigger="{ formattedValue }">
@@ -58,9 +65,7 @@ function updateRange(value: DatePickerRange) {
         class="max-w-full truncate"
         :class="formattedValue ? 'text-foreground' : 'text-muted-foreground'"
       >
-        <span class="truncate">{{
-          formattedValue || (locale === 'en' ? 'Select date...' : 'Выбрать дату...')
-        }}</span>
+        <span class="truncate">{{ formattedValue || (locale === 'en' ? 'Select date...' : 'Выбрать дату...') }}</span>
       </AppButton>
     </template>
   </AppDatePicker>

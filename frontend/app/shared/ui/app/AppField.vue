@@ -11,7 +11,8 @@ const messageId = computed(() => `${fieldId.value}-message`)
       v-if="label"
       :for="fieldId"
       class="text-sm font-medium text-foreground"
-    >{{ label }}</label><slot
+      >{{ label }}</label
+    ><slot
       :id="fieldId"
       :described-by="error || hint ? messageId : undefined"
     /><span
@@ -19,6 +20,7 @@ const messageId = computed(() => `${fieldId.value}-message`)
       :id="messageId"
       class="text-xs"
       :class="error ? 'text-destructive' : 'text-muted-foreground'"
-    >{{ error || hint }}</span>
+      >{{ error || hint }}</span
+    >
   </div>
 </template>

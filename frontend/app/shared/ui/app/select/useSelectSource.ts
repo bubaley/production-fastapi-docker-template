@@ -7,7 +7,7 @@ export function useSelectSource<T>(
   open: Ref<boolean>,
   search: Ref<string>,
   key: (item: T) => SelectValue,
-  remember: (items: T[]) => void
+  remember: (items: T[]) => void,
 ) {
   const items = shallowRef<T[]>([])
   const loading = ref(false)
@@ -34,11 +34,17 @@ export function useSelectSource<T>(
     error.value = null
     try {
       const result = await repo.list(
-        { ...props().extraParams, ...props().query, ...(!props().onlyClientSearch && search.value.trim() ? { [props().searchParam ?? 'search']: search.value.trim() } : {}) },
+        {
+          ...props().extraParams,
+          ...props().query,
+          ...(!props().onlyClientSearch && search.value.trim()
+            ? { [props().searchParam ?? 'search']: search.value.trim() }
+            : {}),
+        },
         {
           pagination: { page: requestedPage, size: props().pageSize ?? 30, total: 0, pages: 0, has_next: false },
-          storeInRepo: false
-        }
+          storeInRepo: false,
+        },
       )
       if (requestRevision !== revision || (!open.value && !props().autoLoad)) return
       if (!result) throw new Error('Не удалось загрузить варианты')
@@ -67,23 +73,33 @@ export function useSelectSource<T>(
       }, props().debounce ?? 300)
     } else void load(1)
   }
-  watch(() => props().repo?.revision, () => {
-    invalidate()
-    items.value = []
-    error.value = null
-    page.value = 0
-    hasMore.value = false
-  }, { flush: 'sync' })
+  watch(
+    () => props().repo?.revision,
+    () => {
+      invalidate()
+      items.value = []
+      error.value = null
+      page.value = 0
+      hasMore.value = false
+    },
+    { flush: 'sync' },
+  )
   watch([open, () => props().repo, () => props().disabled, () => props().pageSize], () => restart(false), {
     immediate: true,
-    flush: 'sync'
+    flush: 'sync',
   })
   watch(
     () => JSON.stringify([props().query, props().extraParams]),
     () => restart(true),
-    { flush: 'sync' }
+    { flush: 'sync' },
   )
-  watch(search, () => { if (!props().onlyClientSearch) restart(true) }, { flush: 'sync' })
+  watch(
+    search,
+    () => {
+      if (!props().onlyClientSearch) restart(true)
+    },
+    { flush: 'sync' },
+  )
   onScopeDispose(invalidate)
   return {
     items,
@@ -96,6 +112,6 @@ export function useSelectSource<T>(
     },
     retry: () => {
       if (!pending.value) void load(failedPage)
-    }
+    },
   }
 }

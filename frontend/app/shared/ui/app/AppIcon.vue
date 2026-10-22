@@ -3,7 +3,13 @@ import type { Component } from 'vue'
 import { Circle, LoaderCircle } from '@lucide/vue'
 import { semanticColorClasses, type AppSemanticColor } from './types/label-types'
 export type AppIconSize = 'xs' | 'sm' | 'md' | 'lg'
-export type AppIconProps = { icon?: Component | string; size?: AppIconSize | number; label?: string; color?: AppSemanticColor; loading?: boolean }
+export type AppIconProps = {
+  icon?: Component | string
+  size?: AppIconSize | number
+  label?: string
+  color?: AppSemanticColor
+  loading?: boolean
+}
 withDefaults(defineProps<AppIconProps>(), { icon: () => Circle, size: 'md' })
 const sizes: Record<AppIconSize, number> = { xs: 12, sm: 14, md: 16, lg: 20 }
 </script>

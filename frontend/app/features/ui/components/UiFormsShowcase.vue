@@ -11,15 +11,30 @@ const member = ref<string | null>('anna')
 const members = ref<string[]>(['anna', 'mark'])
 const date = ref<string | null>('2026-09-27')
 const range = ref({ from: '2026-09-27', to: '2026-10-02' })
-const people = [{ id: 'anna', name: 'Anna Smith' }, { id: 'mark', name: 'Mark Wilson' }, { id: 'elena', name: 'Elena Parker' }]
+const people = [
+  { id: 'anna', name: 'Anna Smith' },
+  { id: 'mark', name: 'Mark Wilson' },
+  { id: 'elena', name: 'Elena Parker' },
+]
 const filters = ref<ViewFilters>({})
 const filterSearch = ref('')
-const spec: ViewFilterSpec = { fields: [
-  { field: 'name', label: 'Name', kind: 'text', lookups: ['icontains', 'exact'] },
-  { field: 'status', label: 'Status', kind: 'choice', lookups: ['in', 'exact'], items: [{ id: 'active', name: 'In progress' }, { id: 'done', name: 'Success' }] },
-  { field: 'created_at', label: 'Created at', kind: 'date', lookups: ['gte', 'lte', 'exact'] },
-  { field: 'enabled', label: 'Active', kind: 'boolean', lookups: ['exact'] },
-] }
+const spec: ViewFilterSpec = {
+  fields: [
+    { field: 'name', label: 'Name', kind: 'text', lookups: ['icontains', 'exact'] },
+    {
+      field: 'status',
+      label: 'Status',
+      kind: 'choice',
+      lookups: ['in', 'exact'],
+      items: [
+        { id: 'active', name: 'In progress' },
+        { id: 'done', name: 'Success' },
+      ],
+    },
+    { field: 'created_at', label: 'Created at', kind: 'date', lookups: ['gte', 'lte', 'exact'] },
+    { field: 'enabled', label: 'Active', kind: 'boolean', lookups: ['exact'] },
+  ],
+}
 </script>
 <template>
   <div class="space-y-10">
@@ -99,10 +114,12 @@ const spec: ViewFilterSpec = { fields: [
               v-model="checked"
               label="Receive notifications"
             />
-            <label class="flex items-center gap-2 text-sm"><AppSwitch
-              v-model="enabled"
-              aria-label="Project is active"
-            />Project is active</label>
+            <label class="flex items-center gap-2 text-sm"
+              ><AppSwitch
+                v-model="enabled"
+                aria-label="Project is active"
+              />Project is active</label
+            >
             <div class="flex gap-4">
               <AppRadio
                 v-model="priority"
@@ -131,7 +148,11 @@ const spec: ViewFilterSpec = { fields: [
           always-show-add
           wrap
         />
-        <p class="text-xs text-muted-foreground">{{ Object.keys(filters).length ? `Active conditions: ${Object.keys(filters).length}` : 'No conditions added' }}</p>
+        <p class="text-xs text-muted-foreground">
+          {{
+            Object.keys(filters).length ? `Active conditions: ${Object.keys(filters).length}` : 'No conditions added'
+          }}
+        </p>
       </AppCard>
     </AppSection>
   </div>

@@ -4,7 +4,7 @@
     interactive
     class="mb-4 flex w-full p-4"
   >
-    <div class="flex items-center gap-4 w-full">
+    <div class="flex w-full items-center gap-4">
       <Icon
         :name="icon"
         size="30"

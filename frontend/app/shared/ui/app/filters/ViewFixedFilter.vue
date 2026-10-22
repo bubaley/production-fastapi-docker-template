@@ -20,7 +20,7 @@ const props = withDefaults(
     size?: AppControlSize
     disabled?: boolean
   }>(),
-  { locale: 'ru', size: 'default' }
+  { locale: 'ru', size: 'default' },
 )
 const model = defineModel<ViewFilters>({ required: true })
 const optionalRow = computed(() => conditionRows([props.field], model.value)[0])
@@ -33,12 +33,12 @@ const entry = computed(() =>
         ? key === `${props.field.field}__in`
         : key === props.field.field || key === `${props.field.field}__exact`)
     )
-  })
+  }),
 )
 const lookup = computed(() =>
   props.config.mode === 'optional'
     ? (optionalRow.value?.lookup ?? (supportsDateRange(props.field) ? 'range' : props.field.lookups[0] || 'exact'))
-    : entry.value?.[0].split('__')[1] || (entry.value ? 'exact' : props.field.lookups[0] || 'exact')
+    : entry.value?.[0].split('__')[1] || (entry.value ? 'exact' : props.field.lookups[0] || 'exact'),
 )
 const value = computed(() => {
   const raw = entry.value?.[1]
@@ -56,7 +56,7 @@ const value = computed(() => {
 })
 function set(
   value: unknown,
-  operator = props.config.mode === 'multiple' ? 'in' : props.config.mode === 'single' ? 'exact' : lookup.value
+  operator = props.config.mode === 'multiple' ? 'in' : props.config.mode === 'single' ? 'exact' : lookup.value,
 ) {
   if (props.config.mode === 'optional') {
     model.value = writeCondition(
@@ -64,7 +64,7 @@ function set(
       props.field,
       lookup.value,
       value == null || value === '' ? null : operator,
-      value as FilterValue
+      value as FilterValue,
     )
     return
   }

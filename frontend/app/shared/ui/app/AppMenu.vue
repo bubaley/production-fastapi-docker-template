@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from '~/shared/ui/shadcn/dropdown-menu'
 import AppTitle from './AppTitle.vue'
 import {
@@ -18,7 +18,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuLabel,
-  ContextMenuSeparator
+  ContextMenuSeparator,
 } from '~/shared/ui/shadcn/context-menu'
 
 export type AppMenuAction = {
@@ -58,15 +58,19 @@ const props = withDefaults(
     modal: true,
     align: 'end',
     side: 'bottom',
-    sideOffset: 6
-  }
+    sideOffset: 6,
+  },
 )
 
 const open = defineModel<boolean>('open', { default: false })
 const model = defineModel<boolean>({ default: false })
-watch(model, value => { open.value = value })
-watch(open, value => { model.value = value })
-const visibleActions = computed(() => props.actions.filter(action => !action.hidden))
+watch(model, (value) => {
+  open.value = value
+})
+watch(open, (value) => {
+  model.value = value
+})
+const visibleActions = computed(() => props.actions.filter((action) => !action.hidden))
 const loading = ref(false)
 const { contentStyle: overlayStyle } = useOverlayStack(open)
 const emit = defineEmits<{ select: [action: AppMenuAction] }>()
@@ -74,9 +78,22 @@ const close = () => (open.value = false)
 async function selectAction(action: AppMenuAction) {
   if (loading.value || action.disabled || action.loading) return
   loading.value = true
-  try { await action.action?.(); emit('select', action) } finally { loading.value = false }
+  try {
+    await action.action?.()
+    emit('select', action)
+  } finally {
+    loading.value = false
+  }
 }
-defineExpose({ hide: close, show: () => { open.value = true }, toggle: () => { open.value = !open.value } })
+defineExpose({
+  hide: close,
+  show: () => {
+    open.value = true
+  },
+  toggle: () => {
+    open.value = !open.value
+  },
+})
 </script>
 
 <template>
@@ -135,8 +152,8 @@ defineExpose({ hide: close, show: () => { open.value = true }, toggle: () => { o
           :role="action.checked !== undefined ? 'menuitemradio' : 'menuitem'"
           :aria-checked="action.checked"
           :class="
-            (action.destructive || action.severity === 'danger')
-              ? 'text-destructive focus:bg-destructive/10 hover:text-destructive focus:text-destructive'
+            action.destructive || action.severity === 'danger'
+              ? 'text-destructive hover:text-destructive focus:bg-destructive/10 focus:text-destructive'
               : 'text-foreground/75 hover:text-foreground focus:text-foreground'
           "
           @select="selectAction(action)"

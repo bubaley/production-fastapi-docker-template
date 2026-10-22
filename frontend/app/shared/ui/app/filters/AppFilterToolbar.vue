@@ -27,24 +27,26 @@ const props = withDefaults(
     size?: AppControlSize
     disabled?: boolean
   }>(),
-  { locale: 'ru', size: 'default', showAdd: true }
+  { locale: 'ru', size: 'default', showAdd: true },
 )
 const filters = defineModel<ViewFilters>({ required: true })
 const search = defineModel<string>('search', { default: '' })
 const availableSpec = computed(() => ({
   fields: props.spec.fields.filter(
     (field) =>
-      (!props.visibleFields || props.visibleFields.includes(field.field)) && !props.hiddenFields?.includes(field.field)
-  )
+      (!props.visibleFields || props.visibleFields.includes(field.field)) && !props.hiddenFields?.includes(field.field),
+  ),
 }))
 const dynamicSpec = computed(() => ({
-  fields: availableSpec.value.fields.filter((field) => !props.availableFields || props.availableFields.includes(field.field))
+  fields: availableSpec.value.fields.filter(
+    (field) => !props.availableFields || props.availableFields.includes(field.field),
+  ),
 }))
 const fixed = computed(() =>
   (props.fixedFields ?? []).flatMap((config, index, all) => {
     const field = availableSpec.value.fields.find((field) => field.field === config.field)
     return field && all.findIndex((item) => item.field === config.field) === index ? [{ config, field }] : []
-  })
+  }),
 )
 const excludedKeys = computed(() =>
   fixed.value.flatMap(({ field, config }) => {
@@ -54,7 +56,7 @@ const excludedKeys = computed(() =>
       return row?.lookup === 'range' ? [`${field.field}__gte`, `${field.field}__lte`] : row ? [row.key] : []
     }
     return config.mode === 'multiple' ? [`${field.field}__in`] : [field.field, `${field.field}__exact`]
-  })
+  }),
 )
 const initializedDefaults = new Set<string>()
 watch(
@@ -78,7 +80,7 @@ watch(
     }
     if (changed) filters.value = next
   },
-  { immediate: true }
+  { immediate: true },
 )
 const selectedItems = useFilterSelectedItems(availableSpec, filters)
 </script>
@@ -88,7 +90,7 @@ const selectedItems = useFilterSelectedItems(availableSpec, filters)
     :aria-label="locale === 'en' ? 'View filters' : 'Фильтры представления'"
   >
     <div
-      :class="wrap ? 'contents' : 'flex max-w-full shrink-0 self-start flex-wrap items-center gap-1.5 py-1'"
+      :class="wrap ? 'contents' : 'flex max-w-full shrink-0 flex-wrap items-center gap-1.5 self-start py-1'"
       data-filter-fixed
     >
       <AppInput
@@ -139,7 +141,7 @@ const selectedItems = useFilterSelectedItems(availableSpec, filters)
       :class="
         wrap
           ? 'contents'
-          : 'flex min-w-0 flex-1 items-center gap-1.5 py-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+          : 'flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-1.5 overflow-x-auto py-1 [&::-webkit-scrollbar]:hidden'
       "
       data-filter-dynamic
     >

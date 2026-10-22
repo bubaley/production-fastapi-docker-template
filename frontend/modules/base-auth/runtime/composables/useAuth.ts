@@ -66,7 +66,6 @@ export const useAuth = () => {
         const responseCookies = rawResponse.headers.get('set-cookie') || ''
         if (responseCookies) responseCookie.value = responseCookies.split(',')
       }
-
     } finally {
       if (requestGeneration === generation.value) state.value.isLoading = false
     }
@@ -99,7 +98,7 @@ export const useAuth = () => {
     async () => {
       return await request('/tokens')
     },
-    { immediate: false }
+    { immediate: false },
   )
 
   const getSessionAsyncData = useAsyncData(
@@ -122,7 +121,7 @@ export const useAuth = () => {
       }
       return response
     },
-    { immediate: false }
+    { immediate: false },
   )
 
   // Async handler

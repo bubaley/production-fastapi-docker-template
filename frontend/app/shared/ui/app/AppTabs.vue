@@ -24,13 +24,19 @@ const props = withDefaults(
   }>(),
   {
     ariaLabel: 'Разделы',
-    variant: 'segment'
-  }
+    variant: 'segment',
+  },
 )
 
 const model = defineModel<string>({ required: true })
 const tabModel = defineModel<AppTab | undefined>('tab')
-watch(model, () => { tabModel.value = props.tabs.find(tab => tab.value === model.value) }, { immediate: true })
+watch(
+  model,
+  () => {
+    tabModel.value = props.tabs.find((tab) => tab.value === model.value)
+  },
+  { immediate: true },
+)
 const router = inject(routerKey, undefined)
 const activeTab = computed(() => props.tabs.find((tab) => tab.value === model.value))
 
@@ -62,7 +68,7 @@ watch(
     if (typeof value === 'string' && props.tabs.some((tab) => tab.value === value && !tab.disabled)) {
       model.value = value
     }
-  }
+  },
 )
 </script>
 

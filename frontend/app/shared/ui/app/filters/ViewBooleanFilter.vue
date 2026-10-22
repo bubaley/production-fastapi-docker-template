@@ -12,7 +12,7 @@ const props = withDefaults(
     size?: AppControlSize
     locale?: 'ru' | 'en'
   }>(),
-  { clearable: true, size: 'default', locale: 'ru' }
+  { clearable: true, size: 'default', locale: 'ru' },
 )
 const model = defineModel<boolean | null>({ default: null })
 const switchId = useId()
@@ -35,7 +35,8 @@ function onControlClick(event: MouseEvent) {
     <span
       class="text-muted-foreground"
       :style="appControlStyles.selectValue[size]"
-    >{{ label }}</span>
+      >{{ label }}</span
+    >
     <AppSwitch
       :id="switchId"
       :model-value="model === true"
@@ -51,7 +52,7 @@ function onControlClick(event: MouseEvent) {
     :model-value="model === null ? null : String(model)"
     :items="[
       { id: 'true', name: locale === 'en' ? 'Yes' : 'Да' },
-      { id: 'false', name: locale === 'en' ? 'No' : 'Нет' }
+      { id: 'false', name: locale === 'en' ? 'No' : 'Нет' },
     ]"
     emit-value
     clearable

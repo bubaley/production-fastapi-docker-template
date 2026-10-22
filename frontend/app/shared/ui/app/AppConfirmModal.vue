@@ -3,7 +3,7 @@
     v-model="model"
     :width="width"
     :title="title"
-    :description="hideSubtitle ? undefined : (description || subtitle)"
+    :description="hideSubtitle ? undefined : description || subtitle"
     v-bind="$attrs"
   >
     <slot />

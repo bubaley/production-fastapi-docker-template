@@ -13,7 +13,7 @@ const props = withDefaults(defineProps<DatePickerProps>(), {
   mask: DEFAULT_DATE_MASK,
   applyMode: 'auto',
   navigation: 'scroll',
-  months: 1
+  months: 1,
 })
 const model = defineModel<string | null>({ default: null })
 const range = defineModel<DatePickerRange>('range', { default: () => ({ start: null, end: null }) })
@@ -132,14 +132,14 @@ const presets = computed(() =>
         ['6h', en.value ? 'Last 6 hours' : 'Последние 6 часов'],
         ['24h', en.value ? 'Last 24 hours' : 'Последние 24 часа'],
         ['7d', en.value ? 'Last 7 days' : 'Последние 7 дней'],
-        ['30d', en.value ? 'Last 30 days' : 'Последние 30 дней']
+        ['30d', en.value ? 'Last 30 days' : 'Последние 30 дней'],
       ]
     : [
         ['0', en.value ? 'Today' : 'Сегодня'],
         ['1', en.value ? 'Tomorrow' : 'Завтра'],
         ['7', en.value ? 'In a week' : 'Через неделю'],
-        ['14', en.value ? 'In two weeks' : 'Через две недели']
-      ]
+        ['14', en.value ? 'In two weeks' : 'Через две недели'],
+      ],
 )
 function preset(key: string) {
   if (locked.value) return

@@ -10,13 +10,13 @@ withDefaults(defineProps<AppPageViewProps>(), { contentClass: 'p-3 md:p-4' })
     <template
       v-if="
         title ||
-          description ||
-          $slots.header ||
-          $slots.title ||
-          $slots.prefix ||
-          $slots['title-append'] ||
-          $slots.actions ||
-          backAction
+        description ||
+        $slots.header ||
+        $slots.title ||
+        $slots.prefix ||
+        $slots['title-append'] ||
+        $slots.actions ||
+        backAction
       "
       #header
     >

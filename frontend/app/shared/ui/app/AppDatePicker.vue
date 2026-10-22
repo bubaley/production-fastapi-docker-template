@@ -9,35 +9,61 @@ import PickerPanel from './date-picker/PickerPanel.vue'
 import { DEFAULT_DATE_MASK, formatPickerValue } from './date-picker/format'
 import type { DatePickerProps, DatePickerRange, DatePickerTriggerBindings } from './date-picker/types'
 export type CDatePickerChangeData = { startDate: string | null; endDate: string | null; dates: string[] }
-export type AppDatePickerProps = DatePickerProps & { selectionMode?: 'single' | 'range'; data?: CDatePickerChangeData | null; startDate?: string | null; endDate?: string | null }
-const emit = defineEmits<{ 'update:data': [value: CDatePickerChangeData]; 'update:startDate': [value: string | null]; 'update:endDate': [value: string | null] }>()
+export type AppDatePickerProps = DatePickerProps & {
+  selectionMode?: 'single' | 'range'
+  data?: CDatePickerChangeData | null
+  startDate?: string | null
+  endDate?: string | null
+}
+const emit = defineEmits<{
+  'update:data': [value: CDatePickerChangeData]
+  'update:startDate': [value: string | null]
+  'update:endDate': [value: string | null]
+}>()
 const props = withDefaults(defineProps<AppDatePickerProps>(), {
   mode: 'single',
   navigation: 'scroll',
   months: 1,
   locale: 'ru',
   mask: DEFAULT_DATE_MASK,
-  applyMode: 'auto'
+  applyMode: 'auto',
 })
 const legacyModel = defineModel<string | (string | null)[] | null>({ default: null })
 const effectiveMode = computed(() => props.selectionMode ?? props.mode)
 const notify = (start: string | null, end: string | null) => {
   emit('update:startDate', start)
   emit('update:endDate', end)
-  emit('update:data', { startDate: start, endDate: end, dates: [start, end].filter((value, index, all): value is string => value !== null && all.indexOf(value) === index) })
+  emit('update:data', {
+    startDate: start,
+    endDate: end,
+    dates: [start, end].filter((value, index, all): value is string => value !== null && all.indexOf(value) === index),
+  })
 }
 const model = computed({
-  get: () => props.data?.dates[0] ?? (typeof legacyModel.value === 'string' ? legacyModel.value : props.startDate ?? null),
-  set: (value: string | null) => { legacyModel.value = value; notify(value, value) }
+  get: () =>
+    props.data?.dates[0] ?? (typeof legacyModel.value === 'string' ? legacyModel.value : (props.startDate ?? null)),
+  set: (value: string | null) => {
+    legacyModel.value = value
+    notify(value, value)
+  },
 })
 const rangeModel = defineModel<DatePickerRange>('range', { default: () => ({ start: null, end: null }) })
 const range = computed({
-  get: () => props.selectionMode === 'range' ? { start: props.data?.startDate ?? (Array.isArray(legacyModel.value) ? legacyModel.value[0] : props.startDate) ?? null, end: props.data?.endDate ?? (Array.isArray(legacyModel.value) ? legacyModel.value[1] : props.endDate) ?? null } : rangeModel.value,
+  get: () =>
+    props.selectionMode === 'range'
+      ? {
+          start:
+            props.data?.startDate ??
+            (Array.isArray(legacyModel.value) ? legacyModel.value[0] : props.startDate) ??
+            null,
+          end: props.data?.endDate ?? (Array.isArray(legacyModel.value) ? legacyModel.value[1] : props.endDate) ?? null,
+        }
+      : rangeModel.value,
   set: (value: DatePickerRange) => {
     rangeModel.value = value
     if (props.selectionMode === 'range') legacyModel.value = [value.start, value.end]
     notify(value.start, value.end)
-  }
+  },
 })
 const panel = ref<InstanceType<typeof PickerPanel>>()
 const open = defineModel<boolean>('open', { default: false })
@@ -46,7 +72,7 @@ watch(
   (value, previous) => {
     if (!value && previous && props.applyMode === 'close') panel.value?.commitOnClose()
   },
-  { flush: 'sync' }
+  { flush: 'sync' },
 )
 const { contentStyle: overlayStyle } = useOverlayStack(open)
 defineSlots<{ trigger(props: DatePickerTriggerBindings): unknown }>()
@@ -54,7 +80,7 @@ const valueLabel = computed(() =>
   (effectiveMode.value === 'range' ? [range.value.start, range.value.end] : [model.value])
     .filter(Boolean)
     .map((value) => formatPickerValue(value, props.mask, props.time, props.locale))
-    .join(' - ')
+    .join(' - '),
 )
 const triggerBindings = computed<DatePickerTriggerBindings>(() => ({
   mode: effectiveMode.value,
@@ -64,7 +90,7 @@ const triggerBindings = computed<DatePickerTriggerBindings>(() => ({
   formattedValue: valueLabel.value,
   open: open.value,
   disabled: Boolean(props.disabled),
-  readonly: Boolean(props.readonly)
+  readonly: Boolean(props.readonly),
 }))
 const width = computed(
   () =>
@@ -74,7 +100,7 @@ const width = computed(
         ? 288
         : effectiveMode.value === 'single'
           ? 340
-          : 360) + (props.smart ? 168 : 0)
+          : 360) + (props.smart ? 168 : 0),
 )
 </script>
 <template>
@@ -92,20 +118,20 @@ const width = computed(
           :name="name"
           :value="model || ''"
           :disabled="disabled"
-        >
+        />
         <template v-else>
           <input
             type="hidden"
             :name="`${name}-start`"
             :value="range.start || ''"
             :disabled="disabled"
-          >
+          />
           <input
             type="hidden"
             :name="`${name}-end`"
             :value="range.end || ''"
             :disabled="disabled"
-          >
+          />
         </template>
       </template>
       <PickerPanel
@@ -129,7 +155,7 @@ const width = computed(
               ...triggerBindings,
               id: field.id,
               'aria-describedby': field.describedBy,
-              'aria-invalid': !!error || undefined
+              'aria-invalid': !!error || undefined,
             }"
           >
             <AppButton
@@ -147,7 +173,8 @@ const width = computed(
               <span
                 class="truncate"
                 :class="!valueLabel && 'text-muted-foreground'"
-              >{{ valueLabel || placeholder || (locale === 'en' ? 'Choose date' : 'Выбрать дату') }}</span>
+                >{{ valueLabel || placeholder || (locale === 'en' ? 'Choose date' : 'Выбрать дату') }}</span
+              >
             </AppButton>
           </slot>
         </PopoverTrigger>

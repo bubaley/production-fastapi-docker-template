@@ -39,7 +39,7 @@ const props = withDefaults(defineProps<DateRangeLabelProps>(), {
   isUtc: true,
   combineEqualDates: true,
   format: 'shortcut',
-  type: 'datetime'
+  type: 'datetime',
 })
 
 const emit = defineEmits<{

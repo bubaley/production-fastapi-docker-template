@@ -5,7 +5,7 @@ withDefaults(defineProps<AppPageProps>(), { title: '', contentClass: 'p-4' })
 </script>
 
 <template>
-  <section class="flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden">
+  <section class="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
     <div
       v-if="title || $slots.header"
       class="shrink-0"

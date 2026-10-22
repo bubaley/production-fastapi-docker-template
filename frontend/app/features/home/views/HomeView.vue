@@ -34,10 +34,12 @@
           placeholder="Найти возможность страницы"
           class="w-full sm:max-w-xs"
         />
-        <label class="flex items-center gap-2 text-sm"><AppSwitch
-          v-model="showExamples"
-          aria-label="Показать примеры"
-        />Показать примеры</label>
+        <label class="flex items-center gap-2 text-sm"
+          ><AppSwitch
+            v-model="showExamples"
+            aria-label="Показать примеры"
+          />Показать примеры</label
+        >
       </div>
     </template>
 
@@ -87,7 +89,9 @@
           variant="muted"
         >
           <p class="font-medium">Пример содержимого {{ index }}</p>
-          <p class="mt-2 text-sm text-muted-foreground">Здесь могут находиться списки, формы, карточки и другие разделы приложения.</p>
+          <p class="mt-2 text-sm text-muted-foreground">
+            Здесь могут находиться списки, формы, карточки и другие разделы приложения.
+          </p>
         </AppCard>
       </AppSection>
     </div>
@@ -107,22 +111,73 @@
 <script setup lang="ts">
 const search = ref('')
 const showExamples = ref(true)
-const resetExample = () => { search.value = ''; showExamples.value = true }
+const resetExample = () => {
+  search.value = ''
+  showExamples.value = true
+}
 const features = [
-  { title: 'Шапка и заголовок', description: 'Единый заголовок страницы с описанием и иконкой.', example: 'Слоты prefix, title и title-append дополняют заголовок. Слот header заменяет шапку целиком; backAction добавляет возврат.' },
-  { title: 'Действия страницы', description: 'Основные действия доступны справа в шапке.', example: 'Слот actions содержит переходы в настройки, смену организации и каталог компонентов.' },
-  { title: 'Панель под шапкой', description: 'Контекст и дополнительная навигация располагаются перед разделителем.', example: 'Слот subheader показывает ссылку на организации. Прежнее имя subtitle тоже поддерживается.' },
-  { title: 'Панель под разделителем', description: 'Поиск, фильтры и переключатели находятся над прокручиваемым содержимым.', example: 'Слот controls содержит работающий поиск по возможностям и переключатель примеров.' },
-  { title: 'Основное содержимое', description: 'Списки, формы и карточки прокручиваются внутри страницы.', example: 'Основной слот default принимает любые разделы. contentClass позволяет настроить отступы.' },
-  { title: 'Нижняя зона', description: 'Итоги и дополнительные действия доступны внизу страницы.', example: 'Слот footer показывает число найденных возможностей и действие сброса.' },
+  {
+    title: 'Шапка и заголовок',
+    description: 'Единый заголовок страницы с описанием и иконкой.',
+    example:
+      'Слоты prefix, title и title-append дополняют заголовок. Слот header заменяет шапку целиком; backAction добавляет возврат.',
+  },
+  {
+    title: 'Действия страницы',
+    description: 'Основные действия доступны справа в шапке.',
+    example: 'Слот actions содержит переходы в настройки, смену организации и каталог компонентов.',
+  },
+  {
+    title: 'Панель под шапкой',
+    description: 'Контекст и дополнительная навигация располагаются перед разделителем.',
+    example: 'Слот subheader показывает ссылку на организации. Прежнее имя subtitle тоже поддерживается.',
+  },
+  {
+    title: 'Панель под разделителем',
+    description: 'Поиск, фильтры и переключатели находятся над прокручиваемым содержимым.',
+    example: 'Слот controls содержит работающий поиск по возможностям и переключатель примеров.',
+  },
+  {
+    title: 'Основное содержимое',
+    description: 'Списки, формы и карточки прокручиваются внутри страницы.',
+    example: 'Основной слот default принимает любые разделы. contentClass позволяет настроить отступы.',
+  },
+  {
+    title: 'Нижняя зона',
+    description: 'Итоги и дополнительные действия доступны внизу страницы.',
+    example: 'Слот footer показывает число найденных возможностей и действие сброса.',
+  },
 ]
 const visibleFeatures = computed(() => {
   const term = search.value.trim().toLocaleLowerCase('ru')
-  return features.filter(feature => `${feature.title} ${feature.description} ${feature.example}`.toLocaleLowerCase('ru').includes(term))
+  return features.filter((feature) =>
+    `${feature.title} ${feature.description} ${feature.example}`.toLocaleLowerCase('ru').includes(term),
+  )
 })
 const actions: AppTemplateAction[] = [
-  { label: 'Настройки', icon: 'lucide:settings', variant: 'secondary', action: async () => { await navigateTo({ name: 'settings-profile' }) } },
-  { label: 'Сменить организацию', icon: 'lucide:building-2', variant: 'outline', action: async () => { await navigateTo({ name: 'home-setup' }) } },
-  { label: 'Компоненты интерфейса', icon: 'lucide:palette', variant: 'outline', action: async () => { await navigateTo({ name: 'ui' }) } },
+  {
+    label: 'Настройки',
+    icon: 'lucide:settings',
+    variant: 'secondary',
+    action: async () => {
+      await navigateTo({ name: 'settings-profile' })
+    },
+  },
+  {
+    label: 'Сменить организацию',
+    icon: 'lucide:building-2',
+    variant: 'outline',
+    action: async () => {
+      await navigateTo({ name: 'home-setup' })
+    },
+  },
+  {
+    label: 'Компоненты интерфейса',
+    icon: 'lucide:palette',
+    variant: 'outline',
+    action: async () => {
+      await navigateTo({ name: 'ui' })
+    },
+  },
 ]
 </script>

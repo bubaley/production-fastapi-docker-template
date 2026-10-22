@@ -1,7 +1,7 @@
 $radius-map: (
   'sm': 4px,
   'md': 8px,
-  'lg': 16px
+  'lg': 16px,
 );
 
 $size-map: (
@@ -18,7 +18,7 @@ $size-map: (
   '7xl': 88px,
   '8xl': 96px,
   '9xl': 104px,
-  '10xl': 112px
+  '10xl': 112px,
 );
 
 $title-size-map: (
@@ -27,7 +27,6 @@ $title-size-map: (
   'lg': 22px,
   'xl': 26px,
 );
-
 
 $weight-map: (
   'light': 300,
@@ -41,62 +40,62 @@ $weight-map: (
 $colors-map: (
   'red': (
     var(--color-red-500),
-    true
+    true,
   ),
   'orange': (
     var(--color-orange-500),
-    true
+    true,
   ),
   'yellow': (
     var(--color-yellow-500),
-    false
+    false,
   ),
   'green': (
     var(--color-green-500),
-    true
+    true,
   ),
   'teal': (
     var(--color-teal-500),
-    true
+    true,
   ),
   'blue': (
     var(--color-blue-500),
-    true
+    true,
   ),
   'purple': (
     var(--color-purple-500),
-    true
+    true,
   ),
   'pink': (
     var(--color-pink-500),
-    true
+    true,
   ),
   'primary': (
     var(--ds-accent),
-    true
+    true,
   ),
   'secondary': (
     var(--ds-text-muted),
-    false
+    false,
   ),
   'info': (
     var(--color-sky-500),
-    true
+    true,
   ),
   'success': (
     var(--color-green-500),
-    true
+    true,
   ),
   'warn': (
     var(--color-orange-500),
-    true
+    true,
   ),
   'danger': (
     var(--color-red-500),
-    true
+    true,
   ),
   'contrast': (
     var(--fg-base),
-    true
-  )
+    true,
+  ),
 );

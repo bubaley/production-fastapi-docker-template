@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { CircleDot, Check, TriangleAlert } from '@lucide/vue'
 import type { AppLabelConfig } from '~/shared/ui/app/types/label-types'
-const labels: AppLabelConfig[] = [{ label: 'In progress', icon: CircleDot, tone: 'primary' }, { label: 'Success', icon: Check, tone: 'positive' }, { label: 'Warning', icon: TriangleAlert, tone: 'warning' }]
-labels.push({ label: 'Info', icon: CircleDot, tone: 'info' }, { label: 'Danger', icon: TriangleAlert, tone: 'destructive' })
+const labels: AppLabelConfig[] = [
+  { label: 'In progress', icon: CircleDot, tone: 'primary' },
+  { label: 'Success', icon: Check, tone: 'positive' },
+  { label: 'Warning', icon: TriangleAlert, tone: 'warning' },
+]
+labels.push(
+  { label: 'Info', icon: CircleDot, tone: 'info' },
+  { label: 'Danger', icon: TriangleAlert, tone: 'destructive' },
+)
 const labelVariants = ['default', 'soft', 'outline'] as const
 const cards = [
   { title: 'Neutral', color: 'neutral', variant: 'outlined' },
@@ -24,7 +31,12 @@ const cards = [
     >
       <AppCard class="space-y-4">
         <AppTitle
-          v-for="sample in [{ size: 'xl', as: 'h1', text: 'xl · text-3xl · h1' }, { size: 'lg', as: 'h2', text: 'lg · text-xl · h2' }, { size: 'md', as: 'h3', text: 'md · text-base · h3' }, { size: 'sm', as: 'h4', text: 'sm · text-sm · h4' }] as const"
+          v-for="sample in [
+            { size: 'xl', as: 'h1', text: 'xl · text-3xl · h1' },
+            { size: 'lg', as: 'h2', text: 'lg · text-xl · h2' },
+            { size: 'md', as: 'h3', text: 'md · text-base · h3' },
+            { size: 'sm', as: 'h4', text: 'sm · text-sm · h4' },
+          ] as const"
           :key="sample.size"
           :size="sample.size"
           :as="sample.as"
@@ -85,7 +97,10 @@ const cards = [
           :variant="card.variant"
         >
           <div class="text-sm font-medium">{{ card.title }}</div>
-          <code class="mt-1 block text-xs text-muted-foreground">color="{{ card.color }}" variant="{{ card.variant }}"</code><p class="mt-2 text-sm text-muted-foreground">Card content: description, data or settings.</p>
+          <code class="mt-1 block text-xs text-muted-foreground"
+            >color="{{ card.color }}" variant="{{ card.variant }}"</code
+          >
+          <p class="mt-2 text-sm text-muted-foreground">Card content: description, data or settings.</p>
         </AppCard>
       </div>
     </AppSection>
@@ -135,9 +150,15 @@ const cards = [
       description="Loading and empty states preserve the page structure."
     >
       <div class="grid gap-4 sm:grid-cols-3">
-        <AppCard class="flex min-h-28 items-center justify-center"><AppLoadingIndicator label="Loading data…" /></AppCard>
-        <AppCard class="flex min-h-28 items-center justify-center gap-2"><AppEmptyData label="No data" /><span class="text-sm text-muted-foreground">No data</span></AppCard>
-        <AppCard class="flex min-h-28 items-center justify-center gap-4"><AppCircularProgress :value="68" /><span class="text-sm">68% complete</span></AppCard>
+        <AppCard class="flex min-h-28 items-center justify-center"
+          ><AppLoadingIndicator label="Loading data…"
+        /></AppCard>
+        <AppCard class="flex min-h-28 items-center justify-center gap-2"
+          ><AppEmptyData label="No data" /><span class="text-sm text-muted-foreground">No data</span></AppCard
+        >
+        <AppCard class="flex min-h-28 items-center justify-center gap-4"
+          ><AppCircularProgress :value="68" /><span class="text-sm">68% complete</span></AppCard
+        >
       </div>
     </AppSection>
   </div>

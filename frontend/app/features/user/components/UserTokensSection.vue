@@ -31,7 +31,8 @@
         <span
           v-else
           class="text-muted-foreground"
-        >—</span>
+          >—</span
+        >
       </template>
     </AppColumn>
     <AppColumn header="Создан">
@@ -52,14 +53,14 @@
           :color="detailItem.value ? 'success' : 'neutral'"
           class="w-full"
         >
-          <div class="flex items-start gap-2 w-full">
+          <div class="flex w-full items-start gap-2">
             <span class="min-w-0 flex-1 break-all whitespace-normal">
               {{ detailItem.value || detailItem.value_preview }}
             </span>
             <AppButton
               v-if="detailItem.value"
               severity="success"
-              class="shrink-0 ml-4"
+              class="ml-4 shrink-0"
               icon="lucide:copy"
               @click="copyToken(detailItem.value)"
             />

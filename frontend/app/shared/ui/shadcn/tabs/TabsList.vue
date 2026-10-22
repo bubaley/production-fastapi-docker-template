@@ -15,7 +15,7 @@ const delegatedProps = reactiveOmit(props, 'class')
     :class="
       cn(
         'inline-flex h-9 items-center gap-0.5 rounded-md border border-border bg-muted p-0.5 text-muted-foreground',
-        props.class
+        props.class,
       )
     "
   >

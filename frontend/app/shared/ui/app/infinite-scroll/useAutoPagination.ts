@@ -10,7 +10,7 @@ export function useAutoPagination(
     error: () => boolean
     requestKey: () => unknown
     load: () => void
-  }
+  },
 ) {
   let observer: IntersectionObserver | undefined
   let lastRequested: unknown = Symbol('initial')
@@ -43,10 +43,10 @@ export function useAutoPagination(
       options.hasMore(),
       options.loading(),
       options.disabled(),
-      options.error()
+      options.error(),
     ],
     observe,
-    { immediate: true, flush: 'post' }
+    { immediate: true, flush: 'post' },
   )
   onBeforeUnmount(() => {
     disposed = true

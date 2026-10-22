@@ -1,6 +1,5 @@
 import type { FetchResponse } from 'ofetch'
 
-
 export const downloadFileFromResponse = async (response: FetchResponse<Blob | ArrayBuffer>) => {
   const disposition = response.headers.get('content-disposition')
   let filename = 'download.txt'
@@ -17,7 +16,6 @@ export const downloadFileFromResponse = async (response: FetchResponse<Blob | Ar
     const downloadBlob = new Blob([response._data], { type: 'application/octet-stream' })
     downloadFile(downloadBlob, filename)
   }
-
 }
 
 export const downloadFile = (blob: Blob, filename: string) => {
@@ -31,7 +29,11 @@ export const downloadFile = (blob: Blob, filename: string) => {
   window.URL.revokeObjectURL(url)
 }
 
-export const initUploadFile = (config: { accept?: string[]; multiple?: boolean; handler: (files: FileList) => void }) => {
+export const initUploadFile = (config: {
+  accept?: string[]
+  multiple?: boolean
+  handler: (files: FileList) => void
+}) => {
   const input = document.createElement('input')
   input.setAttribute('hidden', 'true')
   input.setAttribute('type', 'file')

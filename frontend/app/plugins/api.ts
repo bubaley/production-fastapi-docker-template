@@ -1,13 +1,12 @@
-export const normalizeUrl = (baseUrl?: unknown, ...append: (unknown)[]) => {
+export const normalizeUrl = (baseUrl?: unknown, ...append: unknown[]) => {
   const url =
     [baseUrl, ...append]
-      .map((v) => typeof v === 'string' ? v.replace(/^\/+|\/+$/g, "") : null)
+      .map((v) => (typeof v === 'string' ? v.replace(/^\/+|\/+$/g, '') : null))
       .filter((v) => v)
-      .join("/") || "/";
-    if (baseUrl) return url
-    return url.startsWith("/") ? url : `/${url}`;
-};
-
+      .join('/') || '/'
+  if (baseUrl) return url
+  return url.startsWith('/') ? url : `/${url}`
+}
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()

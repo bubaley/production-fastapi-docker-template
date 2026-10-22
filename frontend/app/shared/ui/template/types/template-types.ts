@@ -55,10 +55,7 @@ export type AppListTemplateRepoManagedProps =
   | 'searchLoading'
   | 'hasNextPage'
 
-export type AppListTemplateDetailModalProps<T extends AppModel> = Omit<
-  AppDetailTemplateProps<T>,
-  'repo' | 'item'
-> & {
+export type AppListTemplateDetailModalProps<T extends AppModel> = Omit<AppDetailTemplateProps<T>, 'repo' | 'item'> & {
   width?: string
   closeLabel?: string
   closeOnSave?: boolean

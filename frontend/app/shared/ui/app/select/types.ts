@@ -14,7 +14,10 @@ export type SelectModel<T, V, Multiple extends boolean, EmitValue extends boolea
 /** Selection owns pagination and never mutates repository list state. */
 export interface SelectRepo<T> {
   revision?: number
-  list(params?: Record<string, unknown>, config?: import('~/shared/toolkits/repo/types').RepoListConfig): Promise<{ items: T[]; pagination: import('~/shared/toolkits/repo/appPagination').AppPagination } | undefined>
+  list(
+    params?: Record<string, unknown>,
+    config?: import('~/shared/toolkits/repo/types').RepoListConfig,
+  ): Promise<{ items: T[]; pagination: import('~/shared/toolkits/repo/appPagination').AppPagination } | undefined>
 }
 export interface SelectProps<T> {
   options?: T[]

@@ -11,7 +11,7 @@ export function resolveDateExpression(value: string, now = new Date()): Date | n
     const unit = match[3]
     if (unit === 'M' || unit === 'y') {
       const date = new CalendarDate(result.getFullYear(), result.getMonth() + 1, result.getDate()).add(
-        unit === 'M' ? { months: amount } : { years: amount }
+        unit === 'M' ? { months: amount } : { years: amount },
       )
       result.setFullYear(date.year, date.month - 1, date.day)
     } else if (unit === 'd' || unit === 'w') result.setDate(result.getDate() + amount * (unit === 'w' ? 7 : 1))
@@ -31,7 +31,7 @@ export function localDateValue(date: Date, time = false): string {
   const day = [
     date.getFullYear().toString().padStart(4, '0'),
     String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0')
+    String(date.getDate()).padStart(2, '0'),
   ].join('-')
   return time ? `${day}T${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}` : day
 }
@@ -48,7 +48,7 @@ export function resolvePickerValue(value: string | null | undefined, now = new D
       'hour' in parsed ? parsed.hour : 0,
       'minute' in parsed ? parsed.minute : 0,
       'second' in parsed ? parsed.second : 0,
-      0
+      0,
     )
     return result
   } catch {
@@ -62,10 +62,10 @@ export function calendarValue(value: string | null | undefined) {
 export function validatePickerValues(
   values: (string | null)[],
   options: { smart?: boolean; min?: string; max?: string; allowPartial?: boolean },
-  now = new Date()
+  now = new Date(),
 ): 'invalid' | 'order' | 'bounds' | null {
   const dates = (options.allowPartial ? values.filter((value): value is string => !!value) : values).map((value) =>
-    !options.smart && value?.startsWith('now') ? null : resolvePickerValue(value, now)
+    !options.smart && value?.startsWith('now') ? null : resolvePickerValue(value, now),
   )
   if (dates.some((date) => !date)) return 'invalid'
   if (dates.length === 2 && dates[0]! > dates[1]!) return 'order'

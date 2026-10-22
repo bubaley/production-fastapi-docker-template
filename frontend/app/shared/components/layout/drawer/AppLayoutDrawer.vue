@@ -1,7 +1,7 @@
 <template>
-  <aside class="sticky top-0 flex h-full min-h-0 max-h-full flex-col self-start overflow-hidden">
+  <aside class="sticky top-0 flex h-full max-h-full min-h-0 flex-col self-start overflow-hidden">
     <nav
-      class="bg-card radius-md flex min-h-0 flex-1 flex-col overflow-y-auto border-base border px-2 py-4 dark:border-none"
+      class="radius-md border-base flex min-h-0 flex-1 flex-col overflow-y-auto border bg-card px-2 py-4 dark:border-none"
     >
       <div
         v-for="section in sections"

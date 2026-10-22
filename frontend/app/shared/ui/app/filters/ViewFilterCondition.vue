@@ -26,19 +26,19 @@ const props = withDefaults(
     locale?: 'ru' | 'en'
     size?: AppControlSize
   }>(),
-  { locale: 'ru', size: 'default', removable: true, clearable: true }
+  { locale: 'ru', size: 'default', removable: true, clearable: true },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: unknown]; lookup: [value: string]; remove: [] }>()
 const hasValue = computed(() =>
   Array.isArray(props.modelValue)
     ? props.modelValue.some((value) => value !== '')
-    : props.modelValue !== '' && props.modelValue != null
+    : props.modelValue !== '' && props.modelValue != null,
 )
 const english = computed(() => props.locale === 'en')
 const iconButtonSize = computed(() => (props.size === 'xs' ? 'icon-xs' : props.size === 'sm' ? 'icon-sm' : 'icon'))
 const booleans = computed(() => [
   { id: 'true', name: english.value ? 'Yes' : 'Да' },
-  { id: 'false', name: english.value ? 'No' : 'Нет' }
+  { id: 'false', name: english.value ? 'No' : 'Нет' },
 ])
 function appearance(item: unknown): AppLabelConfig | undefined {
   return (item as { appearance?: AppLabelConfig } | undefined)?.appearance
@@ -56,7 +56,7 @@ function appearance(item: unknown): AppLabelConfig | undefined {
     <span
       :class="
         inline
-          ? 'flex shrink-0 items-center gap-1 whitespace-nowrap px-2 text-foreground'
+          ? 'flex shrink-0 items-center gap-1 px-2 whitespace-nowrap text-foreground'
           : 'flex items-center gap-1 pb-2 text-sm'
       "
       :style="inline ? appControlStyles.selectValue[size] : undefined"
@@ -166,10 +166,10 @@ function appearance(item: unknown): AppLabelConfig | undefined {
           'update:modelValue',
           ['in', 'not_in'].includes(lookup)
             ? String($event)
-              .split(',')
-              .map((value) => value.trim())
-              .filter(Boolean)
-            : $event
+                .split(',')
+                .map((value) => value.trim())
+                .filter(Boolean)
+            : $event,
         )
       "
     />

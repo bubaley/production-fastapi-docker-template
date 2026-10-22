@@ -1,11 +1,11 @@
 <template>
-  <div class="flex min-h-0 h-screen flex-col">
+  <div class="flex h-screen min-h-0 flex-col">
     <AppLayoutHeader />
 
     <div class="flex min-h-0 flex-1">
       <AppLayoutDrawer
         :sections="drawerSections"
-        class="pl-1 pb-1"
+        class="pb-1 pl-1"
       >
         <template #after>
           <slot name="drawer-after" />

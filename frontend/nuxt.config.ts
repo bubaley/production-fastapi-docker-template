@@ -11,7 +11,7 @@ export default defineNuxtConfig({
     public: {
       baseUrl: undefined,
       apiPrefix: '/api/v1',
-    }
+    },
   },
   modules: [
     '@nuxt/icon',
@@ -32,7 +32,7 @@ export default defineNuxtConfig({
       path: '~/shared/ui/template',
       pathPrefix: false,
       extensions: ['vue'],
-    }
+    },
   ],
   imports: {
     dirs: [
@@ -72,7 +72,7 @@ export default defineNuxtConfig({
     families: {
       Inter: '100..900',
     },
-    display: 'swap'
+    display: 'swap',
   },
   vite: {
     plugins: [tailwindcss()],
@@ -80,7 +80,12 @@ export default defineNuxtConfig({
   typescript: {
     typeCheck: false,
   },
-  css: ['~/assets/styles/tailwind.css', '~/assets/styles/global.scss', '~/assets/styles/variables.scss', '~/assets/styles/template.scss'],
+  css: [
+    '~/assets/styles/tailwind.css',
+    '~/assets/styles/global.scss',
+    '~/assets/styles/variables.scss',
+    '~/assets/styles/template.scss',
+  ],
   devServer: {
     port: 9001,
     host: 'localhost',

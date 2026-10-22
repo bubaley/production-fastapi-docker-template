@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex items-center gap-sm"
+    class="gap-sm flex items-center"
     :class="{ 'w-full *:flex-1': fullWidth }"
   >
     <AppButton

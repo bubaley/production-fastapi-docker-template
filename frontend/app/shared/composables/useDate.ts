@@ -51,12 +51,16 @@ export const useDate = (locale: MaybeRefOrGetter<DateLocale> = 'ru') => {
     // Calendar dates describe a day, not an instant, and must never shift across time zones.
     const calendarDate = type === 'date' || /^\d{4}-\d{2}-\d{2}$/.test(date)
     const value = mounted.value
-      ? calendarDate ? dayjs(date.slice(0, 10)) : isUtc ? dayjs.utc(date).local() : dayjs(date)
+      ? calendarDate
+        ? dayjs(date.slice(0, 10))
+        : isUtc
+          ? dayjs.utc(date).local()
+          : dayjs(date)
       : calendarDate
-      ? dayjs.utc(date.slice(0, 10)).utcOffset(offset.value, true)
-      : isUtc
-        ? dayjs.utc(date).utcOffset(offset.value)
-        : dayjs.utc(date).utcOffset(offset.value, true)
+        ? dayjs.utc(date.slice(0, 10)).utcOffset(offset.value, true)
+        : isUtc
+          ? dayjs.utc(date).utcOffset(offset.value)
+          : dayjs.utc(date).utcOffset(offset.value, true)
     return value.isValid() ? localized(type === 'date' ? value.startOf('day') : value) : null
   }
   const relativeDay = (date: Dayjs, config?: { disableRelativeDay?: boolean; useShortWeekday?: boolean }) => {

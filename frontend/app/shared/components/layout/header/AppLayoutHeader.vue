@@ -1,5 +1,5 @@
 <template>
-  <header class="px-2 c-background z-10 flex items-center min-h-[50px]">
+  <header class="c-background z-10 flex min-h-[50px] items-center px-2">
     <AppLogo
       class="cursor-pointer"
       @click="navigateTo('/')"

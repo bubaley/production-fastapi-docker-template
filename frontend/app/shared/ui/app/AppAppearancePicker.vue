@@ -25,7 +25,11 @@ const props = withDefaults(
     loadIcons?: () => Promise<AppAppearanceIconOption[]>
     normalizeIcon?: (value?: string | null) => string
   }>(),
-  { locale: 'ru', normalizeIcon: (value?: string | null) => value || 'circle', loadIcons: () => import('./appearanceIconCatalog').then(module => module.appearanceIcons) }
+  {
+    locale: 'ru',
+    normalizeIcon: (value?: string | null) => value || 'circle',
+    loadIcons: () => import('./appearanceIconCatalog').then((module) => module.appearanceIcons),
+  },
 )
 const icon = defineModel<string | null>('icon', { default: null })
 const color = defineModel<string | null>('color', { default: null })
@@ -36,7 +40,7 @@ const loadingIcons = ref(false)
 const icons = shallowRef<AppAppearanceIconOption[]>([])
 const iconScrollElement = ref<HTMLElement | null>(null)
 const filteredIcons = computed(() =>
-  icons.value.filter((item) => item.searchText.includes(search.value.trim().toLocaleLowerCase()))
+  icons.value.filter((item) => item.searchText.includes(search.value.trim().toLocaleLowerCase())),
 )
 const columnCount = 6
 const rowHeight = 40
@@ -49,8 +53,8 @@ const iconRowVirtualizer = useVirtualizer(
     getScrollElement: () => iconScrollElement.value,
     estimateSize: () => rowHeight,
     gap: rowGap,
-    overscan: 3
-  }))
+    overscan: 3,
+  })),
 )
 const virtualRows = computed(() => iconRowVirtualizer.value.getVirtualItems())
 const iconListHeight = computed(() => Math.min(iconRowVirtualizer.value.getTotalSize(), viewportHeight))
@@ -58,7 +62,9 @@ const iconsForRow = (rowIndex: number) => {
   const start = rowIndex * columnCount
   return filteredIcons.value.slice(start, start + columnCount)
 }
-const selectedIcon = computed(() => props.currentIcon || icons.value.find(item => item.value === selectedIconId.value)?.icon || Circle)
+const selectedIcon = computed(
+  () => props.currentIcon || icons.value.find((item) => item.value === selectedIconId.value)?.icon || Circle,
+)
 const selectedIconId = computed(() => props.normalizeIcon(icon.value))
 const subjectLabels = computed(() => {
   if (props.locale === 'en')
@@ -68,7 +74,7 @@ const subjectLabels = computed(() => {
 const triggerLabel = computed(() =>
   props.locale === 'en'
     ? `Choose ${subjectLabels.value[0]} icon and color`
-    : `Выбрать иконку и цвет ${subjectLabels.value[0]}`
+    : `Выбрать иконку и цвет ${subjectLabels.value[0]}`,
 )
 
 function selectIcon(value: string) {
@@ -82,15 +88,19 @@ function selectColor(value: string | null) {
 watch(search, () => {
   void nextTick(() => iconRowVirtualizer.value.scrollToOffset(0))
 })
-watch([open, icon], async ([isOpen, selected]) => {
-  if ((!isOpen && (!selected || props.currentIcon)) || icons.value.length || loadingIcons.value) return
-  loadingIcons.value = true
-  try {
-    icons.value = await props.loadIcons()
-  } finally {
-    loadingIcons.value = false
-  }
-}, { immediate: true })
+watch(
+  [open, icon],
+  async ([isOpen, selected]) => {
+    if ((!isOpen && (!selected || props.currentIcon)) || icons.value.length || loadingIcons.value) return
+    loadingIcons.value = true
+    try {
+      icons.value = await props.loadIcons()
+    } finally {
+      loadingIcons.value = false
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -149,10 +159,10 @@ watch([open, icon], async ([isOpen, selected]) => {
             <div
               v-for="virtualRow in virtualRows"
               :key="String(virtualRow.key)"
-              class="absolute left-0 top-0 grid w-full grid-cols-6 justify-items-center gap-1"
+              class="absolute top-0 left-0 grid w-full grid-cols-6 justify-items-center gap-1"
               :style="{
                 height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`
+                transform: `translateY(${virtualRow.start}px)`,
               }"
             >
               <AppButton
@@ -163,7 +173,7 @@ watch([open, icon], async ([isOpen, selected]) => {
                 variant="ghost"
                 :class="
                   selectedIconId === item.value &&
-                    'border border-[color:var(--appearance-icon-color)] bg-transparent hover:bg-transparent'
+                  'border border-[color:var(--appearance-icon-color)] bg-transparent hover:bg-transparent'
                 "
                 :aria-label="item.label"
                 :title="item.label"
@@ -171,7 +181,7 @@ watch([open, icon], async ([isOpen, selected]) => {
                 :disabled="disabled"
                 :style="{
                   color: color || undefined,
-                  '--appearance-icon-color': color || 'currentColor'
+                  '--appearance-icon-color': color || 'currentColor',
                 }"
                 @click="selectIcon(item.value)"
               />

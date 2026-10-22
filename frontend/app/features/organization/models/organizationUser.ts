@@ -29,8 +29,11 @@ export const organizationUserCodec = createCodec<OrganizationUser>({
       : undefined,
   }),
   // Membership is immutable after creation: the update schema accepts no fields.
-  encode: (data) => (data.id ? {} : {
-    organization_id: data.organization_id ?? null,
-    user_id: data.user?.id ?? null,
-  }),
+  encode: (data) =>
+    data.id
+      ? {}
+      : {
+          organization_id: data.organization_id ?? null,
+          user_id: data.user?.id ?? null,
+        },
 })

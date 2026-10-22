@@ -2,13 +2,12 @@ import { defineNuxtModule, addServerHandler, addImports, createResolver, addPlug
 import type { BaseAuthModuleConfig, BaseAuthModuleOptions } from './types'
 import { fileURLToPath } from 'url'
 
-
 export default defineNuxtModule<BaseAuthModuleConfig>({
   meta: {
     name: '@nuxt/base-auth',
     configKey: 'baseAuth',
     alias: {
-      '#base-auth': fileURLToPath(new URL('./', import.meta.url))
+      '#base-auth': fileURLToPath(new URL('./', import.meta.url)),
     },
     compatibility: {
       nuxt: '^4.0.0',

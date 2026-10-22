@@ -2,9 +2,12 @@
 import type { AppButtonProps } from '~/shared/ui/app/AppButton.vue'
 import type { AppControlSize } from '~/shared/ui/app/types/control'
 const variants: { label: string; variant: AppButtonProps['variant'] }[] = [
-  { label: 'default', variant: 'default' }, { label: 'Primary', variant: 'primary' },
-  { label: 'outline', variant: 'outline' }, { label: 'secondary', variant: 'secondary' },
-  { label: 'ghost', variant: 'ghost' }, { label: 'destructive', variant: 'destructive' },
+  { label: 'default', variant: 'default' },
+  { label: 'Primary', variant: 'primary' },
+  { label: 'outline', variant: 'outline' },
+  { label: 'secondary', variant: 'secondary' },
+  { label: 'ghost', variant: 'ghost' },
+  { label: 'destructive', variant: 'destructive' },
 ]
 const sizes: AppControlSize[] = ['xs', 'sm', 'default', 'lg']
 const toast = useToast()
@@ -16,9 +19,9 @@ const toast = useToast()
   >
     <AppCard>
       <p class="mb-5 text-sm text-muted-foreground">
-        Default: main action (save, create, continue). Secondary: supporting action (cancel, back).
-        Outline: toolbar actions (filters, export, columns). Ghost: compact row and menu actions.
-        Destructive: destructive confirmation. Primary: brand-colored emphasis. Accent is reserved for hover and active surfaces.
+        Default: main action (save, create, continue). Secondary: supporting action (cancel, back). Outline: toolbar
+        actions (filters, export, columns). Ghost: compact row and menu actions. Destructive: destructive confirmation.
+        Primary: brand-colored emphasis. Accent is reserved for hover and active surfaces.
       </p>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div
@@ -35,7 +38,9 @@ const toast = useToast()
         </div>
       </div>
       <div class="mt-5 border-t border-border pt-5">
-        <p class="mb-3 text-sm text-muted-foreground">Цвет текста кнопки: base сохраняет цвет варианта, muted становится обычным при наведении.</p>
+        <p class="mb-3 text-sm text-muted-foreground">
+          Цвет текста кнопки: base сохраняет цвет варианта, muted становится обычным при наведении.
+        </p>
         <AppTemplateActions
           :actions="[
             { label: 'Обычный текст', variant: 'outline', textVariant: 'base' },

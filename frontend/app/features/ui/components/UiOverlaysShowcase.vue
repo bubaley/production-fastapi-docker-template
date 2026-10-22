@@ -8,9 +8,23 @@ const modalName = ref('Working project')
 const color = ref<string | null>('#7779ed')
 const icon = ref<string | null>('folder')
 const actions = [
-  { label: 'Open modal', icon: 'lucide:panels-top-left', action: () => { modal.value = true } },
+  {
+    label: 'Open modal',
+    icon: 'lucide:panels-top-left',
+    action: () => {
+      modal.value = true
+    },
+  },
   { label: 'Rename', icon: 'lucide:pencil', action: () => toast.default('Rename requested') },
-  { label: 'Delete', icon: 'lucide:trash-2', destructive: true, separatorBefore: true, action: () => { confirm.value = true } },
+  {
+    label: 'Delete',
+    icon: 'lucide:trash-2',
+    destructive: true,
+    separatorBefore: true,
+    action: () => {
+      confirm.value = true
+    },
+  },
 ]
 </script>
 <template>
@@ -22,10 +36,34 @@ const actions = [
       <AppCard>
         <AppTemplateActions
           :actions="[
-            { label: 'Open Modal', icon: 'lucide:panels-top-left', action: () => { modal = true } },
-            { label: 'Confirmation', variant: 'outline', action: () => { confirm = true } },
-            { label: 'Drawer', variant: 'outline', action: () => { drawer = true } },
-            { label: 'Unsaved changes', variant: 'outline', action: () => { unsaved = true } },
+            {
+              label: 'Open Modal',
+              icon: 'lucide:panels-top-left',
+              action: () => {
+                modal = true
+              },
+            },
+            {
+              label: 'Confirmation',
+              variant: 'outline',
+              action: () => {
+                confirm = true
+              },
+            },
+            {
+              label: 'Drawer',
+              variant: 'outline',
+              action: () => {
+                drawer = true
+              },
+            },
+            {
+              label: 'Unsaved changes',
+              variant: 'outline',
+              action: () => {
+                unsaved = true
+              },
+            },
           ]"
         />
         <div class="mt-4 flex flex-wrap items-center gap-3">
@@ -88,7 +126,25 @@ const actions = [
           clearable
         /><AppColorPicker v-model="color" />
       </div>
-      <template #footer><AppTemplateActions :actions="[{ label: 'Cancel', variant: 'secondary', action: () => { modal = false } }, { label: 'Save', action: () => { toast.default('Changes saved'); modal = false } }]" /></template>
+      <template #footer
+        ><AppTemplateActions
+          :actions="[
+            {
+              label: 'Cancel',
+              variant: 'secondary',
+              action: () => {
+                modal = false
+              },
+            },
+            {
+              label: 'Save',
+              action: () => {
+                toast.default('Changes saved')
+                modal = false
+              },
+            },
+          ]"
+      /></template>
     </AppModal>
     <AppConfirmModal
       v-model="confirm"
@@ -98,7 +154,11 @@ const actions = [
       subtitle="This is a demo. Your data will not change."
       confirm-text="Delete"
       :confirm-props="{ variant: 'destructive' }"
-      :confirm="() => { toast.default('Action confirmed') }"
+      :confirm="
+        () => {
+          toast.default('Action confirmed')
+        }
+      "
     />
     <AppUnsavedChangesModal
       v-model="unsaved"
@@ -108,7 +168,12 @@ const actions = [
       discard-label="Discard"
       cancel-label="Cancel"
       close-label="Close"
-      @save="() => { toast.default('Changes saved'); unsaved = false }"
+      @save="
+        () => {
+          toast.default('Changes saved')
+          unsaved = false
+        }
+      "
       @discard="unsaved = false"
     />
     <AppDrawer
