@@ -89,12 +89,12 @@ const sectionBind = useSectionBind(props, {
   },
 })
 
-const { item: detailItem, loading, error, loadItem } = useTemplateDetail(
-  props.repo,
-  props.detailRouteParam,
-  props.buildNewItem,
-  props.mode === 'page',
-)
+const {
+  item: detailItem,
+  loading,
+  error,
+  loadItem,
+} = useTemplateDetail(props.repo, props.detailRouteParam, props.buildNewItem, props.mode === 'page')
 
 const currentItem = computed(() => props.item ?? detailItem.value)
 

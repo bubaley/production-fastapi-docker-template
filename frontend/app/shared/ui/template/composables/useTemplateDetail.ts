@@ -39,11 +39,17 @@ export const useTemplateDetail = <T extends AppModel>(
       if (request === generation) loading.value = false
     }
   }
-  onMounted(() => { if (preloadItem) void loadItem() })
-  watch(routeItemId, () => {
-    invalidate()
+  onMounted(() => {
     if (preloadItem) void loadItem()
-  }, { flush: 'sync' })
+  })
+  watch(
+    routeItemId,
+    () => {
+      invalidate()
+      if (preloadItem) void loadItem()
+    },
+    { flush: 'sync' },
+  )
   watch(() => repo.revision, invalidate, { flush: 'sync' })
   onScopeDispose(invalidate)
   return { loadItem, item, loading, error }

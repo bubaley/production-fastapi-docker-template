@@ -1,0 +1,5 @@
+* text=auto eol=lf
+
+# Lockfiles are generated: hide them from diffs and language stats.
+pnpm-lock.yaml -diff linguist-generated
+uv.lock -diff linguist-generated

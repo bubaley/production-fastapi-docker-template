@@ -1,26 +1,49 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { effectScope, nextTick, reactive, ref, watchEffect } from 'vue'
 import { useRepoData } from '../app/shared/toolkits/repo/composables/useRepoData'
 import { filterBySearch } from '../app/shared/utils/filterUtils'
 
 const pagination = (page = 1) => ({ page, size: 20, total: 40, pages: 2, has_next: page < 2 })
-const response = (ids: number[], page = 1) => ({ items: ids.map(id => ({ id, name: String(id) })), pagination: pagination(page) })
+const response = (ids: number[], page = 1) => ({
+  items: ids.map((id) => ({ id, name: String(id) })),
+  pagination: pagination(page),
+})
 const deferred = () => {
   let resolve!: (value: ReturnType<typeof response>) => void
   let reject!: (reason: Error) => void
-  const promise = new Promise<ReturnType<typeof response>>((yes, no) => { resolve = yes; reject = no })
+  const promise = new Promise<ReturnType<typeof response>>((yes, no) => {
+    resolve = yes
+    reject = no
+  })
   return { promise, resolve, reject }
 }
 beforeEach(() => {
-  vi.stubGlobal('paginationFromServer', (raw = {}) => ({ page: 1, size: 50, total: 0, pages: 0, has_next: false, ...raw }))
+  vi.stubGlobal('paginationFromServer', (raw = {}) => ({
+    page: 1,
+    size: 50,
+    total: 0,
+    pages: 0,
+    has_next: false,
+    ...raw,
+  }))
   vi.stubGlobal('filterBySearch', filterBySearch)
   vi.spyOn(console, 'warn').mockImplementation(() => {})
 })
-afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
 describe('repository data state', () => {
   it('clears a user context and ignores its pending list response', async () => {
     const pending = deferred()
-    const repo = reactive({ revision: 0, list: vi.fn().mockResolvedValueOnce(response([1])).mockReturnValueOnce(pending.promise) })
+    const repo = reactive({
+      revision: 0,
+      list: vi
+        .fn()
+        .mockResolvedValueOnce(response([1]))
+        .mockReturnValueOnce(pending.promise),
+    })
     const scope = effectScope()
     const state = scope.run(() => useRepoData({ repo: repo as never, autoLoad: false }))!
     await state.loadItems()
@@ -40,7 +63,9 @@ describe('repository data state', () => {
     let rendered = ''
     const state = scope.run(() => {
       const state = useRepoData<{ id: number; name: string }>({ repo: repo as never, autoLoad: false })
-      watchEffect(() => { rendered = state.items.value.map(item => item.name).join(',') })
+      watchEffect(() => {
+        rendered = state.items.value.map((item) => item.name).join(',')
+      })
       return state
     })!
     await state.loadItems()
@@ -65,7 +90,15 @@ describe('repository data state', () => {
     const repo = { list: vi.fn().mockResolvedValue(response([1])), items: [] }
     const context = ref({ organization_id: 'old' })
     const scope = effectScope()
-    const state = scope.run(() => useRepoData<{ id: number; name: string }>({ repo: repo as never, extraParams: context, debounce: 30, autoLoad: false, storeInRepo: true }))!
+    const state = scope.run(() =>
+      useRepoData<{ id: number; name: string }>({
+        repo: repo as never,
+        extraParams: context,
+        debounce: 30,
+        autoLoad: false,
+        storeInRepo: true,
+      }),
+    )!
     await state.loadItems()
     state.search.value = 'query'
     expect(state.items.value).toHaveLength(1)
@@ -79,10 +112,21 @@ describe('repository data state', () => {
     vi.useFakeTimers()
     const first = deferred()
     const second = deferred()
-    const repo = { list: vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise), pagination: pagination(2), items: [] }
+    const repo = {
+      list: vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise),
+      pagination: pagination(2),
+      items: [],
+    }
     const context = ref({ organization_id: 'old' })
     const scope = effectScope()
-    const state = scope.run(() => useRepoData<{ id: number; name: string }>({ repo: repo as never, extraParams: context, debounce: 30, autoLoad: false }))!
+    const state = scope.run(() =>
+      useRepoData<{ id: number; name: string }>({
+        repo: repo as never,
+        extraParams: context,
+        debounce: 30,
+        autoLoad: false,
+      }),
+    )!
     const previous = state.loadItems({}, { pagination: pagination(2) })
     context.value = { organization_id: 'new' }
     first.resolve(response([1], 2))
@@ -92,7 +136,7 @@ describe('repository data state', () => {
     await vi.advanceTimersByTimeAsync(30)
     second.resolve(response([2]))
     await nextTick()
-    expect(state.items.value.map(item => item.id)).toEqual([2])
+    expect(state.items.value.map((item) => item.id)).toEqual([2])
     expect(repo.list.mock.calls[1]![0]).toEqual({ organization_id: 'new' })
     expect(repo.list.mock.calls[1]![1].pagination.page).toBe(1)
     expect(repo.pagination.page).toBe(2)
@@ -102,9 +146,17 @@ describe('repository data state', () => {
   it('ignores stale errors and clears previous errors as soon as search changes', async () => {
     vi.useFakeTimers()
     const old = deferred()
-    const repo = { list: vi.fn().mockResolvedValueOnce(undefined).mockReturnValueOnce(old.promise).mockResolvedValue(response([3])) }
+    const repo = {
+      list: vi
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockReturnValueOnce(old.promise)
+        .mockResolvedValue(response([3])),
+    }
     const scope = effectScope()
-    const state = scope.run(() => useRepoData<{ id: number; name: string }>({ repo: repo as never, debounce: 25, autoLoad: false }))!
+    const state = scope.run(() =>
+      useRepoData<{ id: number; name: string }>({ repo: repo as never, debounce: 25, autoLoad: false }),
+    )!
     await expect(state.loadItems()).rejects.toThrow('Не удалось загрузить данные')
     expect(state.error.value).toBeInstanceOf(Error)
     state.search.value = 'new'
@@ -115,7 +167,7 @@ describe('repository data state', () => {
     await nextTick()
     expect(state.error.value).toBeNull()
     await vi.advanceTimersByTimeAsync(25)
-    expect(state.items.value.map(item => item.id)).toEqual([3])
+    expect(state.items.value.map((item) => item.id)).toEqual([3])
     expect(state.loading.value).toBe(false)
     scope.stop()
   })
@@ -123,7 +175,9 @@ describe('repository data state', () => {
     const result = response([1], 2)
     const repo = { list: vi.fn().mockResolvedValue(result), items: [], pagination: pagination() }
     const scope = effectScope()
-    const state = scope.run(() => useRepoData<{ id: number; name: string }>({ repo: repo as never, autoLoad: false, storeInRepo: true }))!
+    const state = scope.run(() =>
+      useRepoData<{ id: number; name: string }>({ repo: repo as never, autoLoad: false, storeInRepo: true }),
+    )!
     await state.loadItems()
     state.pagination.value.page = 4
     expect(result.pagination.page).toBe(2)
@@ -133,9 +187,12 @@ describe('repository data state', () => {
     scope.stop()
   })
   it('filters reactive local items and accessor functions without losing zero-valued IDs', async () => {
-    const items = ref([{ id: 0, name: 'Zero' }, { id: 1, name: 'One' }])
+    const items = ref([
+      { id: 0, name: 'Zero' },
+      { id: 1, name: 'One' },
+    ])
     const scope = effectScope()
-    const state = scope.run(() => useRepoData({ items, itemLabel: item => item.name, autoLoad: false }))!
+    const state = scope.run(() => useRepoData({ items, itemLabel: (item) => item.name, autoLoad: false }))!
     state.search.value = 'zero'
     expect(state.items.value).toEqual([{ id: 0, name: 'Zero' }])
     items.value = [{ id: 2, name: 'Zero two' }]

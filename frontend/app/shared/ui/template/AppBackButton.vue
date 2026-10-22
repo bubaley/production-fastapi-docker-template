@@ -1,20 +1,21 @@
 <template>
   <AppButton
-    icon="lucide:chevron-left"
-    severity="secondary"
-    variant="text"
-    :icon-size="iconSize"
+    :icon="ChevronLeft"
+    variant="ghost"
+    size="icon"
+    :aria-label="label"
+    :title="label"
     @click="backAction"
   />
 </template>
 
 <script setup lang="ts">
+import { ChevronLeft } from '@lucide/vue'
+
 export type AppBackButtonProps = {
   backAction?: () => void
-  iconSize?: number
+  label?: string
 }
 
-withDefaults(defineProps<AppBackButtonProps>(), {
-  iconSize: 22,
-})
+withDefaults(defineProps<AppBackButtonProps>(), { label: 'Назад' })
 </script>

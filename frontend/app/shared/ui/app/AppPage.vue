@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { Separator } from '~/shared/ui/shadcn/separator'
+
 export type AppPageProps = { title?: string; contentClass?: string }
 
 withDefaults(defineProps<AppPageProps>(), { title: '', contentClass: 'p-4' })
 </script>
 
 <template>
-  <section class="flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden">
+  <section class="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
     <div
       v-if="title || $slots.header"
       class="shrink-0"
@@ -25,10 +27,7 @@ withDefaults(defineProps<AppPageProps>(), { title: '', contentClass: 'p-4' })
     >
       <slot name="subheader" />
     </div>
-    <div
-      v-if="title || $slots.header || $slots.subheader"
-      class="shrink-0 border-b border-border"
-    />
+    <Separator v-if="title || $slots.header || $slots.subheader" />
     <div
       v-if="$slots.controls"
       class="shrink-0 px-3"

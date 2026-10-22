@@ -3,8 +3,8 @@ import type { ViewFilters, FilterValue } from './types'
 export function compactViewFilters(filters: ViewFilters): ViewFilters {
   return Object.fromEntries(
     Object.entries(filters).filter(
-      ([, value]) => value !== '' && value != null && (!Array.isArray(value) || value.length > 0)
-    )
+      ([, value]) => value !== '' && value != null && (!Array.isArray(value) || value.length > 0),
+    ),
   )
 }
 export function unlockedViewFilters(filters: ViewFilters, lockedFilters: ViewFilters = {}): ViewFilters {
@@ -14,12 +14,12 @@ export function unlockedViewFilters(filters: ViewFilters, lockedFilters: ViewFil
 }
 export function tableViewFiltersToQueryParams(
   filters: ViewFilters,
-  lockedFilters: ViewFilters = {}
+  lockedFilters: ViewFilters = {},
 ): Record<string, string | number | boolean> {
   return Object.fromEntries(
     Object.entries(compactViewFilters({ ...unlockedViewFilters(filters, lockedFilters), ...lockedFilters })).map(
-      ([key, value]) => [key, Array.isArray(value) ? value.join(',') : value]
-    )
+      ([key, value]) => [key, Array.isArray(value) ? value.join(',') : value],
+    ),
   )
 }
 
@@ -31,8 +31,8 @@ export function viewFiltersEqual(left: ViewFilters, right: ViewFilters): boolean
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([key, value]) => [
           key,
-          Array.isArray(value) ? [...value].sort((a, b) => String(a).localeCompare(String(b))) : value
-        ])
+          Array.isArray(value) ? [...value].sort((a, b) => String(a).localeCompare(String(b))) : value,
+        ]),
     )
   return canonical(left) === canonical(right)
 }
@@ -42,7 +42,7 @@ export function filterOperand(
   value: FilterValue | undefined,
   from: string,
   to: string,
-  booleanField = false
+  booleanField = false,
 ): FilterValue {
   if (to === 'isnull' || booleanField) return typeof value === 'boolean' ? value : true
   const previous = from === 'isnull' ? undefined : value

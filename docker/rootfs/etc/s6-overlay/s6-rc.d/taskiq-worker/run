@@ -1,0 +1,6 @@
+#!/command/with-contenv sh
+exec 2>&1
+cd /app/backend || exit 1
+exec /app/backend/.venv/bin/python -m taskiq worker app.core.broker:broker \
+    --fs-discover --tasks-pattern "app/**/tasks.py" \
+    --workers "${TASKIQ_WORKERS:-1}"

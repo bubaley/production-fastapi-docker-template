@@ -20,6 +20,8 @@
 <script setup generic="T extends AppModel" lang="ts">
 import type { AppTemplateAction } from './types/template-types'
 import type { ActionDisplayMode } from './types/template-ui-tokens'
+import type { AppButtonSize } from '../app/types/control'
+import { Trash2 } from '@lucide/vue'
 
 export type AppDetailActionsProps<T extends AppModel> = {
   labels?: {
@@ -45,7 +47,7 @@ export type AppDetailActionsProps<T extends AppModel> = {
   hideHeaderActions?: boolean
   hidden?: boolean
   fullWidth?: boolean
-  size?: 'small' | 'large'
+  size?: AppButtonSize
   saveMode?: ActionDisplayMode
   deleteMode?: ActionDisplayMode
   disableRouterAutoResolving?: boolean
@@ -82,14 +84,14 @@ const actions = computed<AppTemplateAction[]>(() => {
   const values: AppTemplateAction[] = [
     {
       label: props.labels?.cancel || 'Отмена',
-      severity: 'secondary',
+      variant: 'secondary',
       hidden: !props.showCancelButton || props.hideActions,
       action: () => emit('cancel'),
     },
     {
       label: props.labels?.delete || 'Удалить',
-      icon: 'lucide:trash-2',
-      severity: 'secondary',
+      icon: Trash2,
+      variant: 'secondary',
       mode: props.deleteMode,
       hidden: props.hideDeleteButton || props.hideActions || !props.item.id,
       loading: deleteLoading.value,

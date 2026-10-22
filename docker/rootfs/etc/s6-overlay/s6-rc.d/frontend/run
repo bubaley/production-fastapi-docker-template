@@ -1,0 +1,6 @@
+#!/command/with-contenv sh
+# Nuxt (Nitro node-server) behind Caddy.
+exec 2>&1
+cd /app/frontend || exit 1
+export NITRO_HOST=127.0.0.1 NITRO_PORT=3000
+exec /usr/local/bin/node .output/server/index.mjs

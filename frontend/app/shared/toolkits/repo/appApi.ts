@@ -24,7 +24,9 @@ export class AppApi {
     this._client = raw.client
   }
 
-  async sendRaw<T, R extends ResponseType = "json">(data: AppApiSendConfigRaw<R>): Promise<FetchResponse<MappedResponseType<R, T>>> {
+  async sendRaw<T, R extends ResponseType = 'json'>(
+    data: AppApiSendConfigRaw<R>,
+  ): Promise<FetchResponse<MappedResponseType<R, T>>> {
     const requestData: any = this.getRequestData(data)
     requestData.responseType = data.responseType
     return await this._client.raw<T, R>(this.buildUrl(data), requestData)

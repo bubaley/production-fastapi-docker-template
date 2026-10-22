@@ -15,10 +15,7 @@ type UseSectionBindOptions = {
   resolveBackAction?: () => (() => void) | undefined
 }
 
-export const useSectionBind = (
-  props: SectionBindSource,
-  options: UseSectionBindOptions = {},
-) => {
+export const useSectionBind = (props: SectionBindSource, options: UseSectionBindOptions = {}) => {
   return computed((): AppSectionProps => ({
     title: props.hideHeader ? undefined : props.title,
     description: props.description,
@@ -26,9 +23,7 @@ export const useSectionBind = (
     titleSize: props.titleSize,
     flat: undefined,
     display: props.display,
-    backAction: props.hideBackButton
-      ? undefined
-      : options.resolveBackAction?.() ?? props.backAction,
+    backAction: props.hideBackButton ? undefined : (options.resolveBackAction?.() ?? props.backAction),
   }))
 }
 

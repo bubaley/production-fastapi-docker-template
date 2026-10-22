@@ -3,13 +3,8 @@ export interface UrlAction {
   method: string
 }
 type _DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends object
-    ? T[K] extends () => any
-      ? T[K]
-      : _DeepPartial<T[K]>
-    : T[K] | undefined;
-};
-
+  [K in keyof T]?: T[K] extends object ? (T[K] extends () => any ? T[K] : _DeepPartial<T[K]>) : T[K] | undefined
+}
 
 // Full interface with all required properties
 export interface BaseAuthModuleOptions {
@@ -17,7 +12,7 @@ export interface BaseAuthModuleOptions {
    * Base URL for authentication API
    * @default process.env.NUXT_PUBLIC_BASE_URL
    */
-  originEnvKey: 'NUXT_PUBLIC_BASE_URL',
+  originEnvKey: 'NUXT_PUBLIC_BASE_URL'
 
   /**
    * API prefix for auth routes
@@ -25,11 +20,11 @@ export interface BaseAuthModuleOptions {
    */
   apiPrefix: string
 
-    /**
+  /**
    * Nuxt API prefix for auth routes
    * @default '/api/auth'
    */
-    nuxtApiPrefix: string
+  nuxtApiPrefix: string
 
   /**
    * Authentication endpoints configuration
@@ -85,8 +80,6 @@ export interface BaseAuthModuleOptions {
    */
   fetchSessionAfterLogin: boolean
 }
-
-
 
 // Optional interface for nuxt.config - all properties are optional
 export type BaseAuthModuleConfig = _DeepPartial<BaseAuthModuleOptions>

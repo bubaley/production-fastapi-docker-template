@@ -1,0 +1,41 @@
+import { fileURLToPath } from 'node:url'
+import vue from '@vitejs/plugin-vue'
+import { defineConfig } from 'vite-plus'
+
+// Vite+ tool config (`vp fmt`, `vp lint`, `vp test`). Nuxt ignores this file: its Vite builder runs with
+// `configFile: false`, so app build settings live in nuxt.config.ts.
+const ignorePatterns = [
+  '**/node_modules/**',
+  '.nuxt/**',
+  '.output/**',
+  '.data/**',
+  'dist/**',
+  'coverage/**',
+  '.cache/**',
+]
+
+export default defineConfig({
+  plugins: [vue()],
+  resolve: { alias: { '~': fileURLToPath(new URL('./app', import.meta.url)) } },
+  test: {
+    environment: 'happy-dom',
+    include: ['tests/**/*.test.ts'],
+  },
+  fmt: {
+    semi: false,
+    singleQuote: true,
+    printWidth: 120,
+    trailingComma: 'all',
+    singleAttributePerLine: true,
+    sortTailwindcss: {
+      stylesheet: './app/assets/styles/tailwind.css',
+      functions: ['cn', 'cva', 'clsx'],
+    },
+    ignorePatterns: [...ignorePatterns, 'pnpm-lock.yaml', 'public/**'],
+  },
+  lint: {
+    plugins: ['typescript', 'unicorn', 'oxc', 'import', 'vue'],
+    categories: { correctness: 'error' },
+    ignorePatterns,
+  },
+})

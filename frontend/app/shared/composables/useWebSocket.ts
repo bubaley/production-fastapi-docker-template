@@ -22,32 +22,22 @@ const resolveChannelValue = (channel: MaybeRefOrGetter<string | null>): string |
   return channel
 }
 
+// The API origin (`NUXT_PUBLIC_BASE_URL`) serves `/ws`; without it the page origin does (Caddy proxies `/ws/*`).
 const resolveWsBaseUrl = (): string | undefined => {
-  const config = useRuntimeConfig()
-  const explicit = config.public.wsURL as string | undefined
-  if (explicit?.trim()) {
-    return explicit.replace(/\/+$/, '')
-  }
-
-  const baseUrl = config.public.baseUrl as string | undefined
-  if (!baseUrl?.trim()) return undefined
+  const baseUrl = useRuntimeConfig().public.baseUrl as string | undefined
+  const origin = baseUrl?.trim() || (import.meta.client ? window.location.origin : undefined)
+  if (!origin) return undefined
 
   try {
-    const url = new URL(baseUrl)
-    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-    url.pathname = '/ws'
-    url.search = ''
-    url.hash = ''
-    return `${url.origin}/ws`
+    const url = new URL(origin)
+    const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+    return `${protocol}//${url.host}/ws`
   } catch {
     return undefined
   }
 }
 
-export const useWebSocketService = (
-  channel: MaybeRefOrGetter<string | null>,
-  options: UseWebSocketOptions = {},
-) => {
+export const useWebSocketService = (channel: MaybeRefOrGetter<string | null>, options: UseWebSocketOptions = {}) => {
   const wsBaseUrl = resolveWsBaseUrl()
 
   const wsUrl = computed(() => {

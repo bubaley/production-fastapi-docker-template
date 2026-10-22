@@ -2,3 +2,10 @@
 exclude = ["migrations", ".venv"]
 
 [rules]
+
+# Tortoise models declare `class Meta` on every subclass; ty treats each one as an incompatible override.
+[[overrides]]
+include = ["app/**/models.py"]
+
+[overrides.rules]
+invalid-attribute-override = "ignore"

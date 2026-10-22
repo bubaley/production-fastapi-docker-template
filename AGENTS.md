@@ -13,6 +13,9 @@ This file is an index. Do not copy patterns here — follow the linked docs.
 | How to add a frontend feature, model, repo, view? | [docs/frontend-concept.md](docs/frontend-concept.md) — canonical code: `frontend/app/features/organization/` |
 | When to write backend tests, where they live? | [docs/backend-concept.md](docs/backend-concept.md#tests) — canonical: `backend/app/domains/organization/tests/test_organization.py` |
 | How to run the project locally? | [README.md](README.md) |
+| How is the image built, released and deployed? | [docs/deployment.md](docs/deployment.md) — `Dockerfile`, `docker/rootfs/`, `.github/workflows/ci.yaml` |
+| How to lint, format, test, what CI checks? | `make lint` / `make check` in [README.md](README.md#makefile); frontend tooling in [docs/frontend-concept.md](docs/frontend-concept.md#tooling) |
+| What is being modernized right now, and which decisions are fixed? | [docs/roadmap.md](docs/roadmap.md) |
 
 If the knowledge graph is missing or stale, index the repo with codebase-memory. Do not invent architecture from memory. Do not invent product capabilities that are not in [docs/product.md](docs/product.md).
 
@@ -21,8 +24,8 @@ If the knowledge graph is missing or stale, index the repo with codebase-memory.
 - **Do not run migrations** (`make mm`, `make m`, Tortoise migrate) unless the user explicitly asks. After model changes, describe the migration needed.
 - **Do not duplicate.** Extend existing viewsets, UI primitives, repos, and helpers before creating new ones.
 - Comments in code: English only, and only when the logic is non-obvious.
-- User-facing UI copy is **Russian**. Do not add English labels, titles, or toasts in product screens.
-- After a non-trivial change, run **`make lint`** and fix what it reports. Do not leave a red linter.
+- User-facing UI copy is **Russian**. Do not add English labels, titles, or toasts in product screens. The one exception is the `/ui` component catalogue: its section titles and sample content are English so they read alongside the prop names they demonstrate.
+- After a non-trivial change, run **`make lint`** (fixes and formats both sides), then **`make check`** (what CI runs: format check, lint, types, tests, architecture guard; read-only). Fix what `make check` reports — do not leave it red. Without local Postgres: `make check PYTEST_ARGS=--sqlite`.
 - Complex backend behavior needs tests — see [docs/backend-concept.md](docs/backend-concept.md#tests). Canonical: `backend/app/domains/organization/tests/test_organization.py`.
 
 ## Keep docs current

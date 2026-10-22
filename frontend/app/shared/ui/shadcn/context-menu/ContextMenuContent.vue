@@ -19,8 +19,8 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       v-bind="{ ...forwarded, ...$attrs }"
       :class="
         cn(
-          'z-[var(--app-overlay-z,1020)] min-w-56 overflow-hidden rounded-lg border border-overlay-border bg-popover p-1.5 text-popover-foreground shadow-[0_16px_40px_rgba(0,0,0,.4),0_2px_8px_rgba(0,0,0,.28)] outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-          props.class
+          'z-overlay min-w-56 overflow-hidden rounded-lg border border-border-strong bg-popover p-1.5 text-popover-foreground shadow-overlay outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+          props.class,
         )
       "
     >

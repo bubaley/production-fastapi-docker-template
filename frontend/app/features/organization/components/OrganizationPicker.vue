@@ -21,5 +21,4 @@ const setupStore = useSetupStore()
 const selectClass = computed(() => {
   return props.compact ? '!border-none !shadow-none' : 'max-w-sm w-full'
 })
-
 </script>

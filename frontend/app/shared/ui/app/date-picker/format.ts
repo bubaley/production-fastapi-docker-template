@@ -1,10 +1,16 @@
-import dayjs from 'dayjs'
-import customParseFormat from 'dayjs/plugin/customParseFormat.js'
-import 'dayjs/locale/ru.js'
-import 'dayjs/locale/en.js'
+import { CalendarDateTime, parseTime } from '@internationalized/date'
+import { formatDatePattern, parseDatePattern } from '~/shared/lib/dateFormat'
 import { resolvePickerValue } from './dateMath'
 
-dayjs.extend(customParseFormat)
+const fromDate = (date: Date) =>
+  new CalendarDateTime(
+    date.getFullYear(),
+    date.getMonth() + 1,
+    date.getDate(),
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds(),
+  )
 export const DEFAULT_DATE_MASK = 'DD.MM.YYYY HH:mm'
 /** Keep clock entry in HH:mm shape while allowing a single-digit hour before a colon. */
 export function maskClockInput(value: string, seconds = false): string {
@@ -28,37 +34,41 @@ export function formatPickerValue(
   value: string | null | undefined,
   mask = DEFAULT_DATE_MASK,
   time = false,
-  locale = 'ru'
+  locale = 'ru',
 ): string {
   if (!value) return ''
   if (value.startsWith('now')) return value
   const date = resolvePickerValue(value)
   if (!date) return value
-  return dayjs(date)
-    .locale(locale)
-    .format(time && value.includes('T') ? mask : maskParts(mask).date)
+  return formatDatePattern(fromDate(date), time && value.includes('T') ? mask : maskParts(mask).date, locale)
 }
 export function parsePickerText(
   text: string,
   mask = DEFAULT_DATE_MASK,
   time = false,
   locale = 'ru',
-  smart = false
+  smart = false,
 ): string | null | undefined {
   const value = text.trim()
   if (!value) return null
   if (value.startsWith('now')) return smart && resolvePickerValue(value) ? value : undefined
   const dateMask = maskParts(mask).date
   for (const format of time ? [...new Set([mask, dateMask])] : [dateMask]) {
-    const parsed = dayjs(value, format, locale, true)
-    if (!parsed.isValid()) continue
-    const result = parsed.format(
-      format === dateMask ? 'YYYY-MM-DD' : format.includes('ss') ? 'YYYY-MM-DDTHH:mm:ss' : 'YYYY-MM-DDTHH:mm'
+    const parsed = parseDatePattern(value, format)
+    if (!parsed) continue
+    const result = formatDatePattern(
+      parsed,
+      format === dateMask ? 'YYYY-MM-DD' : format.includes('ss') ? 'YYYY-MM-DDTHH:mm:ss' : 'YYYY-MM-DDTHH:mm',
     )
     if (resolvePickerValue(result)) return result
   }
   return undefined
 }
 export function formatPickerTime(value: string, mask = DEFAULT_DATE_MASK, locale = 'ru') {
-  return dayjs(`2000-01-01T${value}`).locale(locale).format(maskParts(mask).time)
+  const clock = parseTime(value)
+  return formatDatePattern(
+    new CalendarDateTime(2000, 1, 1, clock.hour, clock.minute, clock.second),
+    maskParts(mask).time,
+    locale,
+  )
 }

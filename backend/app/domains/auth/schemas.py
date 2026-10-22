@@ -1,15 +1,18 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from app.core.fields.email_field import LoginEmail
+from app.domains.auth.services.token_service import TokenPair
 
 
 class LoginRequest(BaseModel):
     """Schema for user login request."""
 
-    email: str
-    password: str
+    email: LoginEmail
+    password: str = Field(max_length=128)
 
 
 class RefreshTokenRequest(BaseModel):
-    """Schema for refresh token request."""
+    """Refresh token in the body; without it the refresh cookie is used."""
 
     refresh_token: str | None = None
 
@@ -21,11 +24,6 @@ class TokenResponse(BaseModel):
     refresh_token: str
     type: str = 'bearer'
 
-
-class RegisterRequest(BaseModel):
-    """Schema for user registration request."""
-
-    email: str
-    password: str
-    first_name: str
-    last_name: str
+    @classmethod
+    def from_pair(cls, pair: TokenPair) -> TokenResponse:
+        return cls(access_token=pair.access.token, refresh_token=pair.refresh.token)

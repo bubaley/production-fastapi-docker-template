@@ -7,7 +7,7 @@ export function readItem<T, V>(item: T, accessor: SelectAccessor<T, V>): V {
     .reduce<unknown>(
       (value, key) =>
         value != null && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined,
-      item
+      item,
     ) as V
 }
 export function valueOf<T>(item: T, accessor: SelectAccessor<T, SelectValue>): SelectValue {

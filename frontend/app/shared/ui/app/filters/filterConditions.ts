@@ -23,9 +23,9 @@ export function conditionRows(fields: ViewFilterField[], filters: ViewFilters) {
           lookup: 'range',
           value: [
             String(filters[`${field.field}__gte`] ?? ''),
-            String(filters[`${field.field}__lte`] ?? '')
-          ] as FilterValue
-        }
+            String(filters[`${field.field}__lte`] ?? ''),
+          ] as FilterValue,
+        },
       ]
     }
     return [{ key, field, lookup, value }]
@@ -41,10 +41,11 @@ export function writeCondition(
   field: ViewFilterField,
   from: string,
   to: string | null,
-  value?: FilterValue
+  value?: FilterValue,
 ): ViewFilters {
   const key = (lookup: string) => (lookup === 'exact' ? field.field : `${field.field}__${lookup}`)
-  const removed = from === 'range' ? [key('gte'), key('lte')] : [key(from), ...(from === 'exact' ? [`${field.field}__exact`] : [])]
+  const removed =
+    from === 'range' ? [key('gte'), key('lte')] : [key(from), ...(from === 'exact' ? [`${field.field}__exact`] : [])]
   const next = Object.fromEntries(Object.entries(filters).filter(([name]) => !removed.includes(name)))
   if (to === null) return next
   if (to === 'range') {
@@ -56,7 +57,7 @@ export function writeCondition(
       from === 'range' && Array.isArray(value) ? value[to === 'lte' || to === 'lt' ? 1 : 0] : value,
       from,
       to,
-      field.kind === 'boolean'
+      field.kind === 'boolean',
     )
   return next
 }

@@ -11,7 +11,7 @@ import {
   ComboboxContent,
   ComboboxViewport,
   ComboboxItem,
-  ComboboxItemIndicator
+  ComboboxItemIndicator,
 } from '~/shared/ui/shadcn/combobox'
 import AppField from './AppField.vue'
 import AppClearButton from './AppClearButton.vue'
@@ -22,25 +22,24 @@ import SelectChip from './select/SelectChip.vue'
 import { useSelectSource } from './select/useSelectSource'
 import { normalizeSelection, readItem, selectionKey, valueOf } from './select/selection'
 import type { AppSelectProps, SelectValue } from './select/types'
-import { activeOutlineClasses, appControlRadiusClasses, appControlStyles, appSelectIconSize } from './types/control'
+import {
+  activeOutlineClasses,
+  appSelectIconSize,
+  appSelectSizeClasses,
+  appSelectValueSizeClasses,
+} from './types/control'
 
+const props = withDefaults(defineProps<AppSelectProps<T>>(), {
+  variant: 'outline',
+  filter: true,
+  size: 'md',
+  hideDropdownIcon: undefined,
+  locale: 'ru',
 
-const props = withDefaults(
-  defineProps<
-    AppSelectProps<T>
-  >(),
-  {
-    variant: 'outline',
-    filter: true,
-    size: 'default',
-    hideDropdownIcon: undefined,
-    locale: 'ru',
-
-    itemDisabled: 'disabled',
-    debounce: 300,
-    pageSize: 30
-  }
-)
+  itemDisabled: 'disabled',
+  debounce: 300,
+  pageSize: 30,
+})
 
 const emit = defineEmits<{
   itemPointerEnter: [item: T]
@@ -62,11 +61,15 @@ const open = defineModel<boolean>('open', { default: false })
 const { contentStyle: overlayStyle } = useOverlayStack(open)
 const search = ref('')
 const cache = shallowRef(new Map<SelectValue, T>())
-watch(() => props.repo?.revision, () => {
-  open.value = false
-  model.value = props.multiple ? [] : null
-  cache.value = new Map()
-}, { flush: 'sync' })
+watch(
+  () => props.repo?.revision,
+  () => {
+    open.value = false
+    model.value = props.multiple ? [] : null
+    cache.value = new Map()
+  },
+  { flush: 'sync' },
+)
 const trigger = ref<HTMLElement>()
 const messages = computed(() =>
   props.locale === 'en'
@@ -79,7 +82,7 @@ const messages = computed(() =>
         retry: 'Retry',
         more: 'Load more',
         clear: 'Clear selection',
-        remove: 'Remove'
+        remove: 'Remove',
       }
     : {
         placeholder: 'Выберите…',
@@ -90,11 +93,25 @@ const messages = computed(() =>
         retry: 'Повторить',
         more: 'Загрузить ещё',
         clear: 'Очистить выбор',
-        remove: 'Убрать'
-      }
+        remove: 'Убрать',
+      },
 )
-const valueAccessor = computed(() => props.optionValue ?? props.itemValue ?? ((item: T) => typeof item === 'object' && item !== null ? ((item as Record<string, any>).id ?? (item as Record<string, any>).value ?? JSON.stringify(item)) : item))
-const labelAccessor = computed(() => props.optionLabel ?? props.itemLabel ?? ((item: T) => typeof item === 'object' && item !== null ? String((item as Record<string, any>).name ?? '') : String(item)))
+const valueAccessor = computed(
+  () =>
+    props.optionValue ??
+    props.itemValue ??
+    ((item: T) =>
+      typeof item === 'object' && item !== null
+        ? ((item as Record<string, any>).id ?? (item as Record<string, any>).value ?? JSON.stringify(item))
+        : item),
+)
+const labelAccessor = computed(
+  () =>
+    props.optionLabel ??
+    props.itemLabel ??
+    ((item: T) =>
+      typeof item === 'object' && item !== null ? String((item as Record<string, any>).name ?? '') : String(item)),
+)
 const key = (item: T) => valueOf(item, valueAccessor.value)
 const label = (item: T) => String(readItem(item, labelAccessor.value) ?? '')
 const itemDisabled = (item: T) => Boolean(readItem(item, props.itemDisabled))
@@ -104,46 +121,59 @@ const remember = (items: T[]) => {
   cache.value = copy
 }
 watch(
-  () => [(props.options ?? props.items), props.selectedItems, props.itemValue, props.itemLabel, props.optionValue, props.optionLabel, model.value],
+  () => [
+    props.options ?? props.items,
+    props.selectedItems,
+    props.itemValue,
+    props.itemLabel,
+    props.optionValue,
+    props.optionLabel,
+    model.value,
+  ],
   () => {
     remember([
-      ...((props.options ?? props.items) ?? []),
+      ...(props.options ?? props.items ?? []),
       ...(props.selectedItems ?? []),
-      ...(normalizeSelection(model.value).filter((value) => typeof value === 'object' && value !== null) as T[])
+      ...(normalizeSelection(model.value).filter((value) => typeof value === 'object' && value !== null) as T[]),
     ])
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 )
 const source = useSelectSource(() => props, open, search, key, remember)
 const options = computed(() => {
   const items = props.repo ? source.items.value : (props.options ?? props.items ?? [])
   if ((props.repo && !props.onlyClientSearch) || props.filter === false) return items
   const query = search.value.trim().toLocaleLowerCase()
-  return items.filter((item) => (props.filterFields?.length
-    ? props.filterFields.map((field) => String(readItem(item, field) ?? '')).join(' ')
-    : label(item)).toLocaleLowerCase().includes(query))
+  return items.filter((item) =>
+    (props.filterFields?.length
+      ? props.filterFields.map((field) => String(readItem(item, field) ?? '')).join(' ')
+      : label(item)
+    )
+      .toLocaleLowerCase()
+      .includes(query),
+  )
 })
 const selectedKeys = computed(() =>
-  normalizeSelection(model.value).map((value) => selectionKey<T>(value, valueAccessor.value))
+  normalizeSelection(model.value).map((value) => selectionKey<T>(value, valueAccessor.value)),
 )
 const selected = computed(() =>
   selectedKeys.value.map((value) => ({
     value,
     item: cache.value.get(value),
-    label: cache.value.has(value) ? label(cache.value.get(value)!) : String(value)
-  }))
+    label: cache.value.has(value) ? label(cache.value.get(value)!) : String(value),
+  })),
 )
 const busy = computed(() => source.loading.value || source.pending.value)
 const showDropdownIcon = computed(
-  () => props.hideDropdownIcon === false || (props.hideDropdownIcon === undefined && props.variant !== 'ghost')
+  () => props.hideDropdownIcon === false || (props.hideDropdownIcon === undefined && props.variant !== 'ghost'),
 )
 const setKeys = (value: unknown) => {
   if (props.disabled) return
   const keys = normalizeSelection(value) as SelectValue[]
   const values = keys
-    .map((value) => ((props.emitValue || props.optionValue) ? value : cache.value.get(value)))
+    .map((value) => (props.emitValue || props.optionValue ? value : cache.value.get(value)))
     .filter((value) => value !== undefined)
-  model.value = (props.multiple ? values : (values[0] ?? null))
+  model.value = props.multiple ? values : (values[0] ?? null)
 }
 const restoreFocusAfterRemoval = async () => {
   await nextTick()
@@ -172,7 +202,7 @@ watch(
   () => props.disabled,
   (value) => {
     if (value) open.value = false
-  }
+  },
 )
 const onScroll = (event: Event) => {
   const el = event.target as HTMLElement
@@ -219,17 +249,16 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
             v-else
             data-app-select-trigger
             class="group/select relative flex min-w-0 items-center gap-1 transition-colors"
-            :style="appControlStyles.select[size]"
             :class="[
-              appControlRadiusClasses[size],
+              appSelectSizeClasses[size],
               variant === 'ghost'
-                ? 'group border border-transparent px-2 hover:bg-[color:var(--ds-field-hover)]'
+                ? 'group border border-transparent hover:bg-field-hover'
                 : variant === 'secondary'
-                  ? 'group border border-transparent bg-secondary px-2 text-secondary-foreground shadow-none hover:bg-accent'
-                  : 'group border border-input bg-background px-2 shadow-sm hover:bg-[color:var(--ds-field-hover)]',
+                  ? 'group border border-transparent bg-secondary text-secondary-foreground shadow-none hover:bg-accent'
+                  : 'group border border-input bg-background shadow-sm hover:bg-field-hover',
               variant === 'active-outline' && activeOutlineClasses,
               error && 'border-destructive',
-              disabled && 'opacity-50'
+              disabled && 'opacity-50',
             ]"
           >
             <ComboboxTrigger as-child>
@@ -243,8 +272,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
                 :aria-describedby="[field.describedBy, `${field.id}-value`].filter(Boolean).join(' ')"
                 :aria-invalid="Boolean(error) || undefined"
                 :aria-required="required || undefined"
-                class="absolute inset-0 w-full cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
-                :class="appControlRadiusClasses[size]"
+                class="absolute inset-0 w-full cursor-pointer rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
                 @keydown="onTriggerKey"
               />
             </ComboboxTrigger>
@@ -259,8 +287,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
               :id="`${field.id}-value`"
               data-avatar-owner
               class="pointer-events-none flex min-w-0 flex-1 flex-wrap items-center gap-1"
-              :style="appControlStyles.selectValue[size]"
-              :class="multiple && 'pr-1'"
+              :class="[appSelectValueSizeClasses[size], multiple && 'pr-1']"
               @click="!disabled && (open = !open)"
             >
               <slot
@@ -297,16 +324,19 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
               <span
                 v-else-if="selected.length"
                 class="flex min-w-0 items-center truncate"
-              ><slot
-                name="selected"
-                :item="selected[0]!.item"
-                :label="selected[0]!.label"
-                :value="selected[0]!.value"
-              >{{ selected[0]!.label }}</slot></span>
+                ><slot
+                  name="selected"
+                  :item="selected[0]!.item"
+                  :label="selected[0]!.label"
+                  :value="selected[0]!.value"
+                  >{{ selected[0]!.label }}</slot
+                ></span
+              >
               <span
                 v-else
                 class="truncate text-muted-foreground"
-              ><slot name="placeholder">{{ placeholder || messages.placeholder }}</slot></span>
+                ><slot name="placeholder">{{ placeholder || messages.placeholder }}</slot></span
+              >
             </div>
             <AppClearButton
               v-if="(clearable || showClear) && selected.length && !disabled"
@@ -317,8 +347,8 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
               :class="
                 !clearInline
                   ? [
-                    'absolute right-1 opacity-0 pointer-events-none transition-opacity group-hover/select:opacity-100 group-hover/select:pointer-events-auto group-focus-within/select:opacity-100 group-focus-within/select:pointer-events-auto'
-                  ]
+                      'pointer-events-none absolute right-1 opacity-0 transition-opacity group-focus-within/select:pointer-events-auto group-focus-within/select:opacity-100 group-hover/select:pointer-events-auto group-hover/select:opacity-100',
+                    ]
                   : 'relative shrink-0'
               "
               @click.stop="clear"
@@ -347,7 +377,7 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
             align="start"
             :side-offset="5"
             :collision-padding="12"
-            class="z-[var(--app-overlay-z)] flex max-h-[min(380px,var(--reka-combobox-content-available-height))] w-[max(240px,var(--reka-combobox-trigger-width))] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-lg border border-overlay-border bg-background text-foreground shadow-xl"
+            class="z-overlay flex max-h-[min(380px,var(--reka-combobox-content-available-height))] w-[max(240px,var(--reka-combobox-trigger-width))] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-lg border border-border-strong bg-background text-foreground shadow-overlay"
             @escape-key-down.stop
           >
             <div
@@ -378,17 +408,20 @@ defineExpose({ open, focus: () => trigger.value?.focus() })
                   :key="key(item)"
                   :value="key(item)"
                   :disabled="itemDisabled(item) || source.pending.value"
-                  class="flex min-h-9 cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-[13px] outline-none data-[highlighted]:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
+                  class="flex min-h-9 cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-[13px] outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-accent"
                   @pointerenter="emit('itemPointerEnter', item)"
                   @pointerleave="emit('itemPointerLeave', item)"
                 >
-                  <span class="min-w-0 flex-1 truncate"><slot
-                    name="item"
-                    :item="item"
-                    :label="label(item)"
-                    :value="key(item)"
-                    :selected="selectedKeys.includes(key(item))"
-                  >{{ label(item) }}</slot></span><ComboboxItemIndicator>
+                  <span class="min-w-0 flex-1 truncate"
+                    ><slot
+                      name="item"
+                      :item="item"
+                      :label="label(item)"
+                      :value="key(item)"
+                      :selected="selectedKeys.includes(key(item))"
+                      >{{ label(item) }}</slot
+                    ></span
+                  ><ComboboxItemIndicator>
                     <Check
                       class="size-4 shrink-0"
                       aria-hidden="true"

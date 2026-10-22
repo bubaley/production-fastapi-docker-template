@@ -2,8 +2,7 @@ import type { Component } from 'vue'
 import { Calendar, Hash, Type, ToggleLeft, Filter } from '@lucide/vue'
 import type { ViewFilterField } from './types'
 const kindIcons = { choice: Filter, text: Type, number: Hash, date: Calendar, datetime: Calendar, boolean: ToggleLeft }
-export const filterIcon = (field: ViewFilterField): Component =>
-  field.icon ?? kindIcons[field.kind]
+export const filterIcon = (field: ViewFilterField): Component => field.icon ?? kindIcons[field.kind]
 const names: Record<string, string> = {
   range: 'Период',
   exact: 'Равно',
@@ -16,7 +15,7 @@ const names: Record<string, string> = {
   gte: 'Не меньше',
   lte: 'Не больше',
   isnull: 'Не заполнено',
-  icontains: 'Содержит'
+  icontains: 'Содержит',
 }
 const englishNames: Record<string, string> = {
   range: 'Range',
@@ -30,7 +29,7 @@ const englishNames: Record<string, string> = {
   gte: 'At least',
   lte: 'At most',
   isnull: 'Is empty',
-  icontains: 'Contains'
+  icontains: 'Contains',
 }
 export const filterLookupLabel = (lookup: string, locale: 'ru' | 'en') =>
   (locale === 'en' ? englishNames : names)[lookup] || lookup

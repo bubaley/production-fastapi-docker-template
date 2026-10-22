@@ -1,34 +1,37 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { semanticColorVariables } from './types/label-types'
+import { Card } from '~/shared/ui/shadcn/card'
+import { cn } from '~/shared/lib/utils'
+import { toneVariants, type Tone } from './tone'
+
 export type AppCardProps = {
-  variant?: 'default' | 'outlined' | 'muted' | 'elevated'
-  color?: 'neutral' | 'primary' | 'success' | 'info' | 'warning' | 'danger' | 'destructive'
-  outlined?: boolean
-  elevated?: boolean
+  variant?: 'default' | 'outline' | 'muted' | 'elevated'
+  /** Tints the surface and border with a semantic tone. */
+  tone?: Tone
   interactive?: boolean
   padding?: 'none' | 'sm' | 'md' | 'lg'
-  as?: 'article' | 'div' | 'section'
 }
-const props = withDefaults(defineProps<AppCardProps>(), { variant: 'outlined', padding: 'md', as: 'div', color: 'neutral' })
+const props = withDefaults(defineProps<AppCardProps>(), { variant: 'outline', padding: 'md' })
 const variants = {
-  default: 'bg-card text-card-foreground',
-  outlined: 'border border-border bg-card text-card-foreground',
-  muted: 'bg-muted/50 text-foreground',
-  elevated: 'border border-border bg-card text-card-foreground shadow-md',
+  default: 'border-transparent',
+  outline: '',
+  muted: 'border-transparent bg-muted/50 text-foreground',
+  elevated: 'shadow-md',
 }
-const colorStyle = computed(() => props.color === 'neutral' ? undefined : {
-  backgroundColor: `color-mix(in srgb, ${semanticColorVariables[props.color]} 10%, var(--card))`,
-  borderColor: `color-mix(in srgb, ${semanticColorVariables[props.color]} 45%, var(--card))`,
-})
-const paddings = { none: '', sm: 'p-3', md: 'p-4', lg: 'p-6' }
+const paddings = { none: 'p-0', sm: 'p-3', md: 'p-4', lg: 'p-6' }
+// The shadcn card is a flex column with fixed paddings; AppCard is a plain surface with its own spacing scale.
+const classes = computed(() =>
+  cn(
+    'block min-w-0 gap-0 rounded-lg shadow-none',
+    variants[props.variant],
+    paddings[props.padding],
+    props.tone && props.tone !== 'neutral' && toneVariants({ tone: props.tone, appearance: 'tinted' }),
+    props.interactive && 'transition-colors focus-within:ring-2 focus-within:ring-ring hover:bg-accent',
+  ),
+)
 </script>
 <template>
-  <component
-    :is="as"
-    :style="colorStyle"
-    :class="['min-w-0 rounded-lg', variants[variant], paddings[padding], outlined && 'border border-border', elevated && 'shadow-md', interactive && 'transition-colors hover:bg-accent focus-within:ring-2 focus-within:ring-ring']"
-  >
+  <Card :class="classes">
     <slot />
-  </component>
+  </Card>
 </template>

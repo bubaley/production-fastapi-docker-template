@@ -8,6 +8,7 @@ from tortoise.contrib.fastapi import register_tortoise
 from app.core.settings import settings
 
 MODELS = [
+    'app.domains.auth.models',
     'app.domains.organization.models',
     'app.domains.user.models',
 ]
@@ -31,7 +32,6 @@ def register_database(app: FastAPI):
         db_url=settings.database_url,
         modules={'models': MODELS},
         generate_schemas=False,
-        add_exception_handlers=True,
     )
 
 
@@ -58,7 +58,7 @@ class DatabaseConnection:
 
     async def tortoise_init(self):
         if not self._initialized:
-            self._tortoise_instance = await Tortoise.init(config=TORTOISE_ORM, use_tz=False)
+            self._tortoise_instance = await Tortoise.init(config=TORTOISE_ORM, use_tz=True)
             self._initialized = True
 
     def __enter__(self):

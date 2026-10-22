@@ -1,70 +1,132 @@
 <script setup lang="ts">
-import type { AppButtonProps } from '~/shared/ui/app/AppButton.vue'
+import { ArrowRight, CircleCheck, Plus, Star } from '@lucide/vue'
+import type { AppButtonVariant } from '~/shared/ui/app/appButton'
 import type { AppControlSize } from '~/shared/ui/app/types/control'
-const variants: { label: string; variant: AppButtonProps['variant'] }[] = [
-  { label: 'default', variant: 'default' }, { label: 'Primary', variant: 'primary' },
-  { label: 'outline', variant: 'outline' }, { label: 'secondary', variant: 'secondary' },
-  { label: 'ghost', variant: 'ghost' }, { label: 'destructive', variant: 'destructive' },
-]
-const sizes: AppControlSize[] = ['xs', 'sm', 'default', 'lg']
+import { TONES } from '~/shared/ui/app/tone'
+
+const variants: AppButtonVariant[] = ['default', 'secondary', 'outline', 'ghost', 'link', 'destructive']
+const sizes: AppControlSize[] = ['xs', 'sm', 'md', 'lg']
+const badgeVariants = ['solid', 'soft', 'outline'] as const
 const toast = useToast()
 </script>
 <template>
-  <AppSection
-    title="Buttons and actions"
-    description="Consistent size props across buttons, inputs and selects."
-  >
-    <AppCard>
-      <p class="mb-5 text-sm text-muted-foreground">
-        Default: main action (save, create, continue). Secondary: supporting action (cancel, back).
-        Outline: toolbar actions (filters, export, columns). Ghost: compact row and menu actions.
-        Destructive: destructive confirmation. Primary: brand-colored emphasis. Accent is reserved for hover and active surfaces.
-      </p>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div
-          v-for="item in variants"
-          :key="item.label"
-          class="flex items-center justify-between gap-3"
-        >
-          <span class="text-xs text-muted-foreground">{{ item.label }}</span>
+  <div class="space-y-10">
+    <AppSection
+      title="Buttons"
+      description="AppButton: variant × size. Icon-only buttons become square and require aria-label."
+    >
+      <AppCard class="space-y-6">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[640px] border-separate border-spacing-y-2 text-left">
+            <thead>
+              <tr class="text-xs text-muted-foreground">
+                <th class="w-28 font-normal">variant \ size</th>
+                <th
+                  v-for="size in sizes"
+                  :key="size"
+                  class="font-normal"
+                >
+                  {{ size }}
+                </th>
+                <th class="font-normal">icon-only</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="variant in variants"
+                :key="variant"
+              >
+                <td class="text-xs text-muted-foreground">{{ variant }}</td>
+                <td
+                  v-for="size in sizes"
+                  :key="size"
+                >
+                  <AppButton
+                    :variant="variant"
+                    :size="size"
+                    label="Action"
+                    @click="toast.default(`${variant} / ${size}`)"
+                  />
+                </td>
+                <td>
+                  <AppButton
+                    :variant="variant"
+                    :icon="Plus"
+                    aria-label="Add"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 border-t border-border pt-5">
+          <span class="w-28 text-xs text-muted-foreground">states</span>
           <AppButton
-            :variant="item.variant"
-            label="Action"
-            @click="toast.default('Action completed')"
+            label="Loading"
+            loading
+          />
+          <AppButton
+            label="Disabled"
+            disabled
+          />
+          <AppButton
+            label="Icon end"
+            variant="outline"
+            :icon="ArrowRight"
+            icon-position="end"
+          />
+          <AppButton
+            label="Muted text"
+            variant="outline"
+            text-variant="muted"
+          />
+          <AppButton
+            label="Fluid"
+            variant="secondary"
+            fluid
+            class="sm:w-48"
           />
         </div>
-      </div>
-      <div class="mt-5 border-t border-border pt-5">
-        <p class="mb-3 text-sm text-muted-foreground">Цвет текста кнопки: base сохраняет цвет варианта, muted становится обычным при наведении.</p>
-        <AppTemplateActions
-          :actions="[
-            { label: 'Обычный текст', variant: 'outline', textVariant: 'base' },
-            { label: 'Приглушённый текст', variant: 'outline', textVariant: 'muted' },
-          ]"
-        />
-      </div>
-      <div class="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
-        <AppButton
-          v-for="size in sizes"
-          :key="size"
-          :size="size"
-          variant="outline"
-          :label="size"
-        />
-        <AppButton
-          icon="lucide:plus"
-          variant="outline"
-          aria-label="Add"
-        />
-        <AppButton
-          label="Loading"
-          loading
-        />
-        <AppButton
-          label="Disabled"
-          disabled
-        />
-      </div>
-    </AppCard>
-  </AppSection>
+      </AppCard>
+    </AppSection>
+
+    <AppSection
+      title="Badges and tooltips"
+      description="AppBadge: tone × variant. AppTooltip wraps any trigger."
+    >
+      <AppCard class="space-y-3">
+        <div
+          v-for="variant in badgeVariants"
+          :key="variant"
+          class="flex flex-wrap items-center gap-2"
+        >
+          <span class="w-28 text-xs text-muted-foreground">{{ variant }}</span>
+          <AppBadge
+            v-for="tone in TONES"
+            :key="tone"
+            :tone="tone"
+            :variant="variant"
+            :label="tone"
+          />
+        </div>
+        <div class="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+          <span class="w-28 text-xs text-muted-foreground">tooltip</span>
+          <AppTooltip text="Tooltips use the foreground color and open on hover or focus.">
+            <template #trigger>
+              <AppButton
+                variant="outline"
+                :icon="Star"
+                aria-label="Favourite"
+              />
+            </template>
+          </AppTooltip>
+          <AppBadge
+            tone="success"
+            :icon="CircleCheck"
+            label="With icon"
+          />
+        </div>
+      </AppCard>
+    </AppSection>
+  </div>
 </template>

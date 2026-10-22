@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { flushPromises, mount } from '@vue/test-utils'
 import { computed, nextTick, reactive } from 'vue'
 import { useTemplateDetail } from '../app/shared/ui/template/composables/useTemplateDetail'
@@ -7,7 +7,10 @@ import AppDetailTemplate from '../app/shared/ui/template/AppDetailTemplate.vue'
 const deferred = () => {
   let resolve!: (value: { id: string; name: string }) => void
   let reject!: (reason: Error) => void
-  const promise = new Promise<{ id: string; name: string }>((yes, no) => { resolve = yes; reject = no })
+  const promise = new Promise<{ id: string; name: string }>((yes, no) => {
+    resolve = yes
+    reject = no
+  })
   return { promise, resolve, reject }
 }
 let route: ReturnType<typeof reactive<{ params: { id: string } }>>
@@ -20,20 +23,24 @@ beforeEach(() => {
   vi.stubGlobal('computed', computed)
 })
 afterEach(() => vi.unstubAllGlobals())
-const render = (repo: unknown) => mount(AppDetailTemplate, {
-  props: { repo: repo as never },
-  slots: { default: '<div>{{ params.item.name }}</div>' },
-  global: { stubs: {
-    AppPageView: { template: '<main><slot /></main>' },
-    AppSection: { template: '<section><slot /></section>' },
-    AppDetailActions: true,
-    AppLoadingIndicator: { props: ['label'], template: '<span role="status">{{ label }}</span>' },
-    AppButton: { template: '<button><slot /></button>' },
-  } },
-})
+const render = (repo: unknown) =>
+  mount(AppDetailTemplate, {
+    props: { repo: repo as never },
+    slots: { default: '<div>{{ params.item.name }}</div>' },
+    global: {
+      stubs: {
+        AppPageView: { template: '<main><slot /></main>' },
+        AppSection: { template: '<section><slot /></section>' },
+        AppDetailActions: true,
+        AppLoadingIndicator: { props: ['label'], template: '<span role="status">{{ label }}</span>' },
+        AppButton: { template: '<button><slot /></button>' },
+      },
+    },
+  })
 describe('detail request ownership', () => {
   it('keeps B visible when A returns late without publishing either result to the shared repo', async () => {
-    const a = deferred(), b = deferred()
+    const a = deferred(),
+      b = deferred()
     const repo = { item: null, retrieve: vi.fn().mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise) }
     const wrapper = render(repo)
     await nextTick()
@@ -51,7 +58,9 @@ describe('detail request ownership', () => {
     wrapper.unmount()
   })
   it('shows a failed load and retries the same record', async () => {
-    const repo = { retrieve: vi.fn().mockRejectedValueOnce(new Error('404')).mockResolvedValueOnce({ id: 'A', name: 'Recovered' }) }
+    const repo = {
+      retrieve: vi.fn().mockRejectedValueOnce(new Error('404')).mockResolvedValueOnce({ id: 'A', name: 'Recovered' }),
+    }
     const wrapper = render(repo)
     await flushPromises()
     expect(wrapper.get('[role="alert"]').text()).toContain('Не удалось загрузить запись')

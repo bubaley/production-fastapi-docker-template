@@ -11,7 +11,7 @@ const props = withDefaults(
   defineProps<
     DatePickerProps & { modelValue?: string | null; range?: DatePickerRange; activeEndpoint?: DatePickerEndpoint }
   >(),
-  { mode: 'single', navigation: 'scroll', months: 1, locale: 'ru', activeEndpoint: 'start' }
+  { mode: 'single', navigation: 'scroll', months: 1, locale: 'ru', activeEndpoint: 'start' },
 )
 const emit = defineEmits<{ select: [value: string] }>()
 const timezone = getLocalTimeZone()
@@ -52,7 +52,7 @@ const selected = computed(() =>
     ? singleDate.value
       ? [singleDate.value]
       : []
-    : [startDate.value, endDate.value].filter((v): v is NonNullable<typeof v> => Boolean(v))
+    : [startDate.value, endDate.value].filter((v): v is NonNullable<typeof v> => Boolean(v)),
 )
 const visible = computed(() => {
   if (props.navigation === 'paged') {
@@ -62,7 +62,7 @@ const visible = computed(() => {
   const first = Math.max(0, visibleMonthIndex(window.value.months, top.value) - 1)
   const last = Math.min(
     window.value.months.length,
-    visibleMonthIndex(window.value.months, top.value + viewportHeight.value) + 2
+    visibleMonthIndex(window.value.months, top.value + viewportHeight.value) + 2,
   )
   return window.value.months.slice(first, last)
 })
@@ -95,15 +95,15 @@ const rangeBandClasses = (day: DateValue) => {
     startsRange || (endsRange && startsWeek) ? 'before:left-1/2' : 'before:left-0',
     endsRange || (startsRange && endsWeek) ? 'before:right-1/2' : 'before:right-0',
     startsWeek && 'before:rounded-l-md',
-    endsWeek && 'before:rounded-r-md'
+    endsWeek && 'before:rounded-r-md',
   ]
 }
 const blocked = (day: DateValue) =>
   Boolean(
     props.disabled ||
-      props.readonly ||
-      (minDate.value && day.compare(minDate.value) < 0) ||
-      (maxDate.value && day.compare(maxDate.value) > 0)
+    props.readonly ||
+    (minDate.value && day.compare(minDate.value) < 0) ||
+    (maxDate.value && day.compare(maxDate.value) > 0),
   )
 function choose(day: DateValue) {
   if (!blocked(day)) {
@@ -188,14 +188,14 @@ async function keyboard(event: KeyboardEvent, day: DateValue) {
   if (blocked(target)) return
   focusDate.value = target
   const targetElement = viewport.value?.querySelector<HTMLElement>(
-    `[data-value="${target.toString()}"]:not([data-outside-view])`
+    `[data-value="${target.toString()}"]:not([data-outside-view])`,
   )
   if (targetElement) targetElement.focus()
   else await jump(target, true)
 }
 watch(
   () => [props.navigation, props.months, props.min, props.max, props.mode],
-  () => void jump(initial())
+  () => void jump(initial()),
 )
 watch(
   () => (props.mode === 'single' ? [props.modelValue] : [props.range?.start, props.range?.end]),
@@ -207,7 +207,7 @@ watch(
     if (!date) return
     const target = monthIndex(date)
     if (!visible.value.some((month) => monthIndex(month.value) === target)) void jump(date)
-  }
+  },
 )
 defineExpose({ reveal })
 onMounted(() => {
@@ -229,7 +229,8 @@ onBeforeUnmount(() => {
       <span
         class="mr-auto text-sm font-semibold capitalize"
         aria-live="polite"
-      >{{ title(monthAt(cursor)) }}</span>
+        >{{ title(monthAt(cursor)) }}</span
+      >
       <AppButton
         size="sm"
         variant="ghost"
@@ -257,7 +258,7 @@ onBeforeUnmount(() => {
     </header>
     <div
       ref="viewport"
-      class="relative min-h-0 overflow-y-auto overscroll-contain [overflow-anchor:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      class="relative min-h-0 [scrollbar-width:none] overflow-y-auto overscroll-contain [overflow-anchor:none] [&::-webkit-scrollbar]:hidden"
       :class="navigation === 'scroll' && 'h-[320px]'"
       @scroll.passive="onScroll"
     >
@@ -286,7 +287,7 @@ onBeforeUnmount(() => {
             :class="navigation === 'scroll' ? 'absolute inset-x-0' : 'flex-1'"
             :style="{ height: `${month.height}px`, ...(navigation === 'scroll' ? { top: `${month.top}px` } : {}) }"
           >
-            <h4 class="m-0 flex h-7 items-start text-xs font-medium capitalize text-muted-foreground">
+            <h4 class="m-0 flex h-7 items-start text-xs font-medium text-muted-foreground capitalize">
               {{ title(month.value) }}
             </h4>
             <Calendar.CalendarGrid
@@ -315,10 +316,7 @@ onBeforeUnmount(() => {
                     :key="day.toString()"
                     :date="day"
                     class="relative flex h-9 min-w-0 flex-1 items-center justify-center [&:has([data-selected])]:bg-transparent [&:has([data-selected][data-outside-view])]:bg-transparent"
-                    :class="[
-                      day.month !== month.value.month && 'invisible pointer-events-none',
-                      rangeBandClasses(day)
-                    ]"
+                    :class="[day.month !== month.value.month && 'pointer-events-none invisible', rangeBandClasses(day)]"
                     :aria-selected="inRange(day) || isEndpoint(day)"
                     :data-in-range="inRange(day) || undefined"
                   >
@@ -328,7 +326,7 @@ onBeforeUnmount(() => {
                       class="relative z-10 h-9 w-9 shrink-0 rounded-md text-sm transition-none data-[selected]:bg-white data-[selected]:text-neutral-950 data-[selected]:hover:bg-white data-[selected]:hover:text-neutral-950 data-[selected]:focus:bg-white data-[selected]:focus:text-neutral-950"
                       :class="[
                         isEndpoint(day) && 'bg-white text-neutral-950 hover:bg-white hover:text-neutral-950',
-                        inRange(day) && '[&[data-today]:not([data-selected])]:bg-transparent'
+                        inRange(day) && '[&[data-today]:not([data-selected])]:bg-transparent',
                       ]"
                       :aria-pressed="inRange(day) || isEndpoint(day)"
                       @click="choose(day)"

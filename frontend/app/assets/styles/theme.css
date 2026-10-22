@@ -1,0 +1,176 @@
+/*
+ * Design tokens. The single source of colors, radii, control sizes and type scale.
+ * - `:root` is the light theme, `[data-theme='dark']` the dark one (set by @nuxtjs/color-mode).
+ * - `[data-palette=…]` on <html> overrides only the brand tokens (primary, ring, sidebar-primary).
+ * - Every token is exposed to Tailwind in tailwind.css (`@theme inline`): use utilities such as
+ *   `bg-primary`, `text-success`, `bg-field-hover`, `shadow-overlay`, `h-control-md`, never `var(--…)` in classes.
+ * To re-brand a fork, change the palette blocks (or add one) and, if needed, the neutral surfaces below.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Rem base: 87.5% = 14px with the default browser setting and still follows the user's font-size preference.
+     All Tailwind spacing and type utilities are rem-based, so this one value scales the whole UI. */
+  --font-size-root: 87.5%;
+  --app-font-sans: -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Surfaces and text */
+  --background: #f4f5f8;
+  --foreground: #202431;
+  --card: #ffffff;
+  --card-foreground: #202431;
+  --popover: #ffffff;
+  --popover-foreground: #202431;
+  --secondary: #e9ecf2;
+  --secondary-foreground: #202431;
+  --muted: #e9ecf2;
+  --muted-foreground: #60697c;
+  --accent: #dde1ea;
+  --accent-foreground: #202431;
+  --border: #d6dce6;
+  --border-strong: #a5afbf;
+  --input: #d6dce6;
+  --field-hover: #edf0f5;
+  --row-hover: #e9edf5;
+
+  /* Brand (neutral palette) */
+  --primary: #202431;
+  --primary-foreground: #f4f5f8;
+  --ring: #60697c;
+
+  /* Status tones */
+  --success: #237a53;
+  --success-foreground: #ffffff;
+  --info: #1766bd;
+  --info-foreground: #ffffff;
+  --warning: #936500;
+  --warning-foreground: #ffffff;
+  --destructive: #c73737;
+  --destructive-foreground: #f4f5f8;
+
+  /* Sidebar */
+  --sidebar: #eef0f5;
+  --sidebar-foreground: #202431;
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: #dde1ea;
+  --sidebar-accent-foreground: #202431;
+  --sidebar-border: #d6dce6;
+  --sidebar-ring: var(--ring);
+
+  /* Charts */
+  --chart-1: #1766bd;
+  --chart-2: #237a53;
+  --chart-3: #936500;
+  --chart-4: #595bd1;
+  --chart-5: #c73737;
+
+  /* Elevation and stacking. Overlays above 1000 are ordered at runtime by useOverlayStack. */
+  --overlay-shadow: 0 16px 40px rgb(0 0 0 / 40%), 0 2px 8px rgb(0 0 0 / 28%);
+  --z-overlay: 1000;
+
+  /* Radius scale, derived from one value */
+  --radius: 8px;
+
+  /* Control geometry shared by buttons, inputs, selects and filters */
+  --size-control-xs: 22px;
+  --size-control-sm: 26px;
+  --size-control-md: 2.25rem;
+  --size-control-lg: 2.5rem;
+  --font-size-control-xs: 0.75rem;
+  --font-size-control-sm: 0.8525rem;
+  --font-size-control-md: 0.875rem;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --background: #111215;
+  --foreground: #edeef2;
+  --card: #1b1c21;
+  --card-foreground: #edeef2;
+  --popover: #24252b;
+  --popover-foreground: #edeef2;
+  --secondary: #23242a;
+  --secondary-foreground: #edeef2;
+  --muted: #23242a;
+  --muted-foreground: #9a9da8;
+  --accent: #2b2d35;
+  --accent-foreground: #edeef2;
+  --border: #2b2d34;
+  --border-strong: #41444f;
+  --input: #2b2d34;
+  --field-hover: #1e1f24;
+  --row-hover: #22232a;
+
+  --primary: #edeef2;
+  --primary-foreground: #111215;
+  --ring: #9a9da8;
+
+  --success: #50b889;
+  --success-foreground: #111215;
+  --info: #2f8cff;
+  --info-foreground: #ffffff;
+  --warning: #e5b454;
+  --warning-foreground: #111215;
+  --destructive: #ef6262;
+  --destructive-foreground: #111215;
+
+  --sidebar: #17181c;
+  --sidebar-foreground: #edeef2;
+  --sidebar-accent: #2b2d35;
+  --sidebar-accent-foreground: #edeef2;
+  --sidebar-border: #2b2d34;
+
+  --chart-1: #2f8cff;
+  --chart-2: #50b889;
+  --chart-3: #e5b454;
+  --chart-4: #7779ed;
+  --chart-5: #ef6262;
+}
+
+/* Palettes: brand color only. `neutral` is the default defined above. */
+:root[data-palette='blue'] {
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --ring: #1d4ed8;
+}
+:root[data-theme='dark'][data-palette='blue'] {
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --ring: #60a5fa;
+}
+
+:root[data-palette='violet'] {
+  --primary: #595bd1;
+  --primary-foreground: #ffffff;
+  --ring: #484ab8;
+}
+:root[data-theme='dark'][data-palette='violet'] {
+  --primary: #7779ed;
+  --primary-foreground: #ffffff;
+  --ring: #898bf5;
+}
+
+:root[data-palette='green'] {
+  --primary: #15803d;
+  --primary-foreground: #ffffff;
+  --ring: #166534;
+}
+:root[data-theme='dark'][data-palette='green'] {
+  --primary: #22c55e;
+  --primary-foreground: #052e16;
+  --ring: #4ade80;
+}
+
+:root[data-palette='orange'] {
+  --primary: #c2410c;
+  --primary-foreground: #ffffff;
+  --ring: #9a3412;
+}
+:root[data-theme='dark'][data-palette='orange'] {
+  --primary: #f97316;
+  --primary-foreground: #1c0a00;
+  --ring: #fb923c;
+}

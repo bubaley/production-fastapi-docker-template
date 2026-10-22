@@ -1,0 +1,11 @@
+#!/command/with-contenv sh
+# Run exactly one scheduler per deployment: with several replicas, set TASKIQ_SCHEDULER=false on all but one.
+exec 2>&1
+if [ "${TASKIQ_SCHEDULER:-true}" != "true" ]; then
+    echo "taskiq-scheduler: disabled (TASKIQ_SCHEDULER=${TASKIQ_SCHEDULER})"
+    exec sleep infinity
+fi
+cd /app/backend || exit 1
+exec /app/backend/.venv/bin/python -m taskiq scheduler app.core.broker:scheduler \
+    --fs-discover --tasks-pattern "app/**/tasks.py" \
+    --update-interval "${TASKIQ_UPDATE_INTERVAL:-10}"

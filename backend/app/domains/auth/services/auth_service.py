@@ -1,122 +1,194 @@
-import hashlib
-import hmac
-from datetime import UTC, datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from uuid import UUID, uuid4
 
-import bcrypt
-from fastapi import Response
-from jose import JWTError, jwt
+from loguru import logger
+from tortoise.expressions import F
+from tortoise.transactions import in_transaction
 
+from app.core.exceptions import AppException
+from app.core.schemas import ErrorCode
+from app.core.services.crypto_service import CryptoService
+from app.core.services.rate_limiter import login_rate_limiter
 from app.core.settings import settings
+from app.core.utils.date_utils import as_utc, utcnow
+from app.domains.auth.models import RefreshSession
+from app.domains.auth.services.token_service import TokenClaims, TokenPair, TokenService, TokenType
+from app.domains.user.models import User, UserToken
 
-if TYPE_CHECKING:
-    from app.domains.user.models import User
+INVALID_CREDENTIALS = 'Invalid email or password'
+INVALID_REFRESH_TOKEN = 'Invalid refresh token'
 
 
-class TokenType(StrEnum):
-    ACCESS = 'access'
-    REFRESH = 'refresh'
+class AuthMethod(StrEnum):
+    JWT = 'jwt'
+    API_TOKEN = 'api_token'
 
 
-class Token:
-    """Helper class to represent a JWT token with type and expiry."""
+@dataclass(frozen=True)
+class Authentication:
+    user: User
+    method: AuthMethod
+    # When the credential stops being valid; None for API tokens without expiry.
+    expires_at: datetime | None = None
 
-    def __init__(self, token: str, token_type: TokenType, expires: datetime | None = None):
-        self.token = token
-        self.type = token_type
-        self.expires = expires
 
-    def remove_cookie(self, response: Response, path: str = '/'):
-        """Remove the token as an HTTP-only cookie in the response."""
-        AuthService.remove_cookie(response, self.type, path)
-
-    def set_cookie(self, response: Response, path: str = '/'):
-        """Set the token as an HTTP-only cookie in the response."""
-        AuthService.set_cookie(response, self.type, self.token, self.expires, path)
-
-    @property
-    def cookie_key(self) -> str:
-        return AuthService.get_cookie_key(self.type)
+def _unauthorized(message: str) -> AppException:
+    return AppException.from_attrs(ErrorCode.UNAUTHORIZED, message)
 
 
 class AuthService:
-    """Service for handling authentication operations including password hashing and JWT tokens."""
+    """
+    Token lifecycle. Transport-agnostic: callers decide whether tokens travel in cookies or JSON bodies.
+
+    - login: verify password (rate limited per IP + email) and start a refresh-session family
+    - refresh: rotate the refresh token; reuse of a rotated token revokes the whole family
+    - logout: revoke the family of the presented token
+    - invalidate_user_tokens: bump `token_version` and revoke every session (password change, logout-all,
+      deactivation); every JWT issued before stops working
+    """
+
+    # LOGIN
 
     @staticmethod
-    def _password_digest(password: str, extra_salt: str) -> bytes:
-        digest = hmac.new(extra_salt.encode('utf-8'), password.encode('utf-8'), hashlib.sha256).hexdigest()
-        return digest.encode('utf-8')
+    async def login(email: str, password: str, client_ip: str) -> TokenPair:
+        if retry_after := await login_rate_limiter.retry_after(client_ip, email):
+            raise AppException.from_attrs(
+                ErrorCode.RATE_LIMITED, 'Too many login attempts', headers={'Retry-After': str(retry_after)}
+            )
+        # iexact also matches accounts stored before emails were normalized to lowercase.
+        user = await User.filter(email__iexact=email).first()
+        if not user:
+            await User.verify_dummy_password(password)
+        if not user or not await user.verify_password_async(password) or not user.is_active:
+            await login_rate_limiter.hit(client_ip, email)
+            raise _unauthorized(INVALID_CREDENTIALS)
+        await login_rate_limiter.reset(client_ip, email)
+        return await AuthService.start_session(user)
 
     @staticmethod
-    def hash_password(password: str, extra_salt: str) -> str:
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(AuthService._password_digest(password, extra_salt), salt)
-        return hashed.decode('utf-8')
-
-    @staticmethod
-    def verify_password(plain_password: str, hashed_password: str, extra_salt: str) -> bool:
-        return bcrypt.checkpw(
-            AuthService._password_digest(plain_password, extra_salt),
-            hashed_password.encode('utf-8'),
+    async def start_session(user: User) -> TokenPair:
+        pair = TokenService.issue_pair(user, session_id=uuid4())
+        await RefreshSession.create(
+            user=user, jti=pair.refresh.jti, family_id=pair.session_id, expires_at=pair.refresh.expires_at
         )
+        return pair
+
+    # REFRESH
 
     @staticmethod
-    def create_access_token(user: User) -> Token:
-        expire = datetime.now(tz=UTC) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
-        payload: dict[str, Any] = {'id': str(user.id), 'type': TokenType.ACCESS, 'exp': expire}
-        encoded_jwt = jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
-        return Token(token=encoded_jwt, token_type=TokenType.ACCESS, expires=expire)  # nosec B106
+    async def refresh(refresh_token: str) -> TokenPair:
+        claims = TokenService.decode(refresh_token, TokenType.REFRESH)
+        user = await AuthService._user_for_claims(claims) if claims else None
+        if not claims or not user:
+            raise _unauthorized(INVALID_REFRESH_TOKEN)
+
+        session = await AuthService._session_for_refresh(refresh_token, claims, user)
+        now = utcnow()
+        if session.revoked_at is not None:
+            await AuthService._handle_reuse(session)
+        if as_utc(session.expires_at) <= now:
+            raise _unauthorized(INVALID_REFRESH_TOKEN)
+
+        pair = TokenService.issue_pair(user, session_id=session.family_id)
+        async with in_transaction():
+            rotated = await RefreshSession.filter(id=session.id, revoked_at=None).update(
+                revoked_at=now, replaced_by=pair.refresh.jti
+            )
+            if not rotated:
+                # A parallel request rotated the same token a moment ago.
+                raise _unauthorized('Refresh token already used')
+            await RefreshSession.create(
+                user=user, jti=pair.refresh.jti, family_id=session.family_id, expires_at=pair.refresh.expires_at
+            )
+        return pair
 
     @staticmethod
-    def create_refresh_token(user: User) -> Token:
-        expire = datetime.now(tz=UTC) + timedelta(minutes=settings.jwt_refresh_token_expire_minutes)
-        payload: dict[str, Any] = {'id': str(user.id), 'type': TokenType.REFRESH, 'exp': expire}
-        encoded_jwt = jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
-        return Token(token=encoded_jwt, token_type=TokenType.REFRESH, expires=expire)  # nosec B106
+    async def _session_for_refresh(refresh_token: str, claims: TokenClaims, user: User) -> RefreshSession:
+        if claims.jti is not None:
+            session = await RefreshSession.get_or_none(jti=claims.jti, user_id=user.id)
+            if not session:
+                raise _unauthorized(INVALID_REFRESH_TOKEN)
+            return session
+        # Legacy refresh token (no jti): it becomes the root of a new family, keyed by its digest, so it can
+        # be exchanged exactly once.
+        digest = CryptoService.hash_value(refresh_token)
+        session = await RefreshSession.get_or_none(jti=digest, user_id=user.id)
+        if session is None:
+            session = await RefreshSession.create(
+                user=user, jti=digest, family_id=uuid4(), expires_at=claims.expires_at
+            )
+        return session
 
     @staticmethod
-    def verify_token(token: str) -> dict[str, Any] | None:
-        try:
-            payload = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
-            return payload
-        except JWTError:
+    async def _handle_reuse(session: RefreshSession) -> None:
+        leeway = timedelta(seconds=settings.refresh_reuse_leeway_seconds)
+        revoked_at = as_utc(session.revoked_at) if session.revoked_at else None
+        if session.replaced_by and revoked_at and utcnow() - revoked_at <= leeway:
+            raise _unauthorized('Refresh token already used')
+        revoked = await AuthService.revoke_family(session.family_id)
+        logger.warning(
+            'Refresh token reuse detected for user {}: revoked {} session(s) of family {}',
+            session.user_id,
+            revoked,
+            session.family_id,
+        )
+        raise _unauthorized(INVALID_REFRESH_TOKEN)
+
+    # LOGOUT
+
+    @staticmethod
+    async def logout(refresh_token: str | None = None, access_token: str | None = None) -> None:
+        """Revoke the session family of the presented token. Invalid or expired tokens are ignored."""
+        family_id: UUID | None = None
+        if refresh_token and (claims := TokenService.decode(refresh_token, TokenType.REFRESH)):
+            jti = claims.jti or CryptoService.hash_value(refresh_token)
+            session = await RefreshSession.get_or_none(jti=jti, user_id=claims.user_id)
+            family_id = session.family_id if session else claims.session_id
+        if family_id is None and access_token and (claims := TokenService.decode(access_token, TokenType.ACCESS)):
+            family_id = claims.session_id
+        if family_id is not None:
+            await AuthService.revoke_family(family_id)
+
+    @staticmethod
+    async def revoke_family(family_id: UUID) -> int:
+        return await RefreshSession.filter(family_id=family_id, revoked_at=None).update(revoked_at=utcnow())
+
+    @staticmethod
+    async def invalidate_user_tokens(user: User) -> None:
+        """Every JWT issued to the user stops working; refresh sessions are revoked. API tokens are kept."""
+        await User.filter(id=user.id).update(token_version=F('token_version') + 1)
+        await user.refresh_from_db(fields=['token_version'])
+        await RefreshSession.filter(user_id=user.id, revoked_at=None).update(revoked_at=utcnow())
+
+    # AUTHENTICATION
+
+    @staticmethod
+    async def _user_for_claims(claims: TokenClaims) -> User | None:
+        user = await User.get_or_none(id=claims.user_id)
+        if not user or not user.is_active or user.token_version != claims.version:
             return None
+        return user
 
     @staticmethod
-    def set_token_cookie(response: Response, token: Token):
-        """Set a JWT token in HTTP-only cookie."""
-        token.set_cookie(response)
+    async def authenticate_access_token(token: str) -> Authentication | None:
+        claims = TokenService.decode(token, TokenType.ACCESS)
+        user = await AuthService._user_for_claims(claims) if claims else None
+        if not claims or not user:
+            return None
+        return Authentication(user=user, method=AuthMethod.JWT, expires_at=claims.expires_at)
 
     @staticmethod
-    def remove_cookie(response: Response, token_type: TokenType, path: str = '/'):
-        """Remove the token as an HTTP-only cookie in the response."""
-        response.delete_cookie(
-            key=AuthService.get_cookie_key(token_type),
-            path=path,
-            httponly=settings.cookie_httponly,
-            secure=settings.cookie_secure,
-            samesite=settings.cookie_samesite,
-        )
-
-    @staticmethod
-    def set_cookie(
-        response: Response, token_type: TokenType, token: str, expires: datetime | None = None, path: str = '/'
-    ):
-        """Set the token as an HTTP-only cookie in the response."""
-        max_age = None
-        if expires:
-            max_age = int((expires - datetime.now(tz=UTC)).total_seconds())
-        response.set_cookie(
-            key=AuthService.get_cookie_key(token_type),
-            value=token,
-            max_age=max_age,
-            path=path,
-            httponly=settings.cookie_httponly,
-            secure=settings.cookie_secure,
-            samesite=settings.cookie_samesite,
-        )
-
-    @staticmethod
-    def get_cookie_key(token_type: TokenType) -> str:
-        return f'{token_type.value}_token'
+    async def authenticate_api_token(value: str) -> Authentication | None:
+        token = await UserToken.filter(value_hash=CryptoService.hash_value(value)).select_related('user').first()
+        if not token or not token.user.is_active:
+            return None
+        now = utcnow()
+        expires_at = as_utc(token.expires_at) if token.expires_at else None
+        if expires_at and expires_at <= now:
+            return None
+        touch_interval = timedelta(seconds=settings.api_token_touch_interval_seconds)
+        if token.last_used_at is None or now - as_utc(token.last_used_at) >= touch_interval:
+            await UserToken.filter(id=token.id).update(last_used_at=now)
+        return Authentication(user=token.user, method=AuthMethod.API_TOKEN, expires_at=expires_at)

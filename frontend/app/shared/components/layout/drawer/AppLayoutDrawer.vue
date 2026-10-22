@@ -1,7 +1,8 @@
 <template>
-  <aside class="sticky top-0 flex h-full min-h-0 max-h-full flex-col self-start overflow-hidden">
+  <aside class="sticky top-0 flex h-full max-h-full min-h-0 flex-col self-start overflow-hidden">
     <nav
-      class="bg-card radius-md flex min-h-0 flex-1 flex-col overflow-y-auto border-base border px-2 py-4 dark:border-none"
+      aria-label="Основная навигация"
+      class="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-md border border-border bg-card px-2 py-4 dark:border-none"
     >
       <div
         v-for="section in sections"
@@ -13,14 +14,20 @@
             v-for="(item, index) in section.items"
             :key="index"
           >
-            <AppButton
-              :to="item.to"
-              :aria-label="item.label"
-              :title="item.label"
-              :icon="item.icon"
-              :severity="isActiveRoute(item.to) ? 'primary' : 'secondary'"
-              :text="!isActiveRoute(item.to)"
-            />
+            <AppTooltip
+              :text="item.label"
+              side="right"
+            >
+              <template #trigger>
+                <AppButton
+                  :to="item.to"
+                  :aria-label="item.label"
+                  :aria-current="isActiveRoute(item.to) ? 'page' : undefined"
+                  :icon="item.icon"
+                  :variant="isActiveRoute(item.to) ? 'default' : 'ghost'"
+                />
+              </template>
+            </AppTooltip>
           </div>
         </div>
       </div>
@@ -30,18 +37,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
 export type NavigationSection = {
   title: string
-  icon?: string
   items: {
     to: Record<string, string>
     label: string
-    icon?: string
+    icon: Component
   }[]
 }
 

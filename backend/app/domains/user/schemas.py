@@ -4,16 +4,18 @@ from uuid import UUID
 from fastapi_ronin.decorators import schema
 from pydantic import ConfigDict, Field
 
+from app.core.fields.email_field import NormalizedEmail
+from app.core.fields.password_field import NewPassword
 from app.core.models import BaseCreateSchema, BaseReadSchema, BaseSchema
 from app.domains.user.models import User, UserToken
 
 
 @schema(model=User)
 class UserCreateSchema(BaseCreateSchema):
-    email: str
+    email: NormalizedEmail
     first_name: str
     last_name: str
-    password: str = Field(min_length=1, max_length=128)
+    password: NewPassword
     is_superuser: bool = False
 
 
@@ -23,19 +25,22 @@ class UserReadSchema(BaseReadSchema):
     first_name: str
     last_name: str
     is_superuser: bool
+    is_active: bool
 
 
 @schema(model=User)
 class UserUpdateSchema(BaseCreateSchema):
-    email: str | None = None
+    email: NormalizedEmail | None = None
     first_name: str | None = None
     last_name: str | None = None
+    # Superuser only (UserService.validate_update)
     is_superuser: bool | None = None
+    is_active: bool | None = None
 
 
 class UserChangePasswordSchema(BaseSchema):
-    current_password: str | None = None
-    new_password: str = Field(min_length=1, max_length=128)
+    current_password: str | None = Field(None, max_length=128)
+    new_password: NewPassword
 
 
 # USER_TOKEN_SCHEMAS
@@ -45,6 +50,7 @@ class UserChangePasswordSchema(BaseSchema):
 class UserTokenCreateSchema(BaseCreateSchema):
     user_id: UUID | None = None
     name: str
+    expires_at: datetime | None = None
 
 
 @schema(model=UserToken)
@@ -59,6 +65,7 @@ class UserTokenReadSchema(BaseReadSchema):
     user_id: UUID
     value_preview: str
     last_used_at: datetime | None
+    expires_at: datetime | None
     name: str
 
 

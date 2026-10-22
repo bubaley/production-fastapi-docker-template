@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Search } from '@lucide/vue'
 import AppFilterToolbar from './filters/AppFilterToolbar.vue'
 import type { ViewFilters, ViewFilterSpec, ViewFixedField } from './filters/types'
 withDefaults(
@@ -40,7 +41,7 @@ const search = defineModel<string>('search', { default: '' })
       <AppInput
         v-if="showSearch"
         v-model="search"
-        icon="lucide:search"
+        :icon="Search"
         class="max-w-xs flex-1"
         :loading="searchLoading"
         :placeholder="searchPlaceholder || 'Поиск'"

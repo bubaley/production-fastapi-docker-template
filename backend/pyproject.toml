@@ -9,54 +9,63 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
+    "asyncpg>=0.32.0",
     "bcrypt>=5.0.0",
-    "boto3>=1.43.73",
-    "cryptography>=50.0.0",
-    "fastapi>=0.141.1",
+    "boto3>=1.43.117",
+    "cryptography>=50.0.2",
+    "email-validator>=2.3.0",
+    "fastapi>=0.161.0",
     "fastapi-ronin>=1.0.0",
-    "glom>=25.12.0",
-    "gunicorn>=26.1.0",
-    "httpx2>=2.12.0",
     "loguru>=0.7.3",
-    "pydantic-settings>=2.15.0",
-    "python-jose[cryptography]>=3.5.0",
+    "pydantic>=2.14.1",
+    "pydantic-settings>=2.16.1",
+    "pyjwt>=2.15.1",
     "python-multipart>=0.0.32",
     "redis>=8.1.0",
-    "taskiq>=0.12.4",
-    "taskiq-redis>=1.2.3",
-    "tortoise-orm[asyncpg]>=1.1.8",
-    "typer>=0.27.1",
-    "uvicorn[standard]>=0.52.3",
+    "starlette>=1.9.0",
+    "taskiq>=0.13.0",
+    "taskiq-redis>=1.2.4",
+    "tortoise-orm[asyncpg]>=1.1.9",
+    "typer>=0.27.3",
+    "uvicorn[standard]>=0.54.0",
+]
+optional-dependencies.otel = [
+    "fastapi[opentelemetry]>=0.161.0",
 ]
 
 [dependency-groups]
 dev = [
-    "pre-commit>=4.6.2",
+    "httpx2>=2.16.0",
+    "pre-commit>=4.7.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
-    "ruff>=0.16.3",
-    "ty>=0.0.72",
+    "ruff>=0.17.2",
+    "ty>=0.0.91",
 ]
 
 [tool.ruff]
 target-version = "py314"
 line-length = 120
 indent-width = 4
-extend-exclude = [ "backend/migrations" ]
+extend-exclude = [ "migrations" ]
+force-exclude = true
 format.quote-style = "single"
 format.line-ending = "auto"
 format.skip-magic-trailing-comma = false
 lint.extend-select = [ "I" ]
 lint.ignore = [ "BLE001" ]
-lint.extend-per-file-ignores."core/settings/*.py" = [ "F403", "F405" ]
+# conftest sets TESTING before importing the app.
+lint.per-file-ignores."app/conftest.py" = [ "E402" ]
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.bandit]
 exclude_dirs = [ "*/migrations/*", "*/tests/*", "tests" ]
-skips = [ "B101" ]
+# B105 flags any string constant named like `token` or `password` (cookie names, error messages, test fixtures).
+skips = [ "B101", "B105" ]
 
 [tool.pytest]
 ini_options.testpaths = [ "app" ]
+ini_options.pythonpath = [ "." ]
 ini_options.python_files = [ "test_*.py" ]
 ini_options.asyncio_mode = "auto"
 

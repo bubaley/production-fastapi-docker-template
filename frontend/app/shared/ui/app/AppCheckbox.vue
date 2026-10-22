@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { Check, Minus } from '@lucide/vue'
 import { computed, useAttrs, useId } from 'vue'
+import { Checkbox } from '~/shared/ui/shadcn/checkbox'
+import { Label } from '~/shared/ui/shadcn/label'
 
 defineOptions({ inheritAttrs: false })
 const props = defineProps<{
   label?: string
+  /** Value added to / removed from an array model. */
   val?: unknown
   trueValue?: unknown
   falseValue?: unknown
@@ -19,6 +22,7 @@ const checked = computed(() => {
   if (Array.isArray(model.value)) return model.value.includes(props.val)
   return model.value === (props.trueValue ?? true)
 })
+const state = computed(() => (props.indeterminate ? 'indeterminate' : checked.value))
 const toggle = () => {
   if (props.disabled) return
   if (Array.isArray(model.value)) {
@@ -32,37 +36,35 @@ const toggle = () => {
 </script>
 
 <template>
-  <label
-    :for="id"
-    class="inline-flex cursor-pointer items-center gap-2 text-sm"
+  <span
+    class="inline-flex items-center gap-2"
+    :class="attrs.class"
   >
-    <input
+    <Checkbox
+      v-bind="{ ...attrs, class: undefined }"
       :id="id"
-      v-bind="attrs"
-      type="checkbox"
-      :checked="checked"
-      :indeterminate.prop="indeterminate"
-      :aria-checked="indeterminate ? 'mixed' : checked"
+      :model-value="state"
       :disabled="disabled"
-      class="peer sr-only"
-      @change="toggle"
-    >
-    <span
-      aria-hidden="true"
-      class="relative box-border block size-[18px] min-h-[18px] min-w-[18px] shrink-0 overflow-hidden rounded border border-border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-50"
-      :class="checked || indeterminate ? 'bg-white text-black' : 'bg-card text-transparent'"
+      class="size-[18px] rounded-sm border-border bg-card"
+      @update:model-value="toggle"
     >
       <Minus
         v-if="indeterminate"
-        class="absolute inset-0 m-auto size-3.5"
+        class="size-3.5"
         :stroke-width="3"
       />
       <Check
-        v-else-if="checked"
-        class="absolute inset-0 m-auto size-3.5"
+        v-else
+        class="size-3.5"
         :stroke-width="3"
       />
-    </span>
-    <slot>{{ label }}</slot>
-  </label>
+    </Checkbox>
+    <Label
+      v-if="label || $slots.default"
+      :for="id"
+      class="cursor-pointer leading-[inherit] font-normal"
+    >
+      <slot>{{ label }}</slot>
+    </Label>
+  </span>
 </template>

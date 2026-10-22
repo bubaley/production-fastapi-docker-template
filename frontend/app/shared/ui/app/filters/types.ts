@@ -19,7 +19,6 @@ export interface ViewFilterSpec {
   fields: ViewFilterField[]
 }
 
-
 export interface ViewFixedField {
   field: string
   mode: 'single' | 'multiple' | 'optional'

@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest'
-import { localDateValue, resolveDateExpression, resolvePickerValue, validatePickerValues } from '../app/shared/ui/app/date-picker/dateMath'
+import { describe, expect, it } from 'vite-plus/test'
+import {
+  localDateValue,
+  resolveDateExpression,
+  resolvePickerValue,
+  validatePickerValues,
+} from '../app/shared/ui/app/date-picker/dateMath'
 import { finishCalendarRange, replaceCalendarDay } from '../app/shared/ui/app/date-picker/selection'
 describe('date picker values', () => {
   it('round-trips date-only values without applying UTC shifts', () => {

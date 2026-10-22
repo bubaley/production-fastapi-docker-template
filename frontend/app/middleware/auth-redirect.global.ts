@@ -1,4 +1,3 @@
-
 export default defineNuxtRouteMiddleware(async (to) => {
   if (to.path === '/ui' || to.path === '/ui/') return
   const publicNames = ['auth', 'ui']

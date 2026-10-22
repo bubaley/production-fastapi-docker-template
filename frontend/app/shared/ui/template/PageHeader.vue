@@ -21,8 +21,8 @@ withDefaults(
           as="h1"
           :size="titleSize"
         >
-          <slot name="title">{{ title }}</slot>
-        </AppTitle><slot name="title-append" />
+          <slot name="title">{{ title }}</slot> </AppTitle
+        ><slot name="title-append" />
       </div>
       <p
         v-if="description"

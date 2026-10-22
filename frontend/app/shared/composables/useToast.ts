@@ -21,7 +21,7 @@ export const toast = {
   loading: (message: string, config?: ToastConfig): ToastId => sonner.loading(message, config),
   dismiss: (id?: ToastId): void => {
     sonner.dismiss(id)
-  }
+  },
 }
 
 /** Also available outside setup (API interceptors and repositories). */

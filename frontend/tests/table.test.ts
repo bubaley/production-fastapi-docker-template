@@ -1,27 +1,35 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import AppTable from '../app/shared/ui/app/AppTable.vue'
 import AppColumn from '../app/shared/ui/app/AppColumn.vue'
 
 const items = [{ id: '1', name: 'Альфа', count: 2 }]
-const createTable = (props = {}) => mount(AppTable, {
-  props: { items, clickable: true, ...props },
-  global: { stubs: { AppLoadingIndicator: { template: '<span role="status">Загрузка</span>' } } },
-  slots: {
-    default: () => [
-      h(AppColumn, { field: 'name', header: 'Название' }),
-      h(AppColumn, { header: 'Количество', format: (row: typeof items[number]) => `${row.count} шт.` }),
-      h(AppColumn, { header: 'Действия' }, { body: ({ data }: { data: typeof items[number] }) => h('button', { type: 'button' }, `Изменить ${data.name}`) }),
-    ],
-  },
-})
+const createTable = (props = {}) =>
+  mount(AppTable, {
+    props: { items, clickable: true, ...props },
+    global: { stubs: { AppLoadingIndicator: { template: '<span role="status">Загрузка</span>' } } },
+    slots: {
+      default: () => [
+        h(AppColumn, { field: 'name', header: 'Название' }),
+        h(AppColumn, { header: 'Количество', format: (row: (typeof items)[number]) => `${row.count} шт.` }),
+        h(
+          AppColumn,
+          { header: 'Действия' },
+          {
+            body: ({ data }: { data: (typeof items)[number] }) =>
+              h('button', { type: 'button' }, `Изменить ${data.name}`),
+          },
+        ),
+      ],
+    },
+  })
 
 describe('AppTable declarative columns', () => {
   it('renders fields, formatted cells and scoped body slots', () => {
     const wrapper = createTable()
-    expect(wrapper.findAll('th').map(node => node.text())).toEqual(['Название', 'Количество', 'Действия'])
-    expect(wrapper.findAll('td').map(node => node.text())).toEqual(['Альфа', '2 шт.', 'Изменить Альфа'])
+    expect(wrapper.findAll('th').map((node) => node.text())).toEqual(['Название', 'Количество', 'Действия'])
+    expect(wrapper.findAll('td').map((node) => node.text())).toEqual(['Альфа', '2 шт.', 'Изменить Альфа'])
   })
 
   it('opens the row with Enter but isolates nested actions', async () => {

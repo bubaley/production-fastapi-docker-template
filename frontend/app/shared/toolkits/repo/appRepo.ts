@@ -1,4 +1,4 @@
-import { cloneDeep } from 'lodash-es'
+import { deepClone } from '~/shared/lib/clone'
 import type { ResponseType } from 'ofetch'
 
 export const createAppRepo = <T extends AppModel>(config: AppRepoConfig<T>) => {
@@ -87,7 +87,7 @@ export const createAppRepo = <T extends AppModel>(config: AppRepoConfig<T>) => {
         'list',
         {
           method: 'get',
-          params: { ...cloneDeep(params), ..._paginationCodec.encode(options.pagination || pagination.value) },
+          params: { ...deepClone(params), ..._paginationCodec.encode(options.pagination || pagination.value) },
         },
         (raw) => {
           if (config.parseManyResponse) {
@@ -112,12 +112,19 @@ export const createAppRepo = <T extends AppModel>(config: AppRepoConfig<T>) => {
         onError,
       )
 
-    const retrieve = (id: string | number, params?: Record<string, unknown>, onError?: RepoOnError, options: RepoRetrieveConfig = {}) =>
+    const retrieve = (
+      id: string | number,
+      params?: Record<string, unknown>,
+      onError?: RepoOnError,
+      options: RepoRetrieveConfig = {},
+    ) =>
       _request<T>(
         'retrieve',
         { method: 'get', id, params },
         (raw) => (config.parseResponse ? config.parseResponse(raw, 'retrieve') : _codec.decode(raw)),
-        (parsed) => { if (options.storeInRepo !== false) item.value = parsed },
+        (parsed) => {
+          if (options.storeInRepo !== false) item.value = parsed
+        },
         onError,
       )
 

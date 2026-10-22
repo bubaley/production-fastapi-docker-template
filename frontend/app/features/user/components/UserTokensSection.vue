@@ -31,7 +31,8 @@
         <span
           v-else
           class="text-muted-foreground"
-        >—</span>
+          >—</span
+        >
       </template>
     </AppColumn>
     <AppColumn header="Создан">
@@ -49,18 +50,19 @@
       />
       <div v-if="detailItem.id">
         <AppCard
-          :color="detailItem.value ? 'success' : 'neutral'"
+          :tone="detailItem.value ? 'success' : 'neutral'"
           class="w-full"
         >
-          <div class="flex items-start gap-2 w-full">
+          <div class="flex w-full items-start gap-2">
             <span class="min-w-0 flex-1 break-all whitespace-normal">
               {{ detailItem.value || detailItem.value_preview }}
             </span>
             <AppButton
               v-if="detailItem.value"
-              severity="success"
-              class="shrink-0 ml-4"
-              icon="lucide:copy"
+              variant="ghost"
+              class="ml-4 shrink-0 text-success"
+              :icon="Copy"
+              aria-label="Скопировать токен"
               @click="copyToken(detailItem.value)"
             />
           </div>
@@ -74,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+import { Copy } from '@lucide/vue'
 import { userTokenCodec } from '../models/userToken'
 import { useUserTokenRepo } from '../repos/userTokenRepo'
 

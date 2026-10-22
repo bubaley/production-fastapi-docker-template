@@ -6,7 +6,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
 } from '~/shared/ui/shadcn/dialog'
 import { useOverlayStack } from './useOverlayStack'
 
@@ -28,7 +28,7 @@ export type AppModalProps = {
 const props = withDefaults(defineProps<AppModalProps>(), {
   width: '32rem',
   closeable: true,
-  autofocus: true
+  autofocus: true,
 })
 
 const model = defineModel<boolean>({ default: false })
@@ -40,14 +40,12 @@ type InteractOutsideEvent = Event & { detail?: { originalEvent?: Event } }
 const handleInteractOutside = (event: InteractOutsideEvent) => {
   const originalPath = event.detail?.originalEvent?.composedPath() ?? []
   const isDevToolsInteraction = originalPath.some(
-    (target) => target instanceof Element && target.closest('#__vue-devtools-container__')
+    (target) => target instanceof Element && target.closest('#__vue-devtools-container__'),
   )
   const isPortalledOverlayInteraction = originalPath.some(
     (target) =>
       target instanceof Element &&
-      (target.closest('[data-reka-popper-content-wrapper]') ||
-        target.closest('[data-sonner-toaster]') ||
-        target.closest('.viewer-container'))
+      (target.closest('[data-reka-popper-content-wrapper]') || target.closest('[data-sonner-toaster]')),
   )
 
   if (!isTop.value || props.preventOutsideClose || isDevToolsInteraction || isPortalledOverlayInteraction)

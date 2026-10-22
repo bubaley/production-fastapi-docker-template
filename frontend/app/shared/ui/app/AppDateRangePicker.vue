@@ -15,8 +15,8 @@ withDefaults(
   {
     locale: 'ru',
     variant: 'ghost',
-    size: 'sm'
-  }
+    size: 'sm',
+  },
 )
 const model = defineModel<AppDateRange>({ default: () => ({ from: null, to: null }) })
 const open = defineModel<boolean>('open', { default: false })
@@ -25,7 +25,7 @@ const dates = computed<DatePickerRange>({
   get: () => ({ start: model.value.from, end: model.value.to }),
   set: (value) => {
     model.value = { from: value.start, to: value.end }
-  }
+  },
 })
 </script>
 <template>
@@ -56,7 +56,8 @@ const dates = computed<DatePickerRange>({
         <span
           v-else
           class="inline-flex text-muted-foreground"
-        ><slot name="empty">{{ locale === 'en' ? 'Not set' : 'Не задан' }}</slot></span>
+          ><slot name="empty">{{ locale === 'en' ? 'Not set' : 'Не задан' }}</slot></span
+        >
       </AppButton>
     </template>
   </AppDatePicker>

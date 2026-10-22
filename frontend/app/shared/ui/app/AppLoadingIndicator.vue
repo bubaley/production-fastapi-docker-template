@@ -13,7 +13,7 @@ export type AppLoadingIndicatorProps = {
 const props = withDefaults(defineProps<AppLoadingIndicatorProps>(), {
   locale: 'ru',
   size: 'sm',
-  fluid: false
+  fluid: false,
 })
 
 const text = computed(() => props.label || (props.locale === 'en' ? 'Loading…' : 'Загрузка…'))
@@ -25,10 +25,7 @@ const iconSize = computed<AppIconSize>(() => (props.size === 'md' ? 'sm' : 'xs')
     role="status"
     aria-live="polite"
     class="items-center justify-center text-muted-foreground"
-    :class="[
-      fluid ? 'flex w-full' : 'inline-flex',
-      size === 'md' ? 'gap-2 text-sm' : 'gap-1.5 text-xs'
-    ]"
+    :class="[fluid ? 'flex w-full' : 'inline-flex', size === 'md' ? 'gap-2 text-sm' : 'gap-1.5 text-xs']"
   >
     <AppIcon
       :icon="LoaderCircle"

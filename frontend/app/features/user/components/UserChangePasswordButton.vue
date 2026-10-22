@@ -2,7 +2,7 @@
   <AppTextButton
     v-if="userId"
     label="Сменить пароль"
-    severity="secondary"
+    tone="muted"
     class="text-sm"
     @click="open"
   />

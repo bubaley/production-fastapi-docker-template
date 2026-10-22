@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex items-center gap-sm"
+    class="flex items-center gap-2"
     :class="{ 'w-full *:flex-1': fullWidth }"
   >
     <AppButton
@@ -15,10 +15,11 @@
 
 <script setup lang="ts">
 import type { AppTemplateAction } from './types/template-types'
+import type { AppButtonSize } from '../app/types/control'
 
 export type AppTemplateActionsProps = {
   actions?: AppTemplateAction[]
-  size?: 'small' | 'large'
+  size?: AppButtonSize
   fullWidth?: boolean
 }
 
@@ -33,10 +34,20 @@ const toast = useToast()
 const visibleActions = computed(() => props.actions.filter((action) => !action.hidden))
 
 const getButtonProps = (action: AppTemplateAction, index: number) => {
-  const mode = action.mode || 'both'
+  const {
+    action: _action,
+    hidden: _hidden,
+    mode = 'both',
+    class: _class,
+    successNotification: _success,
+    errorNotification: _error,
+    ...button
+  } = action
   return {
-    ...action,
+    ...button,
     label: mode === 'icon' ? undefined : action.label,
+    // Icon-only actions keep their label as the accessible name.
+    'aria-label': mode === 'icon' ? action.label : undefined,
     icon: mode === 'label' ? undefined : action.icon,
     size: action.size || props.size,
     loading: action.loading || actionsLoading.value.includes(index),

@@ -37,6 +37,12 @@ class OrganizationService:
         return membership
 
     @staticmethod
+    async def update_member(membership: OrganizationUser, actor: User) -> OrganizationUser:
+        await OrganizationService.validate_membership_change(membership, actor)
+        await membership.save()
+        return membership
+
+    @staticmethod
     async def remove_member(membership: OrganizationUser, actor: User) -> None:
         await OrganizationService.validate_membership_change(membership, actor)
         await membership.delete()

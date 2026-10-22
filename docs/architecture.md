@@ -1,6 +1,6 @@
 # Architecture
 
-Full-stack template: FastAPI REST API (`/api/v1`) + Nuxt SPA. Data is scoped by the current user and organization (`FilterObjectsManager` on the backend, `Organization-Key` on the frontend).
+Full-stack template: FastAPI REST API (`/api/v1`) + Nuxt 4 app with server-side rendering (Nuxt default; the Nitro server also proxies auth, see below). The approved move to hybrid rendering (client-only app routes, SSR for public pages) is tracked in [roadmap.md](roadmap.md). Data is scoped by the current user and organization (`FilterObjectsManager` on the backend, `Organization-Key` on the frontend).
 
 What the app does (purpose, scenarios): [product.md](product.md).
 
@@ -8,7 +8,7 @@ What the app does (purpose, scenarios): [product.md](product.md).
 |---|---|
 | Backend | Python 3.14, FastAPI, Tortoise ORM, fastapi-ronin, Taskiq, Redis, PostgreSQL |
 | Frontend | Nuxt 4, Vue 3, Pinia, shadcn-vue / Reka UI, Tailwind CSS |
-| Infra | Docker Compose, Caddy (prod), Makefile |
+| Infra | One Docker image (s6-overlay: Caddy, uvicorn, Nuxt, Taskiq), Docker Compose, GitHub Actions, Makefile — see [deployment.md](deployment.md) |
 
 **Where to put new code**
 
@@ -16,9 +16,9 @@ What the app does (purpose, scenarios): [product.md](product.md).
 - Cross-cutting infrastructure (auth kernel, S3, base viewset) → `backend/app/core/` or `frontend/app/shared/`.
 - Pages are thin: they only mount a feature view. Layouts own navigation.
 
-Canonical examples: `backend/app/domains/organization/`, `frontend/app/features/organization/`. Live UI primitives: `/ui` (public static catalogue); `/home/ui` redirects there. The catalogue uses local sample data and does not expose organization resources.
+Canonical examples: `backend/app/domains/organization/`, `frontend/app/features/organization/`. Live UI primitives: `/ui` (public static catalogue). The catalogue uses local sample data and does not expose organization resources.
 
-`AppPageView` combines `AppPage` and `PageHeader` for one page heading and a bounded scrolling body. The fixed regions are header, subheader before the divider, controls after the divider, and footer; HomeView demonstrates them. `AppSection` groups content structurally; use `AppCard` for a visible surface. App controls share the Tasker control sizes and semantic light/dark tokens. Feature data still goes through the existing repo/codec toolkit.
+`AppPageView` combines `AppPage` and `PageHeader` for one page heading and a bounded scrolling body. The fixed regions are header, subheader before the divider, controls after the divider, and footer; HomeView demonstrates them. `AppSection` groups content structurally; use `AppCard` for a visible surface. App controls share one set of control sizes (`shared/ui/app/types/control.ts`) and semantic light/dark tokens. Feature data still goes through the existing repo/codec toolkit.
 
 ### New capability — definition of done
 
@@ -26,12 +26,12 @@ Same change, all of this (skip a row only if it does not apply):
 
 | Layer | Done when |
 |---|---|
-| Backend | Domain files (`models`, `schemas`, `filters`, `views`). Register in `core/database.py` (`MODELS`), `main.py` (`include_router`), **`FilterObjectsManager`**. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
+| Backend | Domain files (`models`, `schemas`, `filters`, `views`). Register in `core/database.py` (`MODELS`) and `main.py` (`include_router`); declare **`tenant_scope`** on every model. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
 | Tests | Non-trivial rules get pytest next to the domain (`domains/<name>/tests/`). See [backend-concept.md](backend-concept.md#tests). Canonical: `domains/organization/tests/test_organization.py` |
 | Frontend | Feature: model + codec, repo, `useRepo` registry, views on `AppListTemplate` / `AppDetailTemplate`, thin page, drawer item if needed. User-facing copy in **Russian** |
 | Realtime | Org events go through **`OrganizationWebSocketService`**, not a new websocket stack |
 | Docs | [product.md](product.md) if the user can see or do something new. Concept docs if the pattern itself changed |
-| Lint | `make lint` is green |
+| Checks | `make lint` applied, `make check` is green |
 | Migration | Tell the user `make mm` / `make m` is needed. Do not run it unless they ask |
 
 ---
@@ -41,7 +41,7 @@ Same change, all of this (skip a row only if it does not apply):
 ```
 backend/app/
   main.py                 # FastAPI app: middleware, /api/v1 routers, /ws, /health
-  conftest.py             # Shared pytest fixtures (in-memory Tortoise `db`)
+  conftest.py             # Shared pytest fixtures: `db` on a PostgreSQL test database (`--sqlite` for in-memory, `--keepdb` to reuse)
   core/                   # Application kernel — not a business domain
   domains/                # One folder per business module
   shared/                 # Cross-domain services, utils, permissions
@@ -62,7 +62,7 @@ Owns process-wide wiring. Do not put organization/user business rules here.
 | `broker.py` | Taskiq |
 | `exceptions.py` | Exception handlers |
 | `services/` | Infrastructure **classes** (S3, crypto, logger, websocket) |
-| `utils/` | Small **functions** (dates, exception details, M2M helpers) |
+| `utils/` | Small **functions** (dates, exception details) |
 | `fields/` | Reusable Tortoise/Pydantic fields |
 | `tests/` | App-level tests (health, auth smoke) — not domain tests |
 
@@ -85,7 +85,7 @@ One domain can contain several models. Split files by role, not by putting every
 | `services/` | Domain **classes** (see services vs utils below) |
 | `tests/` | Tests for this domain: `tests/test_<subject>.py` |
 
-Register the domain: `core/database.py` (`MODELS`) + `main.py` (`include_router`) + `shared/services/filter_objects_manager.py` (queryset scope).
+Register the domain: `core/database.py` (`MODELS`) + `main.py` (`include_router`) + `tenant_scope` on each model (queryset scope, see [backend-concept.md](backend-concept.md#scoping)).
 
 ### `shared/` — used by more than one domain
 
@@ -120,6 +120,9 @@ services/invoice_builder/
 ## Frontend tree
 
 ```
+frontend/
+  modules/base-auth/      # Local Nuxt module: session auth over JWT cookies (see below)
+  server/                 # Nitro server utils used by base-auth (`utils/cookie.ts`)
 frontend/app/
   features/               # One folder per business module (mirrors a backend domain)
   pages/                  # Nuxt routes — thin wrappers over feature views
@@ -171,11 +174,24 @@ Same idea already exists in the UI kit: `shared/ui/app/date-picker/` (components
 | `ui/app/<cluster>/` | A primitive that needs several files (`select`, `date-picker`, `filters`) |
 | `composables/` | App-wide composables (`useRepo`, `useActionState`, `useToast`) |
 | `toolkits/repo/` | Generic repo/codec/pagination — do not fork this per feature |
-| `toolkits/authentication/` | Token storage and auth client |
 | `utils/` | Small frontend helpers |
 | `lib/` | Class-name composition (`cn`) for shadcn primitives; explicitly tracked despite Python `lib/` ignore rules |
 | `components/` | App chrome that is not a generic primitive (layout header, drawer) |
 | `stores/` | Rare app-level stores (setup wizard) |
+
+### `modules/base-auth/` and `server/` — current auth
+
+Current state; [roadmap.md](roadmap.md) stage 5 replaces it with FastAPI-owned HttpOnly cookies and removes the Nitro proxy.
+
+| Path | Why it exists |
+|---|---|
+| `modules/base-auth/index.ts` | Registers the module (`baseAuth` key in `nuxt.config.ts`): server handler, `useAuth`, `$auth` plugin, global middleware |
+| `runtime/server/api/auth/[...all].ts` | Nitro handler at `/api/auth/*` (`login`, `logout`, `refresh`, `me`, `tokens`) that calls FastAPI `/api/v1/auth/*` and sets `access_token` / `refresh_token` cookies |
+| `runtime/composables/useAuth.ts` | `session`, login/logout and periodic refresh on the client |
+| `runtime/middleware/auth.global.ts` | Loads tokens and session during SSR (skips `/ui`) |
+| `server/utils/cookie.ts` | `getCookieValue` — reads a cookie from the request or from fresh `Set-Cookie` headers |
+
+App-level redirects (`/auth`, `/home/setup`) live in `app/middleware/`. Business requests go through `$api` (`app/plugins/`), which forwards the request cookie during SSR.
 
 ---
 
@@ -189,5 +205,34 @@ Router (domains/*/views.py) → ViewSet → FilterObjectsManager → Model
 ```
 
 Frontend never calls `useFetch` for business resources — always a repo.
+
+In production every request enters the container through Caddy (`:8080`): `/api/v1/*` and `/ws/*` go to uvicorn on `127.0.0.1:8000`, `/_nuxt/*` is served from the build output, everything else goes to the Nuxt server on `127.0.0.1:3000`. Details: [deployment.md](deployment.md).
+
+---
+
+## Infrastructure tree
+
+```
+Dockerfile                # One multi-stage image (backend venv, Nuxt build, runtime with s6-overlay)
+.dockerignore             # Allowlist of the build context
+Caddyfile                 # Reverse proxy inside the image
+docker/rootfs/            # Copied to / in the image
+  etc/s6-overlay/s6-rc.d/ #   one directory per service (migrate, backend, taskiq-*, frontend, caddy)
+  etc/s6-overlay/scripts/ #   migrate, wait-for-db.py, service-finish (halts the container on a crash)
+  usr/local/bin/healthcheck
+compose.yaml              # Production stack: app + PostgreSQL + Redis
+compose.override.yaml     # Local development only: db/redis ports on 127.0.0.1, app build
+cliff.toml                # Release rules: next version and CHANGELOG.md from conventional commits
+version.json              # Current release version (written by the release job, with pyproject/package.json)
+.github/workflows/        # ci.yaml (checks → release → publish → deploy), rollback, pr-title, security
+.github/actions/deploy/   # Pluggable deploy step (SSH + docker compose by digest)
+```
+
+Where new infrastructure goes:
+
+- A new long-running process in the image → a new `s6-rc.d/<name>/` longrun (`type`, `run`, `finish` calling `service-finish`, `dependencies.d/migrate`) plus an entry in `user-bundles.d/user/contents.d/`.
+- A new public route prefix for the backend → a `handle` block in `Caddyfile` before the Nuxt catch-all.
+- A new runtime setting → `.env.example` and, if production-specific, the environment table in [deployment.md](deployment.md).
+- A new CI check → a `make` target first (the Makefile is the source of truth), then a step in `ci.yaml`; add the job to the `gate` needs.
 
 `AppListToolbar` is the shared search/filter composition: fixed in page list controls, sticky in nested lists. `UserProfileView` owns profile presentation; `pages/settings/profile.vue` only mounts the view.

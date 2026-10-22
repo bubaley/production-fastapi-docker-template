@@ -1,6 +1,6 @@
 <template>
-  <div class="flex min-h-0 h-screen flex-col">
-    <AppLayoutHeader hide-organization-picker />
+  <div class="flex h-screen min-h-0 flex-col">
+    <AppLayoutHeader />
     <AppPageLayout bordered>
       <slot />
     </AppPageLayout>

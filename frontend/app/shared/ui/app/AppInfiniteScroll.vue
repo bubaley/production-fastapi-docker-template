@@ -13,7 +13,7 @@ const props = withDefaults(
     showError?: boolean
     locale?: 'ru' | 'en'
   }>(),
-  { locale: 'ru', showError: true }
+  { locale: 'ru', showError: true },
 )
 const emit = defineEmits<{ load: []; retry: [] }>()
 const sentinel = ref<HTMLElement>()
@@ -23,7 +23,7 @@ useAutoPagination(sentinel, {
   loading: () => !!props.loading,
   disabled: () => !!props.disabled,
   error: () => !!props.error,
-  load: () => emit('load')
+  load: () => emit('load'),
 })
 </script>
 <template>

@@ -6,13 +6,13 @@ import AppField from '../AppField.vue'
 import AppClearButton from '../AppClearButton.vue'
 import AppIcon from '../AppIcon.vue'
 import PickerTimeSelect from './PickerTimeSelect.vue'
-import { appControlStyles } from '../types/control'
+import { appInputSizeClasses } from '../types/control'
 import { DEFAULT_DATE_MASK, formatPickerValue, parsePickerText } from './format'
 import type { DatePickerProps } from './types'
 const props = withDefaults(defineProps<DatePickerProps & { active?: boolean; label: string }>(), {
   locale: 'ru',
   mask: DEFAULT_DATE_MASK,
-  timeStep: 15
+  timeStep: 15,
 })
 const model = defineModel<string | null>({ default: null })
 const emit = defineEmits<{ activate: []; commit: []; navigate: [] }>()
@@ -27,7 +27,7 @@ watch(
   () => {
     text.value = display()
   },
-  { immediate: true }
+  { immediate: true },
 )
 const selectedTime = computed(() => (model.value?.includes('T') ? model.value.split('T')[1]! : null))
 function commitDate() {
@@ -78,8 +78,11 @@ defineExpose({ commit, reset })
     <template #default="field">
       <div
         class="flex min-w-0 items-center gap-2 rounded-md border bg-secondary text-secondary-foreground shadow-none transition-colors hover:bg-accent"
-        :style="appControlStyles.input.default"
-        :class="[mode === 'range' && active ? 'border-foreground/80' : 'border-transparent', disabled && 'opacity-50']"
+        :class="[
+          appInputSizeClasses.md,
+          mode === 'range' && active ? 'border-foreground/80' : 'border-transparent',
+          disabled && 'opacity-50',
+        ]"
         :data-active="active || undefined"
         @focusin="emit('activate')"
       >
@@ -102,7 +105,7 @@ defineExpose({ commit, reset })
             :aria-invalid="!!error || undefined"
             :aria-required="required || undefined"
             autocomplete="off"
-            class="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 text-inherit shadow-none enabled:hover:bg-transparent focus-visible:border-transparent focus-visible:ring-0"
+            class="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent p-0 text-inherit shadow-none focus-visible:border-transparent focus-visible:ring-0 enabled:hover:bg-transparent"
             @pointerdown="prepareNavigation"
             @blur="blurDate"
             @keydown.enter.prevent="commit"
@@ -111,7 +114,7 @@ defineExpose({ commit, reset })
             v-if="clearable && model && !locked"
             :active="mode === 'range' && active"
             :label="locale === 'en' ? 'Clear' : 'Очистить'"
-            class="pointer-events-none absolute right-0 opacity-0 transition-opacity group-hover/input:pointer-events-auto group-hover/input:opacity-100 group-focus-within/input:pointer-events-auto group-focus-within/input:opacity-100"
+            class="pointer-events-none absolute right-0 opacity-0 transition-opacity group-focus-within/input:pointer-events-auto group-focus-within/input:opacity-100 group-hover/input:pointer-events-auto group-hover/input:opacity-100"
             @click="clear"
           />
         </span>

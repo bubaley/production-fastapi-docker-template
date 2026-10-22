@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import { Popover, PopoverContent, PopoverPortal, PopoverTrigger } from '~/shared/ui/shadcn/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '~/shared/ui/shadcn/popover'
 import AppButton from '../AppButton.vue'
 import AppInput from '../AppInput.vue'
 import { maskClockInput } from './format'
 import { useOverlayStack } from '../useOverlayStack'
 const props = withDefaults(
   defineProps<{ modelValue: string | null; label: string; disabled?: boolean; locale?: 'ru' | 'en'; step?: number }>(),
-  { locale: 'ru', step: 15 }
+  { locale: 'ru', step: 15 },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: string | null]; activate: [] }>()
 const open = ref(false)
@@ -43,7 +43,7 @@ watch(
       emit('activate')
     } else commit()
   },
-  { flush: 'sync' }
+  { flush: 'sync' },
 )
 function select(value: string | null) {
   dirty.value = false
@@ -71,58 +71,56 @@ defineExpose({ commit })
         size="sm"
         :disabled="disabled"
         :aria-label="label"
-        class="shrink-0 border-0 px-1.5 font-normal tabular-nums shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-[color:var(--ds-field-hover)]"
+        class="shrink-0 border-0 px-1.5 font-normal tabular-nums shadow-none hover:bg-field-hover focus-visible:ring-0 focus-visible:ring-offset-0"
         :class="!modelValue && 'text-muted-foreground'"
       >
         {{ modelValue ? format(modelValue) : '00:00:00' }}
       </AppButton>
     </PopoverTrigger>
-    <PopoverPortal>
-      <PopoverContent
-        align="end"
-        :side-offset="6"
-        :style="contentStyle"
-        class="z-[var(--app-overlay-z)] w-44 overflow-hidden rounded-lg border border-overlay-border bg-background p-1.5 text-foreground shadow-xl"
+    <PopoverContent
+      align="end"
+      :side-offset="6"
+      :style="contentStyle"
+      class="w-44 overflow-hidden rounded-lg border-border-strong bg-background p-1.5 text-foreground shadow-overlay"
+      :aria-label="label"
+      @open-auto-focus="focusTime"
+    >
+      <AppInput
+        ref="input"
+        :model-value="draft"
+        size="sm"
+        placeholder="00:00:00"
         :aria-label="label"
-        @open-auto-focus="focusTime"
-      >
-        <AppInput
-          ref="input"
-          :model-value="draft"
+        :aria-invalid="invalid"
+        inputmode="numeric"
+        autocomplete="off"
+        :disabled="disabled"
+        class="mb-1.5 [&_input]:focus-visible:border-input [&_input]:focus-visible:ring-0"
+        maxlength="8"
+        @update:model-value="edit"
+        @keydown.enter.prevent="commit() && (open = false)"
+      />
+      <div class="max-h-48 overflow-y-auto overscroll-contain">
+        <AppButton
+          variant="ghost"
           size="sm"
-          placeholder="00:00:00"
-          :aria-label="label"
-          :aria-invalid="invalid"
-          inputmode="numeric"
-          autocomplete="off"
-          :disabled="disabled"
-          class="mb-1.5 [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-input"
-          maxlength="8"
-          @update:model-value="edit"
-          @keydown.enter.prevent="commit() && (open = false)"
-        />
-        <div class="max-h-48 overflow-y-auto overscroll-contain">
-          <AppButton
-            variant="ghost"
-            size="sm"
-            class="w-full justify-start font-normal text-muted-foreground"
-            @click="select(null)"
-          >
-            {{ locale === 'en' ? 'No time' : 'Без времени' }}
-          </AppButton>
-          <AppButton
-            v-for="value in times"
-            :key="value"
-            variant="ghost"
-            size="sm"
-            class="w-full justify-start font-normal tabular-nums"
-            :class="modelValue && format(modelValue) === value && 'bg-accent'"
-            @click="select(value)"
-          >
-            {{ value }}
-          </AppButton>
-        </div>
-      </PopoverContent>
-    </PopoverPortal>
+          class="w-full justify-start font-normal text-muted-foreground"
+          @click="select(null)"
+        >
+          {{ locale === 'en' ? 'No time' : 'Без времени' }}
+        </AppButton>
+        <AppButton
+          v-for="value in times"
+          :key="value"
+          variant="ghost"
+          size="sm"
+          class="w-full justify-start font-normal tabular-nums"
+          :class="modelValue && format(modelValue) === value && 'bg-accent'"
+          @click="select(value)"
+        >
+          {{ value }}
+        </AppButton>
+      </div>
+    </PopoverContent>
   </Popover>
 </template>

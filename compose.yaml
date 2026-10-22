@@ -1,0 +1,83 @@
+# Production stack: app image + PostgreSQL + Redis. Only the app port is published.
+# Local development adds compose.override.yaml automatically (db/redis ports on 127.0.0.1, local build).
+# Deploy servers get this file only: see docs/deployment.md.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 10
+  start_period: 30s
+  start_interval: 2s
+
+services:
+  app:
+    image: ${APP_IMAGE:-fastapi-nuxt-template:local}
+    restart: unless-stopped
+    init: false # s6-overlay is PID 1
+    stop_grace_period: 40s
+    ports:
+      - "${APP_ENTRY_PORT:-127.0.0.1:8080}:8080"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DEBUG: "False"
+      COOKIE_SECURE: "True"
+      SQL_HOST: db
+      SQL_PORT: "5432"
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      BROKER_REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *logging
+
+  db:
+    image: postgres:18.6-alpine
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    shm_size: 256m
+    environment:
+      POSTGRES_DB: ${SQL_DATABASE:-postgres}
+      POSTGRES_USER: ${SQL_USER:-postgres}
+      POSTGRES_PASSWORD: ${SQL_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+    logging: *logging
+
+  redis:
+    image: redis:8.10.2-alpine
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 20s
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    # AOF persistence; a password is required only when REDIS_PASSWORD is set.
+    command:
+      - sh
+      - -c
+      - exec redis-server --appendonly yes --appendfsync everysec $${REDIS_PASSWORD:+--requirepass "$$REDIS_PASSWORD"}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      <<: *healthcheck
+      test:
+        - CMD-SHELL
+        - '[ -z "$$REDIS_PASSWORD" ] || export REDISCLI_AUTH="$$REDIS_PASSWORD"; redis-cli ping | grep -q PONG'
+    logging: *logging
+
+volumes:
+  postgres_data:
+  redis_data:

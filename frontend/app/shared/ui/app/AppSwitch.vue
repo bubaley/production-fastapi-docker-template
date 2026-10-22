@@ -10,15 +10,14 @@ withDefaults(
     variant?: 'default' | 'contrast'
     class?: HTMLAttributes['class']
   }>(),
-  { size: 'default', variant: 'default' }
+  { size: 'md', variant: 'default' },
 )
 
 const sizeClasses: Record<AppControlSize, string> = {
   xs: 'h-[14px] w-[24px] p-[1px] [&_[data-slot=switch-thumb]]:size-[12px] data-[state=checked]:[&_[data-slot=switch-thumb]]:translate-x-[10px]',
   sm: 'h-[16px] w-[28px] p-[1.5px] [&_[data-slot=switch-thumb]]:size-[13px] data-[state=checked]:[&_[data-slot=switch-thumb]]:translate-x-[12px]',
-  default:
-    'h-[18px] w-[32px] p-[2px] [&_[data-slot=switch-thumb]]:size-[14px] data-[state=checked]:[&_[data-slot=switch-thumb]]:translate-x-[14px]',
-  lg: 'h-[22px] w-[40px] p-[2px] [&_[data-slot=switch-thumb]]:size-[18px] data-[state=checked]:[&_[data-slot=switch-thumb]]:translate-x-[18px]'
+  md: 'h-[18px] w-[32px] p-[2px] [&_[data-slot=switch-thumb]]:size-[14px] data-[state=checked]:[&_[data-slot=switch-thumb]]:translate-x-[14px]',
+  lg: 'h-[22px] w-[40px] p-[2px] [&_[data-slot=switch-thumb]]:size-[18px] data-[state=checked]:[&_[data-slot=switch-thumb]]:translate-x-[18px]',
 }
 
 const model = defineModel<boolean>({ default: false })
@@ -33,7 +32,7 @@ const model = defineModel<boolean>({ default: false })
       sizeClasses[size],
       variant === 'contrast' &&
         'data-[state=checked]:bg-foreground data-[state=checked]:[&_[data-slot=switch-thumb]]:bg-background',
-      $props.class
+      $props.class,
     ]"
   />
 </template>

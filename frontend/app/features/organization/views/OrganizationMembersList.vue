@@ -12,6 +12,7 @@
         v-model="detailItem.user"
         label="Пользователь"
         :repo="useRepo('user')"
+        :disabled="Boolean(detailItem.id)"
         option-label="email"
       />
     </template>

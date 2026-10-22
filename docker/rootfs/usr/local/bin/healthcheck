@@ -1,0 +1,60 @@
+#!/usr/local/bin/python3 -I
+"""Docker HEALTHCHECK: Caddy, Nuxt and the backend must all answer on their internal ports.
+
+Backend: GET /ready (database + Redis); falls back to the liveness endpoint /health
+when /ready does not exist (404) in this build.
+"""
+
+import sys
+import urllib.error
+import urllib.request
+
+TIMEOUT = 3
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
+
+
+def status(url: str) -> int:
+    try:
+        with _opener.open(url, timeout=TIMEOUT) as response:
+            return response.status
+    except urllib.error.HTTPError as exc:
+        return exc.code
+
+
+def check() -> list[str]:
+    errors = []
+
+    caddy = status('http://127.0.0.1:8080/healthz')
+    if caddy != 200:
+        errors.append(f'caddy /healthz -> {caddy}')
+
+    # Any non-5xx answer means the Nitro server is up; the path is cheap and never renders a page.
+    frontend = status('http://127.0.0.1:3000/favicon.ico')
+    if frontend >= 500:
+        errors.append(f'frontend -> {frontend}')
+
+    backend = status('http://127.0.0.1:8000/ready')
+    if backend == 404:
+        backend = status('http://127.0.0.1:8000/health')
+    if backend != 200:
+        errors.append(f'backend ready/health -> {backend}')
+
+    return errors
+
+
+if __name__ == '__main__':
+    try:
+        problems = check()
+    except Exception as exc:
+        problems = [repr(exc)]
+    if problems:
+        print('unhealthy: ' + '; '.join(problems))
+        sys.exit(1)
+    print('healthy')

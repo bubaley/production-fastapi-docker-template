@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = withDefaults(defineProps<{ label?: string; locale?: 'ru' | 'en' }>(), { locale: 'ru' })
-const accessibleLabel = computed(() => props.label || (props.locale === 'en' ? 'No data' : 'Нет данных'))
+const props = defineProps<{ label?: string }>()
+const accessibleLabel = computed(() => props.label || 'Нет данных')
 </script>
 
 <template>
@@ -10,5 +10,6 @@ const accessibleLabel = computed(() => props.label || (props.locale === 'en' ? '
     class="inline-block text-muted-foreground"
     :aria-label="accessibleLabel"
     :title="accessibleLabel"
-  >—</span>
+    >—</span
+  >
 </template>

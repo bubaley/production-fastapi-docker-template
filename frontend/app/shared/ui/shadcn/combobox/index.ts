@@ -7,5 +7,5 @@ export {
   ComboboxContent,
   ComboboxViewport,
   ComboboxItem,
-  ComboboxItemIndicator
+  ComboboxItemIndicator,
 } from 'reka-ui'

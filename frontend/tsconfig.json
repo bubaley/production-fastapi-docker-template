@@ -1,5 +1,11 @@
 {
   // https://nuxt.com/docs/guide/concepts/typescript
+  // `paths` only lets tools that read this file (the shadcn-vue CLI) resolve `~/`; type checking uses the references.
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./app/*"]
+    }
+  },
   "files": [],
   "references": [
     {
@@ -14,5 +20,5 @@
     {
       "path": "./.nuxt/tsconfig.node.json"
     }
-  ],
+  ]
 }

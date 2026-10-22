@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { EMPTY_DATA_LABEL, semanticColorClasses, semanticColorVariables, type AppLabelConfig, type AppSemanticColor } from './types/label-types'
+import { CircleQuestionMark } from '@lucide/vue'
+import { EMPTY_DATA_LABEL, type AppLabelConfig } from './types/label-types'
+import { toneVariants, type Tone } from './tone'
 import type { AppIconSize } from './AppIcon.vue'
 
 export type AppDataLabelSize = AppIconSize | 'xl'
 export type AppDataLabelProps = {
   config?: AppLabelConfig | null
-  icon?: string | Component
+  icon?: Component
   label?: string
   value?: unknown
-  color?: AppSemanticColor
+  tone?: Tone
   size?: AppDataLabelSize
   variant?: 'default' | 'soft' | 'outline'
   iconOnly?: boolean
@@ -22,29 +24,29 @@ export type AppDataLabelProps = {
 const props = withDefaults(defineProps<AppDataLabelProps>(), { size: 'md', variant: 'default' })
 const rawValue = computed(() => props.value ?? props.config?.label ?? null)
 const hasValue = computed(() => rawValue.value !== null && rawValue.value !== '')
-const displayValue = computed(() => hasValue.value ? String(rawValue.value) : EMPTY_DATA_LABEL)
+const displayValue = computed(() => (hasValue.value ? String(rawValue.value) : EMPTY_DATA_LABEL))
 const resolvedIcon = computed(() => props.icon || props.config?.icon)
-const resolvedColor = computed(() => props.color || props.config?.tone || props.config?.color)
-const surfaceStyle = computed(() => {
-  const color = resolvedColor.value && semanticColorVariables[resolvedColor.value]
-  if (!color) return undefined
-  return props.variant === 'soft' ? { backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }
-    : props.variant === 'outline' ? { borderColor: `color-mix(in srgb, ${color} 45%, transparent)` } : undefined
-})
-const iconSize = computed(() => props.size === 'xl' ? 'lg' : props.size)
+const resolvedTone = computed(() => props.tone || props.config?.tone)
+const iconSize = computed(() => (props.size === 'xl' ? 'lg' : props.size))
 const compact = computed(() => !props.label)
-const textSize = computed(() => props.size === 'xl' ? 'text-xl font-semibold' : props.size === 'xs' ? 'text-xs' : 'text-sm')
+const textSize = computed(() =>
+  props.size === 'xl' ? 'text-xl font-semibold' : props.size === 'xs' ? 'text-xs' : 'text-sm',
+)
+const toneClasses = computed(() => {
+  if (props.variant === 'default') return resolvedTone.value && toneVariants({ tone: resolvedTone.value })
+  return toneVariants({ tone: resolvedTone.value ?? 'neutral', appearance: props.variant })
+})
 </script>
 <template>
   <span
     class="inline-flex min-w-0"
     :class="[
-      compact ? 'items-center' : 'items-start', size === 'xs' ? 'gap-1' : 'gap-2',
+      compact ? 'items-center' : 'items-start',
+      size === 'xs' ? 'gap-1' : 'gap-2',
       variant !== 'default' && 'rounded-md px-2 py-1',
-      variant === 'soft' && 'bg-muted/60', variant === 'outline' && 'border border-border',
-      resolvedColor && semanticColorClasses[resolvedColor],
+      variant === 'outline' && 'border',
+      toneClasses,
     ]"
-    :style="surfaceStyle"
     :title="iconOnly ? displayValue : undefined"
   >
     <slot name="overlay" />
@@ -55,7 +57,6 @@ const textSize = computed(() => props.size === 'xl' ? 'text-xl font-semibold' : 
       <AppIcon
         v-if="resolvedIcon"
         :icon="resolvedIcon"
-        :color="resolvedColor"
         :size="iconSize"
         :class="!compact && 'mt-0.5'"
       />
@@ -67,21 +68,23 @@ const textSize = computed(() => props.size === 'xl' ? 'text-xl font-semibold' : 
       >
         {{ label }}
         <slot name="label-append" />
-        <AppMenu v-if="$slots['label-tooltip']">
-          <template #trigger><AppButton
-            icon="lucide:circle-help"
-            size="icon-xs"
-            variant="ghost"
-            aria-label="Подробнее о поле"
-          /></template>
-          <div class="max-w-xs px-2 py-1.5 text-sm"><slot name="label-tooltip" /></div>
-        </AppMenu>
+        <AppTooltip v-if="$slots['label-tooltip']">
+          <template #trigger>
+            <AppButton
+              :icon="CircleQuestionMark"
+              size="icon-xs"
+              variant="ghost"
+              aria-label="Подробнее о поле"
+            />
+          </template>
+          <slot name="label-tooltip" />
+        </AppTooltip>
       </span>
       <span :class="[textSize, labelClass, compact && 'truncate', !hasValue && 'text-muted-foreground']">
         <AppTextButton
           v-if="hasValue && (to || copied)"
           :to="to"
-          :class="resolvedColor && '!text-inherit'"
+          :class="resolvedTone && '!text-inherit'"
           :label="displayValue"
           :value="displayValue"
           :copied="copied"

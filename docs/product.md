@@ -12,8 +12,6 @@ A signed-in user works inside **one organization at a time**: settings, members,
 
 User-facing copy is **Russian**. Code comments stay English.
 
-Typography prefers the native San Francisco font on Apple platforms, with Inter as the next fallback.
-
 Do not invent capabilities that are not listed here. When a scenario changes, update this file in the same change.
 
 ---
@@ -25,12 +23,13 @@ Do not invent capabilities that are not listed here. When a scenario changes, up
 - **Вход** (`/auth`) — email + password. Session via JWT cookies (`access_token` / `refresh_token`).
 - **Выбор организации** (`/home/setup`) — required before the rest of the app. Creating an org adds the current user as a member.
 - **Главная** — смена организации, настройки, каталог UI (`/ui`) и интерактивный пример AppPageView: действия в шапке, контекст под шапкой, поиск и переключатель под разделителем, прокручиваемые карточки и закреплённая нижняя зона. Поиск фильтрует возможности страницы; сброс возвращает исходный пример.
+- **Оформление** — в меню профиля (иконка пользователя в шапке): тема «Системная / Светлая / Тёмная» и акцентный цвет (нейтральный, синий, фиолетовый, зелёный, оранжевый). Выбор сохраняется в cookie и применяется до первой отрисовки.
 
 ### UI catalogue
 
-- **Каталог UI** (`/ui`) is public and uses local sample data. `/home/ui` redirects to `/ui` for compatibility.
-- Demonstrates shadcn/Reka-based App controls, light/dark appearance, forms, dates, selects, modals, tables, page/section patterns and cards.
-- `AppFilters` lets users add filter conditions through **+**. It is a reusable UI component; each feature still defines its supported fields and maps filter values to repo query parameters. The transfer does not add new business filtering rules to existing screens.
+- **Каталог UI** (`/ui`) is public and uses local sample data. Its copy is English (including its theme and palette switch) so it reads alongside the prop names it demonstrates.
+- Demonstrates the design tokens (colors, radii, control sizes, type scale), variant/size/tone matrices for App controls with disabled, loading and invalid states, forms, dates, selects, checkboxes, radio groups, switches, badges, tooltips, alerts, progress, skeletons, scroll areas, modals, drawers, menus, the image lightbox, page/section patterns, cards in semantic tones, AppTitle sizes, the Lucide icon picker and the color picker. Theme (system/light/dark) and palette switch at the top; tables switch between default and outline styles.
+- `AppFilters` lets users add filter conditions through **+**. It is a reusable UI component; each feature still defines its supported fields and maps filter values to repo query parameters; the component adds no business filtering rules by itself.
 
 ### Settings
 
@@ -53,7 +52,7 @@ There are no org roles (admin / member / viewer) — only membership (`Organizat
 
 ## Important aspects
 
-**`FilterObjectsManager`** — default queryset limit by current user / organization (`AuthState`). After adding a model, register it in `filter_objects_manager.py`. Empty `Scope()` means no auto-filter — then override `get_queryset()`. Superuser bypass is **per viewset**, not global.
+**Tenant scoping** — every model declares `tenant_scope` (`Scope(...)` or `Unscoped(reason=...)`); `FilterObjectsManager` applies it to every queryset and fails closed on models without one. Org-scoped models require the `Organization-Key` header. Superuser bypass is **per viewset**, not global. Memberships cannot be edited after creation — only added or removed.
 
 **`OrganizationWebSocketService`** — `/ws` for organization realtime. Extend this service (events, `check_access`, `process_message`). Do not add a second websocket stack.
 
@@ -64,23 +63,8 @@ Refresh JWT не авторизует API и WebSocket. Анонимные по�
 
 **Current org** — `useSetupStore` + `Organization-Key`. Backend resolves the header via `OwnedDataProvider` (user must belong to that org). Do not trust the client to POST an arbitrary organization on create; `process_state_to_model` sets it from auth.
 
-Каталог `/ui` объясняет роли вариантов кнопок (основная — `default`, цветная — `primary`, вторичная с заливкой — `secondary`) и позволяет переключать основное и контурное оформление таблицы.
-
-Фильтры в `/ui` показаны как в IssueToolbar Tasker: компактная панель поиска и условий, добавляемых кнопкой «+».
-
-Каталог `/ui` написан на английском для демонстрации props. AppCard поддерживает цвета primary, success, info, warning и danger с соответствующей рамкой; метки и значения используют те же семантические цвета.
-
-Каталог `/ui` показывает размеры AppTitle, полный набор иконок Lucide и ColorPicker с поддержкой обеих тем. Выбор emoji удалён.
-
 ### List scrolling
 
 - Списки на AppListTemplate автоматически подгружают следующую страницу при прокрутке до конца. Уже показанные строки сохраняются; при ошибке доступен повтор запроса. Поиск и смена фильтров начинают выдачу с первой страницы.
 - Постраничный режим остаётся доступен через `infiniteScroll=false`; локальные списки без репозитория не запускают автоматические запросы.
-
-### Page presentation
-
-- Название продукта в шапке при наведении использует основной цвет текста.
-- Главная показывает заголовок без метки «Пример страницы».
-- Профиль использует общий шаблон страницы с отступами и прокруткой содержимого.
-- В списках поиск и фильтры остаются доступны при прокрутке. Таблицы страниц идут
-  от края до края, а вложенные списки сохраняют отступы разделов.
+- Поиск и фильтры списков остаются на экране при прокрутке.

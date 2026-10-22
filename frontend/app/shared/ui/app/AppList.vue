@@ -187,7 +187,6 @@ defineSlots<{
   empty?: (props: { loading: boolean }) => any
 }>()
 
-
 const getItemKey = (item: T, index: number): string | number => {
   if (!props.itemKey) return index
   if (typeof props.itemKey === 'function') return props.itemKey(item, index)
@@ -216,5 +215,4 @@ const handleRowClick = (event: { data: T; originalEvent: Event }) => {
   const index = props.items.indexOf(item)
   handleClick(item, index, event.originalEvent)
 }
-
 </script>

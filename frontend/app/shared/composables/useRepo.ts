@@ -1,5 +1,4 @@
 const repoMap = {
-  auth: useAuthRepo,
   organization: useOrganizationRepo,
   organizationUser: useOrganizationUserRepo,
   user: useUserRepo,
@@ -13,7 +12,7 @@ export const useRepo = <K extends RepoKey>(key: K): ReturnType<(typeof repoMap)[
 }
 
 export const useUserRepoReset = () => {
-  const repos = (['organization', 'organizationUser', 'user', 'userToken'] as const).map(key => useRepo(key))
+  const repos = (['organization', 'organizationUser', 'user', 'userToken'] as const).map((key) => useRepo(key))
   const organizationRepo = useRepo('organization')
   return () => {
     for (const repo of repos) repo.resetStore()

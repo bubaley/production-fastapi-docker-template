@@ -24,7 +24,7 @@ const weights = {
   <div class="flex min-w-0 flex-col gap-1">
     <component
       :is="as"
-      class="m-0 leading-tight tracking-tight text-foreground [overflow-wrap:anywhere]"
+      class="m-0 leading-tight tracking-tight [overflow-wrap:anywhere] text-foreground"
       :class="[sizes[size], weights[weight]]"
     >
       {{ title }}<slot />

@@ -1,19 +1,27 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { useActionState } from '../app/shared/composables/useActionState'
 
 const toast = { default: vi.fn(), error: vi.fn() }
-beforeEach(() => { vi.stubGlobal('useToast', () => toast); vi.clearAllMocks() })
-afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
+beforeEach(() => {
+  vi.stubGlobal('useToast', () => toast)
+  vi.clearAllMocks()
+})
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
 const deferred = () => {
   let resolve!: (value: string) => void
-  const promise = new Promise<string>(done => { resolve = done })
+  const promise = new Promise<string>((done) => {
+    resolve = done
+  })
   return { resolve, promise }
 }
 describe('action execution', () => {
   it('shares an in-flight execution and notifies once through toast.default', async () => {
     const request = deferred()
     const fn = vi.fn(() => request.promise)
-    const action = useActionState(fn, { successNotification: value => ({ message: value, duration: 1500 }) })
+    const action = useActionState(fn, { successNotification: (value) => ({ message: value, duration: 1500 }) })
     const first = action.execute('first')
     const second = action.execute('second')
     expect(first).toBe(second)
@@ -26,7 +34,12 @@ describe('action execution', () => {
     expect(toast.default).toHaveBeenCalledExactlyOnceWith('Готово', { duration: 1500 })
   })
   it('allows retry after synchronous failures and resets error on execution', async () => {
-    const fn = vi.fn().mockImplementationOnce(() => { throw new Error('failure') }).mockReturnValueOnce('ok')
+    const fn = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('failure')
+      })
+      .mockReturnValueOnce('ok')
     const action = useActionState(fn, { errorNotification: 'Не удалось сохранить' })
     await expect(action.execute()).rejects.toThrow('failure')
     expect(action.error.value?.message).toBe('failure')

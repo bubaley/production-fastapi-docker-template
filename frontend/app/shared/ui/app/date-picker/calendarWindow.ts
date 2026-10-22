@@ -40,6 +40,6 @@ export function monthWeeks(month: CalendarMonth) {
   const offset = month.value.calendar.toJulianDay(month.value) % 7
   const first = month.value.subtract({ days: offset })
   return Array.from({ length: month.weeks }, (_, row) =>
-    Array.from({ length: 7 }, (_, col) => first.add({ days: row * 7 + col }))
+    Array.from({ length: 7 }, (_, col) => first.add({ days: row * 7 + col })),
   )
 }

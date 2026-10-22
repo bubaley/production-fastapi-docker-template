@@ -6,7 +6,7 @@ import type { AppDetailActionsProps } from '../AppDetailActions.vue'
 import type { ActionDisplayMode } from './template-ui-tokens'
 import type { AppSectionProps } from '../../app/AppSection.vue'
 
-export type AppTemplateAction = Omit<AppButtonProps, 'hidden'> & {
+export type AppTemplateAction = AppButtonProps & {
   class?: string
   action?: () => Promise<void> | void
   hidden?: boolean
@@ -55,10 +55,7 @@ export type AppListTemplateRepoManagedProps =
   | 'searchLoading'
   | 'hasNextPage'
 
-export type AppListTemplateDetailModalProps<T extends AppModel> = Omit<
-  AppDetailTemplateProps<T>,
-  'repo' | 'item'
-> & {
+export type AppListTemplateDetailModalProps<T extends AppModel> = Omit<AppDetailTemplateProps<T>, 'repo' | 'item'> & {
   width?: string
   closeLabel?: string
   closeOnSave?: boolean

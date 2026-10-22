@@ -8,7 +8,7 @@ import { filterIcon } from './filterPresentation'
 import ViewFilterCondition from './ViewFilterCondition.vue'
 import AppSelect from '~/shared/ui/app/AppSelect.vue'
 import type { FilterValue, ViewFilters, ViewFilterField, ViewFilterSpec } from './types'
-import { appControlIconSize, appControlStyles } from '~/shared/ui/app/types/control'
+import { appControlIconSize, appControlSizeVar } from '~/shared/ui/app/types/control'
 import type { AppControlSize } from '../types/control'
 const props = withDefaults(
   defineProps<{
@@ -27,9 +27,9 @@ const props = withDefaults(
   {
     lockedFilters: () => ({}),
     locale: 'ru',
-    size: 'default',
-    showAdd: true
-  }
+    size: 'md',
+    showAdd: true,
+  },
 )
 const model = defineModel<ViewFilters>({ required: true })
 const selectedItems = useFilterSelectedItems(() => props.spec, model)
@@ -39,14 +39,14 @@ const fields = computed(() =>
   props.spec.fields.filter(
     (field) =>
       (props.includeQuick || !field.quick) &&
-      !Object.keys(props.lockedFilters).some((key) => key.split('__')[0] === field.field)
-  )
+      !Object.keys(props.lockedFilters).some((key) => key.split('__')[0] === field.field),
+  ),
 )
 const conditions = computed(() =>
   conditionRows(
     fields.value,
-    Object.fromEntries(Object.entries(model.value).filter(([key]) => !props.excludedKeys?.includes(key)))
-  )
+    Object.fromEntries(Object.entries(model.value).filter(([key]) => !props.excludedKeys?.includes(key))),
+  ),
 )
 function remove(key: string) {
   const row = conditions.value.find((row) => row.key === key)
@@ -60,7 +60,7 @@ function set(key: string, value: unknown) {
       row.field,
       row.lookup,
       value == null || value === '' ? null : row.lookup,
-      value as FilterValue
+      value as FilterValue,
     )
 }
 function replace(key: string, field: ViewFilterField, lookup: string) {
@@ -75,7 +75,11 @@ function availableLookups(field: ViewFilterField, currentKey = '') {
         (!(`${field.field}__gte` in model.value) && !(`${field.field}__lte` in model.value))
       )
     const key = lookup === 'exact' ? field.field : `${field.field}__${lookup}`
-    if (props.excludedKeys?.includes(key) || (lookup === 'exact' && props.excludedKeys?.includes(`${field.field}__exact`))) return false
+    if (
+      props.excludedKeys?.includes(key) ||
+      (lookup === 'exact' && props.excludedKeys?.includes(`${field.field}__exact`))
+    )
+      return false
     const current = conditions.value.find((row) => row.key === currentKey)
     return (
       key === currentKey || (current?.lookup === 'range' && ['gte', 'lte'].includes(lookup)) || !(key in model.value)
@@ -134,7 +138,7 @@ function add(fieldName: unknown) {
           id: field.field,
           name: field.label,
           icon: filterIcon(field),
-          disabled: !availableLookups(field).length
+          disabled: !availableLookups(field).length,
         }))
       "
       emit-value
@@ -143,29 +147,32 @@ function add(fieldName: unknown) {
       :aria-label="english ? 'Add filter' : 'Добавить фильтр'"
       :class="
         inline && [
-          'shrink-0 transition-opacity group-hover/toolbar:opacity-100 group-hover/toolbar:pointer-events-auto group-hover/filters:opacity-100 group-hover/filters:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto',
-          !alwaysShowAdd && !addOpen && 'opacity-0 pointer-events-none'
+          'shrink-0 transition-opacity group-hover/filters:pointer-events-auto group-hover/filters:opacity-100 group-hover/toolbar:pointer-events-auto group-hover/toolbar:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100',
+          !alwaysShowAdd && !addOpen && 'pointer-events-none opacity-0',
+          appControlSizeVar[size],
         ]
       "
-      :style="inline ? { '--add-filter-size': appControlStyles.input[size].height } : undefined"
       :locale="locale"
-      class="text-muted-foreground [&_[data-app-select-trigger]]:w-[var(--add-filter-size)] [&_[data-app-select-trigger]]:!px-0 [&_[data-app-select-trigger]]:justify-center"
+      class="text-muted-foreground [&_[data-app-select-trigger]]:w-[var(--control-size)] [&_[data-app-select-trigger]]:justify-center [&_[data-app-select-trigger]]:!px-0"
       @update:model-value="add"
     >
       <template
         v-if="inline"
         #trigger
       >
-        <span class="flex w-full items-center justify-center"><AppIcon
-          :icon="Plus"
-          :size="appControlIconSize[size]"
+        <span class="flex w-full items-center justify-center"
+          ><AppIcon
+            :icon="Plus"
+            :size="appControlIconSize[size]"
         /></span>
       </template>
       <template #item="{ item, label }">
-        <span class="flex items-center gap-2"><AppIcon
-          :icon="item.icon"
-          class="text-muted-foreground"
-        /><span>{{ label }}</span></span>
+        <span class="flex items-center gap-2"
+          ><AppIcon
+            :icon="item.icon"
+            class="text-muted-foreground"
+          /><span>{{ label }}</span></span
+        >
       </template>
     </AppSelect>
   </div>
