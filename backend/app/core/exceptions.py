@@ -20,6 +20,7 @@ STATUS_ERROR_CODES: dict[int, ErrorCode] = {
     404: ErrorCode.NOT_FOUND,
     409: ErrorCode.CONFLICT,
     422: ErrorCode.VALIDATION_ERROR,
+    429: ErrorCode.RATE_LIMITED,
 }
 
 ERROR_CODE_STATUSES: dict[ErrorCode, int] = {
@@ -27,6 +28,7 @@ ERROR_CODE_STATUSES: dict[ErrorCode, int] = {
     ErrorCode.FORBIDDEN: 403,
     ErrorCode.NOT_FOUND: 404,
     ErrorCode.CONFLICT: 409,
+    ErrorCode.RATE_LIMITED: 429,
     ErrorCode.UNHANDLED_ERROR: 500,
 }
 
@@ -38,14 +40,21 @@ def error_code_for_status(status_code: int) -> ErrorCode:
 
 
 class AppException(Exception):
-    def __init__(self, error_data: ErrorData, status_code: int | None = None):
+    def __init__(self, error_data: ErrorData, status_code: int | None = None, headers: Mapping[str, str] | None = None):
         super().__init__(error_data.message)
         self.error_data = error_data
         self.status_code = status_code or ERROR_CODE_STATUSES.get(error_data.code, 400)
+        self.headers = headers
 
     @classmethod
-    def from_attrs(cls, code: ErrorCode, message: str, details: dict[str, Any] | None = None) -> AppException:
-        return cls(error_data=ErrorData(code=code, message=message, details=details or {}))
+    def from_attrs(
+        cls,
+        code: ErrorCode,
+        message: str,
+        details: dict[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> AppException:
+        return cls(error_data=ErrorData(code=code, message=message, details=details or {}), headers=headers)
 
     @classmethod
     def from_exception(cls, code: ErrorCode, message: str, exception: Exception) -> AppException:
@@ -59,7 +68,7 @@ def _error_response(status_code: int, error: ErrorData, headers: Mapping[str, st
 
 async def app_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     app_exc = cast(AppException, exc)
-    return _error_response(app_exc.status_code, app_exc.error_data)
+    return _error_response(app_exc.status_code, app_exc.error_data, headers=app_exc.headers)
 
 
 async def http_exception_handler(request: Request, exc: Exception) -> JSONResponse:

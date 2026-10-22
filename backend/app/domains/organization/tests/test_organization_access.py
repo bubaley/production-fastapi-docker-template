@@ -15,7 +15,7 @@ async def test_member_can_add_remove_and_duplicate_is_reported(api_client, user_
     organization = await Organization.create(name='Org', key='org')
     await OrganizationUser.create(organization=organization, user=actor)
     headers = {
-        'Authorization': f'Bearer {AuthService.create_access_token(actor).token}',
+        'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}',
         'Organization-Key': organization.key,
     }
     response = await api_client.post('/api/v1/organization-users', headers=headers, json={'user_id': str(added.id)})
@@ -35,7 +35,7 @@ async def test_member_cannot_remove_foreign_organization_membership(api_client, 
     foreign_user = await user_factory()
     organization = await Organization.create(name='Other', key='other')
     membership = await OrganizationUser.create(organization=organization, user=foreign_user)
-    headers = {'Authorization': f'Bearer {AuthService.create_access_token(actor).token}'}
+    headers = {'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}'}
     response = await api_client.delete(f'/api/v1/organization-users/{membership.id}', headers=headers)
     assert response.status_code == 404
     assert await OrganizationUser.filter(id=membership.id).exists()
@@ -68,7 +68,7 @@ async def test_superuser_can_remove_membership(api_client, user_factory):
     membership = await OrganizationUser.create(organization=organization, user=member)
     response = await api_client.delete(
         f'/api/v1/organization-users/{membership.id}',
-        headers={'Authorization': f'Bearer {AuthService.create_access_token(admin).token}'},
+        headers={'Authorization': f'Bearer {(await AuthService.start_session(admin)).access.token}'},
     )
     assert response.status_code == 204
 
@@ -78,7 +78,7 @@ async def test_created_organization_includes_actor(api_client, user_factory):
     actor = await user_factory()
     response = await api_client.post(
         '/api/v1/organizations',
-        headers={'Authorization': f'Bearer {AuthService.create_access_token(actor).token}'},
+        headers={'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}'},
         json={'name': 'New', 'key': 'new'},
     )
     assert response.status_code == 201
@@ -103,7 +103,7 @@ async def test_membership_user_cannot_be_changed(api_client, user_factory, metho
     await OrganizationUser.create(organization=organization, user=actor)
     membership = await OrganizationUser.create(organization=organization, user=member)
     headers = {
-        'Authorization': f'Bearer {AuthService.create_access_token(actor).token}',
+        'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}',
         'Organization-Key': organization.key,
     }
     response = await getattr(api_client, method)(
@@ -123,7 +123,7 @@ async def test_membership_update_keeps_organization(api_client, user_factory):
     response = await api_client.patch(
         f'/api/v1/organization-users/{membership.id}',
         headers={
-            'Authorization': f'Bearer {AuthService.create_access_token(actor).token}',
+            'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}',
             'Organization-Key': 'other',
         },
         json={},

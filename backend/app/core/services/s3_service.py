@@ -1,170 +1,136 @@
 import asyncio
 import mimetypes
+import re
+from pathlib import PurePosixPath
 from typing import Any, BinaryIO
+from urllib.parse import quote
+from uuid import uuid4
 
 import boto3
-from botocore.exceptions import ClientError, NoCredentialsError
-from loguru import logger
+from botocore.config import Config
+from botocore.exceptions import BotoCoreError, ClientError
 from pydantic import BaseModel
 
 from app.core.settings import settings
 from app.core.utils.date_utils import utcnow
 
+_SAFE_EXTENSION = re.compile(r'^\.[a-z0-9]{1,16}$')
+_SAFE_PREFIX = re.compile(r'^[A-Za-z0-9._/-]*$')
+
+
+class S3Error(RuntimeError):
+    pass
+
 
 class S3UploadResult(BaseModel):
-    url: str
     key: str
+    url: str
 
 
 class S3Service:
-    """Service for handling AWS S3 operations"""
+    """
+    Object storage. Objects are private (no ACL): share them with presigned URLs, or serve them through a
+    public bucket policy / CDN (`AWS_S3_PUBLIC_URL`). The boto3 client is created on first use; blocking calls
+    run in a thread.
+    """
 
-    def __init__(self):
-        """Initialize S3 client with credentials from environment variables"""
-        self.s3_client = None
+    def __init__(self, *, bucket: str | None = None, prefix: str = 'resources', client: Any = None):
+        self.bucket = bucket or settings.aws_storage_bucket_name
+        self.prefix = prefix
+        self._client = client
 
-        self.access_key_id = settings.aws_access_key_id
-        self.secret_access_key = settings.aws_secret_access_key
-        self.region_name = settings.aws_s3_region_name
-        self.endpoint_url = settings.aws_s3_endpoint_url
-        self.bucket_name = settings.aws_storage_bucket_name
-        self.root_folder = 'resources'
+    @property
+    def client(self) -> Any:
+        if self._client is None:
+            self._client = boto3.client(
+                's3',
+                aws_access_key_id=settings.aws_access_key_id or None,
+                aws_secret_access_key=settings.aws_secret_access_key or None,
+                region_name=settings.aws_s3_region_name or None,
+                endpoint_url=settings.aws_s3_endpoint_url or None,
+                config=Config(signature_version='s3v4'),
+            )
+        return self._client
 
-        self._initialize_client()
+    # KEYS AND URLS
 
-    def _initialize_client(self):
-        """Initialize S3 client"""
-        try:
-            client_config: dict[str, Any] = {
-                'service_name': 's3',
-                'aws_access_key_id': self.access_key_id,
-                'aws_secret_access_key': self.secret_access_key,
-                'region_name': self.region_name,
-                'endpoint_url': self.endpoint_url,
-            }
+    def generate_key(self, filename: str, prefix: str | None = None) -> str:
+        """`<prefix>/YYYY/MM/DD/<uuid><.ext>`; the client filename contributes only a sanitized extension."""
+        prefix = self.prefix if prefix is None else prefix
+        if not _SAFE_PREFIX.match(prefix) or '..' in prefix:
+            raise ValueError(f'Unsafe S3 key prefix: {prefix!r}')
+        extension = PurePosixPath(filename.replace('\\', '/')).suffix.lower()
+        if not _SAFE_EXTENSION.match(extension):
+            extension = ''
+        date_path = utcnow().strftime('%Y/%m/%d')
+        parts = [part for part in (prefix.strip('/'), date_path, f'{uuid4().hex}{extension}') if part]
+        return '/'.join(parts)
 
-            # client_config['endpoint_url'] = settings.aws_s3_endpoint_url
-            # client_config['config'] = Config(
-            #     signature_version='s3v4',
-            #     s3={'addressing_style': 'path', 'payload_signing_enabled': False},
-            #     region_name=settings.aws_s3_region_name,
-            #     response_checksum_validation='when_required',
-            #     request_checksum_calculation='when_required',
-            # )
-            # os.environ['AWS_S3_DISABLE_BODY_SIGNING'] = 'true'
-            # logger.info(f'Using custom S3 endpoint: {self.endpoint_url}')
+    def public_url(self, key: str) -> str:
+        """URL of the object for a public bucket or CDN; private objects need `presigned_get_url`."""
+        quoted = quote(key.lstrip('/'))
+        if settings.aws_s3_public_url:
+            return f'{settings.aws_s3_public_url.rstrip("/")}/{quoted}'
+        if settings.aws_s3_endpoint_url:
+            return f'{settings.aws_s3_endpoint_url.rstrip("/")}/{self.bucket}/{quoted}'
+        region = settings.aws_s3_region_name or 'us-east-1'
+        return f'https://{self.bucket}.s3.{region}.amazonaws.com/{quoted}'
 
-            self.s3_client = boto3.client(**client_config)
+    # OPERATIONS
 
-        except NoCredentialsError:
-            logger.warning('AWS credentials not found. S3 functionality will be disabled.')
-        except Exception as e:
-            logger.error(f'Failed to initialize S3 client: {e!s}')
-
-    def _generate_file_key(self, filename: str) -> str:
-        """Generate file key for S3 storage using year/month/day/file structure"""
-        now = utcnow()
-        year = now.strftime('%Y')
-        month = now.strftime('%m')
-        day = now.strftime('%d')
-        root_folder = f'{self.root_folder}/' if self.root_folder else ''
-        return f'{root_folder}{year}/{month}/{day}/{filename}'
-
-    def generate_file_key(self, filename: str) -> str:
-        """Generate file key for S3 storage (public method)"""
-        return self._generate_file_key(filename)
-
-    def generate_public_url(self, file_key: str) -> str:
-        file_key = file_key.lstrip('/')
-        return f'{self.endpoint_url}/{self.bucket_name}/{file_key}'
-
-    async def upload_file(
-        self, file_content: BinaryIO, filename: str, content_type: str | None = None
+    async def upload(
+        self, file: BinaryIO, filename: str, content_type: str | None = None, prefix: str | None = None
     ) -> S3UploadResult:
-        if not self.s3_client:
-            raise RuntimeError('S3 client is not initialized. Check AWS credentials and configuration.')
+        """Stream a file-like object (e.g. `UploadFile.file`) under a generated key."""
+        return await self.upload_by_key(file, self.generate_key(filename, prefix), content_type or _guess(filename))
 
+    async def upload_by_key(self, file: BinaryIO, key: str, content_type: str | None = None) -> S3UploadResult:
+        extra_args = {'ContentType': content_type or _guess(key)}
         try:
-            file_key = self._generate_file_key(filename)
-            if not content_type:
-                content_type, _ = mimetypes.guess_type(filename)
-                if not content_type:
-                    content_type = 'application/octet-stream'
+            # upload_fileobj reads in chunks (multipart for large files) instead of loading the file into memory.
+            await asyncio.to_thread(self.client.upload_fileobj, file, self.bucket, key, ExtraArgs=extra_args)
+        except (BotoCoreError, ClientError) as e:
+            raise S3Error(f'Upload of {key} failed') from e
+        return S3UploadResult(key=key, url=self.public_url(key))
 
-            file_content.seek(0)
-            file_data = file_content.read()
-            put_object_args = {
-                'Bucket': self.bucket_name,
-                'Key': file_key,
-                'Body': file_data,
-                'ContentType': content_type,
-            }
-
-            if not self.endpoint_url:
-                put_object_args['ACL'] = 'public-read'
-
-            def _upload():
-                if self.s3_client:
-                    return self.s3_client.put_object(**put_object_args)
-
-            await asyncio.get_event_loop().run_in_executor(None, _upload)
-            file_url = self.generate_public_url(file_key)
-            return S3UploadResult(url=file_url, key=file_key)
-
-        except ClientError as e:
-            logger.error(f'Failed to upload file to S3: {e!s}')
-            raise RuntimeError(f'File upload failed: {e!s}')
-        except Exception as e:
-            logger.error(f'Unexpected error during file upload: {e!s}')
-            raise RuntimeError(f'File upload failed: {e!s}')
-
-    async def upload_file_by_key(
-        self, file_content: bytes, file_key: str, content_type: str | None = None
-    ) -> S3UploadResult:
-        """Upload file to S3 by pre-generated key"""
-        if not self.s3_client:
-            raise RuntimeError('S3 client is not initialized. Check AWS credentials and configuration.')
-
+    async def delete(self, key: str) -> None:
         try:
-            if not content_type:
-                content_type = 'application/octet-stream'
+            await asyncio.to_thread(self.client.delete_object, Bucket=self.bucket, Key=key)
+        except (BotoCoreError, ClientError) as e:
+            raise S3Error(f'Delete of {key} failed') from e
 
-            put_object_args = {
-                'Bucket': self.bucket_name,
-                'Key': file_key,
-                'Body': file_content,
-                'ContentType': content_type,
-            }
+    async def presigned_get_url(self, key: str, expires_in: int | None = None, download_name: str | None = None) -> str:
+        params: dict[str, Any] = {'Bucket': self.bucket, 'Key': key}
+        if download_name:
+            params['ResponseContentDisposition'] = f"attachment; filename*=UTF-8''{quote(download_name)}"
+        return await self._presign('get_object', params, expires_in)
 
-            if not self.endpoint_url:
-                put_object_args['ACL'] = 'public-read'
+    async def presigned_put_url(self, key: str, content_type: str, expires_in: int | None = None) -> str:
+        """Direct browser upload: the client must send the same Content-Type header."""
+        return await self._presign(
+            'put_object', {'Bucket': self.bucket, 'Key': key, 'ContentType': content_type}, expires_in
+        )
 
-            def _upload():
-                if self.s3_client:
-                    return self.s3_client.put_object(**put_object_args)
-
-            await asyncio.get_event_loop().run_in_executor(None, _upload)
-            file_url = self.generate_public_url(file_key)
-            return S3UploadResult(url=file_url, key=file_key)
-
-        except ClientError as e:
-            logger.error(f'Failed to upload file to S3: {e!s}')
-            raise RuntimeError(f'File upload failed: {e!s}')
-        except Exception as e:
-            logger.error(f'Unexpected error during file upload: {e!s}')
-            raise RuntimeError(f'File upload failed: {e!s}')
+    async def _presign(self, operation: str, params: dict[str, Any], expires_in: int | None) -> str:
+        expires = expires_in or settings.aws_s3_presign_expire_seconds
+        try:
+            return await asyncio.to_thread(
+                self.client.generate_presigned_url, operation, Params=params, ExpiresIn=expires
+            )
+        except (BotoCoreError, ClientError) as e:
+            raise S3Error(f'Presigning {operation} failed') from e
 
 
-_s3_service_instance = None
+def _guess(name: str) -> str:
+    return mimetypes.guess_type(name)[0] or 'application/octet-stream'
+
+
+_s3_service_instance: S3Service | None = None
 
 
 def get_s3_service() -> S3Service:
-    """Get S3 service instance (lazy initialization)"""
+    """Shared instance; nothing touches AWS until the first operation."""
     global _s3_service_instance
     if _s3_service_instance is None:
-        try:
-            _s3_service_instance = S3Service()
-        except Exception as e:
-            logger.error(f'Failed to initialize S3 service: {e}')
-            raise RuntimeError(f'S3 service initialization failed: {e}')
+        _s3_service_instance = S3Service()
     return _s3_service_instance

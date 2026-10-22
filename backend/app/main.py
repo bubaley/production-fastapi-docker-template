@@ -1,32 +1,57 @@
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_ronin.cache import cache
+from loguru import logger
+from starlette.types import ASGIApp
 
 from app.core.auth import get_auth_state
 from app.core.broker import broker
 from app.core.database import register_database
 from app.core.exceptions import register_exceptions_handlers
+from app.core.health import health_router
+from app.core.logging import setup_logging
+from app.core.redis import close_redis
+from app.core.request_id import REQUEST_ID_HEADER, RequestIdMiddleware
+from app.core.services.websocket_service import start_websocket_fanout, stop_websocket_fanout
 from app.core.settings import settings
+from app.core.telemetry import telemetry_config
 from app.domains.auth.views import auth_router
 from app.domains.organization.services.organization_websocket_service import OrganizationWebSocketService
 from app.domains.organization.views import organization_users_router, organizations_router
 from app.domains.user.views import user_tokens_router, users_router
 
+setup_logging()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager"""
+    """Start optional dependencies without making them boot requirements; always release what started."""
+    async with AsyncExitStack() as stack:
+        stack.push_async_callback(close_redis)
+        try:
+            await broker.startup()
+            stack.push_async_callback(broker.shutdown)
+        except Exception as e:
+            logger.warning('Task broker unavailable at startup ({}); /ready reports Redis', e)
+        await start_websocket_fanout()
+        stack.push_async_callback(stop_websocket_fanout)
+        logger.info('Application started: version {} ({})', settings.app_version, settings.git_sha or 'no sha')
+        yield
 
-    await cache.init(redis_url=settings.cache_redis_url)
-    await broker.startup()
-    yield
-    await broker.shutdown()
-    await cache.close()
+
+class App(FastAPI):
+    def build_middleware_stack(self) -> ASGIApp:
+        # Outside Starlette's error middleware, so unhandled errors are logged with the request id.
+        return RequestIdMiddleware(super().build_middleware_stack())
 
 
-app = FastAPI(title='fastapi-nuxt-template', version='0.0.0', dependencies=[], lifespan=lifespan)
+app = App(
+    title='fastapi-nuxt-template',
+    version=settings.app_version,
+    lifespan=lifespan,
+    telemetry=telemetry_config(),
+)
 
 register_exceptions_handlers(app)
 
@@ -38,7 +63,7 @@ app.add_middleware(
     allow_credentials=settings.cors_allow_credentials,
     allow_methods=settings.cors_allow_methods,
     allow_headers=settings.cors_allow_headers,
-    expose_headers=['Content-Disposition'],
+    expose_headers=['Content-Disposition', REQUEST_ID_HEADER],
 )
 
 
@@ -58,7 +83,4 @@ ws_router = APIRouter(prefix='/ws')
 OrganizationWebSocketService.register_routes(ws_router)
 app.include_router(ws_router)
 
-
-@app.get('/health')
-async def health():
-    return {'status': 'ok'}
+app.include_router(health_router)

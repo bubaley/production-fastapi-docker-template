@@ -8,6 +8,7 @@ from tortoise.contrib.fastapi import register_tortoise
 from app.core.settings import settings
 
 MODELS = [
+    'app.domains.auth.models',
     'app.domains.organization.models',
     'app.domains.user.models',
 ]

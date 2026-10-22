@@ -8,6 +8,7 @@ from fastapi_ronin.permissions import IsAuthenticated
 from fastapi_ronin.state import BaseStateManager
 from fastapi_ronin.viewsets import ModelViewSet, ReadOnlyViewSet
 from fastapi_ronin.wrappers import PaginatedResponseDataWrapper
+from pypika_tortoise import Order
 from tortoise.queryset import QuerySet
 
 from app.core.auth import AuthState
@@ -16,6 +17,18 @@ from app.core.utils.process_state_to_model import process_state_to_model
 from app.shared.services.filter_objects_manager import FilterObjectsManager
 
 BaseModelT = TypeVar('BaseModelT', bound=BaseModel)
+
+
+def with_stable_ordering[BaseModelT: BaseModel](queryset: QuerySet[BaseModelT]) -> QuerySet[BaseModelT]:
+    """
+    Append `id` to the ordering (explicit `order_by` or the model's Meta.ordering) unless it is already there.
+    Orderings such as `created_at` are not unique; without a tiebreaker rows can repeat or vanish between pages.
+    """
+    orderings = list(queryset._orderings) or list(queryset.model._meta.ordering)
+    if any(field in ('id', 'pk') for field, _ in orderings):
+        return queryset
+    fields = [f'-{field}' if order == Order.desc else field for field, order in orderings]
+    return queryset.order_by(*fields, 'id')
 
 
 class LightPageNumberPagination(Pagination[BaseModelT]):
@@ -37,7 +50,7 @@ class LightPageNumberPagination(Pagination[BaseModelT]):
         return (self.page - 1) * self.page_size
 
     def paginate(self, queryset: QuerySet[BaseModelT]) -> QuerySet[BaseModelT]:
-        return queryset.offset(self._get_offset()).limit(self.page_size)
+        return with_stable_ordering(queryset).offset(self._get_offset()).limit(self.page_size)
 
     async def fill_meta(self, queryset: QuerySet[BaseModelT], data: list[Any]) -> None:
         offset = self._get_offset()
@@ -49,7 +62,7 @@ class BaseGenericViewSet(GenericViewSet[BaseModelT]):
     pagination = LightPageNumberPagination
     list_wrapper = PaginatedResponseDataWrapper
     lookup_class = UUIDLookup
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated]  # noqa: RUF012 - ronin declares this attribute as a list
 
     async def get_queryset(self) -> QuerySet[BaseModelT]:
         result: AuthState = BaseStateManager.get_state().get('auth_state') or AuthState(user=self.user)
