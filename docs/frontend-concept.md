@@ -353,7 +353,7 @@ All design values live in `app/assets/styles/theme.css`; there is no SCSS.
   `--app-font-sans` prefers the system UI font on Apple platforms.
 
 **Palettes.** `[data-palette=…]` blocks override only `--primary`, `--primary-foreground` and `--ring`
-(`sidebar-primary` follows). Shipped: `neutral` (default), `blue`, `violet`, `green`, `orange`. `useTheme()`
+(`sidebar-primary` follows). Shipped: `violet` (default, the original accent), `neutral`, `blue`, `green`, `orange`. `useTheme()`
 returns `mode` (`system`/`light`/`dark`), `resolvedMode` and `palette`; both choices are stored in cookies
 (`colorScheme`, `palette`). `app.vue` renders `<html data-palette>` during SSR and an inline head script
 (`shared/lib/theme.ts`) applies it on client-only routes, so there is no flash.
