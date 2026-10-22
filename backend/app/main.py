@@ -8,6 +8,7 @@ from starlette.types import ASGIApp
 from app.core.auth import PUBLIC_PATHS, get_auth_state
 from app.core.broker import broker
 from app.core.database import register_database
+from app.core.discovery import discover_routers
 from app.core.exceptions import register_exceptions_handlers
 from app.core.health import health_router
 from app.core.logging import setup_logging
@@ -17,10 +18,7 @@ from app.core.request_id import REQUEST_ID_HEADER, RequestIdMiddleware
 from app.core.services.websocket_service import start_websocket_fanout, stop_websocket_fanout
 from app.core.settings import settings
 from app.core.telemetry import telemetry_config
-from app.domains.auth.views import auth_router
 from app.domains.organization.services.organization_websocket_service import OrganizationWebSocketService
-from app.domains.organization.views import organization_users_router, organizations_router
-from app.domains.user.views import user_tokens_router, users_router
 
 setup_logging()
 
@@ -73,11 +71,9 @@ register_database(app)
 
 
 api_router = APIRouter(prefix='/api/v1', dependencies=[Depends(get_auth_state)], responses=ERROR_RESPONSES)
-api_router.include_router(auth_router)
-api_router.include_router(users_router)
-api_router.include_router(user_tokens_router)
-api_router.include_router(organizations_router)
-api_router.include_router(organization_users_router)
+# Each domain's `views.py` exports `routers` (or `router`); see app/core/discovery.py.
+for domain_router in discover_routers():
+    api_router.include_router(domain_router)
 app.include_router(api_router)
 
 

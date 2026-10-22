@@ -17,6 +17,7 @@ from app.domains.user.models import User
 
 organizations_router = APIRouter(prefix='/organizations', tags=['organizations'])
 organization_users_router = APIRouter(prefix='/organization-users', tags=['organization-users'])
+routers = (organizations_router, organization_users_router)
 
 
 @viewset(organizations_router)

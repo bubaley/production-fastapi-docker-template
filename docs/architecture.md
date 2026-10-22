@@ -26,7 +26,7 @@ Same change, all of this (skip a row only if it does not apply):
 
 | Layer | Done when |
 |---|---|
-| Backend | Domain files (`models`, `schemas`, `filters`, `views`). Register in `core/database.py` (`MODELS`) and `main.py` (`include_router`); declare **`tenant_scope`** on every model. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
+| Backend | Domain files (`models`, `schemas`, `filters`, `views` exporting `routers`); models and routers are auto-discovered. Declare **`tenant_scope`** on every model. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
 | Tests | Non-trivial rules get pytest next to the domain (`domains/<name>/tests/`). See [backend-concept.md](backend-concept.md#tests). Canonical: `domains/organization/tests/test_organization.py` |
 | Frontend | `make gen-client` (schema + generated client committed), feature resource descriptor, views on `AppListTemplate` / `AppDetailTemplate`, thin page, drawer item if needed. User-facing copy in **Russian** |
 | Realtime | Org events go through **`OrganizationWebSocketService`**, not a new websocket stack |
@@ -40,7 +40,7 @@ Same change, all of this (skip a row only if it does not apply):
 
 ```
 backend/app/
-  main.py                 # FastAPI app: middleware, /api/v1 routers, /ws, /health
+  main.py                 # FastAPI app: middleware, discovered /api/v1 routers, /ws, /health
   conftest.py             # Shared pytest fixtures: `db` on a PostgreSQL test database (`--sqlite` for in-memory, `--keepdb` to reuse)
   core/                   # Application kernel — not a business domain
   domains/                # One folder per business module
@@ -55,7 +55,8 @@ Owns process-wide wiring. Do not put organization/user business rules here.
 | Path | Why it exists |
 |---|---|
 | `settings.py` | Env-backed config |
-| `database.py` | Tortoise `MODELS` list and ORM setup. **Register every new domain models module here.** |
+| `database.py` | Tortoise ORM setup; `MODELS` comes from `discovery.py` |
+| `discovery.py` | Finds domains: `domains/*/models.py` → `MODELS`, `domains/*/views.py` `routers` → `/api/v1` (kernel domains first, then alphabetical; import errors fail loudly) |
 | `auth.py` | Credential resolution (cookie → `Token` → `Bearer`), current user / org (`AuthState`) |
 | `csrf.py` | Trusted-origin check for cookie-authenticated unsafe requests and websocket handshakes |
 | `openapi.py` | OpenAPI conventions: operationIds, error responses, security schemes (`make openapi` → `frontend/openapi.json`) |
@@ -84,11 +85,11 @@ One domain can contain several models. Split files by role, not by putting every
 | `models.py` | Tortoise models for this domain |
 | `schemas.py` | Create / update / read DTOs (`@schema(model=…)`) |
 | `filters.py` | fastapi-ronin `FilterSet` (list search/filter) |
-| `views.py` | Routers + viewsets (HTTP). Keep this thin — call services for non-CRUD logic |
+| `views.py` | Routers + viewsets (HTTP), exports `routers = (…)`. Keep this thin — call services for non-CRUD logic |
 | `services/` | Domain **classes** (see services vs utils below) |
 | `tests/` | Tests for this domain: `tests/test_<subject>.py` |
 
-Register the domain: `core/database.py` (`MODELS`) + `main.py` (`include_router`) + `tenant_scope` on each model (queryset scope, see [backend-concept.md](backend-concept.md#scoping)).
+No registration step: `core/discovery.py` picks up `models.py` and the `routers` exported by `views.py`. Declare `tenant_scope` on each model (queryset scope, see [backend-concept.md](backend-concept.md#scoping)).
 
 ### `shared/` — used by more than one domain
 

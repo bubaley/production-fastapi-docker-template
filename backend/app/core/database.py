@@ -5,13 +5,11 @@ from tortoise import Tortoise
 from tortoise.context import TortoiseContext
 from tortoise.contrib.fastapi import register_tortoise
 
+from app.core.discovery import discover_model_modules
 from app.core.settings import settings
 
-MODELS = [
-    'app.domains.auth.models',
-    'app.domains.organization.models',
-    'app.domains.user.models',
-]
+# Every `app/domains/<name>/models.py` (see app/core/discovery.py); new domains need no registration here.
+MODELS = discover_model_modules()
 
 
 TORTOISE_ORM = {

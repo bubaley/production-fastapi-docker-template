@@ -26,6 +26,7 @@ from app.shared.permissions.is_superuser import IsSuperUser
 
 users_router = APIRouter(prefix='/users', tags=['users'])
 user_tokens_router = APIRouter(prefix='/user-tokens', tags=['user-tokens'])
+routers = (users_router, user_tokens_router)
 
 
 @viewset(users_router)

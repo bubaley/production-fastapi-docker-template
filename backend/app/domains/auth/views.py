@@ -12,6 +12,7 @@ from app.domains.user.models import User
 from app.domains.user.schemas import UserReadSchema
 
 auth_router = APIRouter(prefix='/auth', tags=['auth'])
+routers = (auth_router,)
 
 
 def _client_ip(request: Request) -> str:

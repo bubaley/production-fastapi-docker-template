@@ -106,6 +106,7 @@ from app.domains.project.models import Project
 from app.domains.project.schemas import ProjectCreateSchema, ProjectReadSchema, ProjectUpdateSchema
 
 projects_router = APIRouter(prefix='/projects', tags=['projects'])
+routers = (projects_router,)  # picked up by app/core/discovery.py
 
 @viewset(projects_router)
 class ProjectViewSet(BaseModelViewSet[Project]):
@@ -214,10 +215,13 @@ Raise `AppException.from_attrs(ErrorCode.FORBIDDEN, 'Cannot modify this organiza
 
 ## Registration
 
-1. `app/core/database.py` — `'app.domains.project.models'` in `MODELS`
-2. `app/main.py` — `api_router.include_router(projects_router)`
-3. `tenant_scope` on every model (`Scope(...)` or `Unscoped(reason=...)`)
-4. Tell the user a migration is needed (`make mm` then `make m`). Do not run it unless they ask.
+Domains are discovered, not registered (`app/core/discovery.py`):
+
+1. Every package `app/domains/<name>/` (with `__init__.py`) is a domain. Its `models.py` joins Tortoise `MODELS`; its `views.py` must export `routers = (projects_router, …)` (or a single `router`), which are mounted under `/api/v1`. A domain without HTTP has no `views.py`.
+2. Order is deterministic: kernel domains `auth`, `user`, `organization` first, then the rest alphabetically; inside a domain, the order of `routers`. It decides the path order in `openapi.json`.
+3. A domain module that fails to import (or exports no router) stops the app with `DomainDiscoveryError` naming the module — fix it, do not catch it.
+4. `tenant_scope` on every model (`Scope(...)` or `Unscoped(reason=...)`).
+5. Tell the user a migration is needed (`make mm` then `make m`). Do not run it unless they ask.
 
 ---
 
