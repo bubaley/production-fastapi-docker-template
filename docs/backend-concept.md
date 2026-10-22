@@ -155,7 +155,7 @@ The user rule always applies, so a forged or stale `Organization-Key` cannot wid
 |---|---|
 | Viewset | HTTP: which schema, who may CRUD, queryset shape. Keep this thin |
 | `services/` class | Business workflow: validate, load related objects, persist, S3, websocket |
-| `utils/` function | 5–20 lines, no identity as a “thing” (`round_number`, `date_utils`) |
+| `utils/` function | 5–20 lines, no identity as a “thing” (`date_utils`, `get_details_from_exception`) |
 
 Example: `OrganizationService` is a class in `domains/organization/services/organization_service.py`. If that class later needs several private helpers, turn it into `services/organization_service/organization_service.py` plus sibling modules — not a pile of functions in `utils/`.
 
@@ -222,18 +222,20 @@ Write backend tests when the behavior is not obvious CRUD: uniqueness, permissio
 ```
 app/domains/<name>/tests/test_<subject>.py
 app/core/tests/test_<subject>.py          # health, auth, kernel
+app/shared/tests/test_<subject>.py        # cross-domain services (scoping, async_task)
 ```
 
-Shared Tortoise fixture: `app/conftest.py` (`db`) + `@pytest.mark.asyncio`. Prefer `TestClient` without DB when persistence is not required.
+Fixtures live in `app/conftest.py`: `db` (Tortoise context), `api_client` (the real ASGI app over `httpx2`, no Redis or broker startup), `user_factory` (users with password `test-password`). `asyncio_mode = "auto"`; `@pytest.mark.asyncio` is still written for clarity. Prefer `TestClient` without `db` when persistence is not required (`app/core/tests/test_exceptions.py`).
 
-The default suite uses a separate PostgreSQL database and applies its migrations.
-For local checks that must not run migrations, use
-`cd backend && uv run manage.py test --sqlite`. Each `db` fixture gets a fresh
-in-memory SQLite schema; production/test PostgreSQL databases are not touched.
-SQLite checks cover API behavior and permissions, not PostgreSQL migration or
-engine compatibility. `api_client` uses the real ASGI app without starting external
-services; `user_factory` creates test identities in the selected test database.
+Two database modes, chosen per run:
+
+| Mode | Command | What happens |
+|---|---|---|
+| PostgreSQL (default, CI) | `make t` → `uv run manage.py test --keepdb` | Separate `<SQL_DATABASE>_test` database; migrations are applied once per session, tables truncated per test. Without `--keepdb` an existing test database is dropped (asks first in a terminal) |
+| SQLite | `cd backend && uv run pytest --sqlite` | Fresh in-memory schema per `db` fixture, no migrations, no PostgreSQL needed |
+
+SQLite covers API behavior and permissions, not PostgreSQL migrations or engine-specific SQL. Production databases are never touched in either mode.
 
 Canonical example: `app/domains/organization/tests/test_organization.py`. Also `app/core/tests/test_health.py`.
 
-Run: `make t` (or `make test`). Do not add a frontend test suite unless the user asks.
+Frontend tests (Vitest) are described in [frontend-concept.md](frontend-concept.md).
