@@ -120,8 +120,8 @@ docker-stop: ## stop the docker-run stack and delete its volumes
 
 check: check-backend check-frontend ## run every CI check without changing files
 
-# Repository tooling outside backend/ that runs on the backend's Python: scaffolder, bootstrap.
-TOOLING := ../scripts
+# Repository tooling outside backend/ that runs on the backend's Python: scaffolder, bootstrap, Claude Code hooks.
+TOOLING := ../scripts ../.claude/hooks
 
 check-backend: ## ruff, ruff format --check, ty, pytest (PYTEST_ARGS=--sqlite without Postgres), tooling tests
 	cd $(BACKEND_DIR) && $(UV) run ruff check . $(TOOLING)

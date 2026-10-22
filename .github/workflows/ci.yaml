@@ -47,6 +47,8 @@ jobs:
             backend:
               - 'backend/**'
               - 'scripts/**'
+              - '.claude/hooks/**'
+              - '.claude/settings.json'
               - '.python-version'
               - 'Makefile'
               - '.github/workflows/ci.yaml'
