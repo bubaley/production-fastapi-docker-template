@@ -21,7 +21,7 @@ TASKIQ_UPDATE_INTERVAL ?= $(or $(call dotenv,TASKIQ_UPDATE_INTERVAL),10)
 IMAGE ?= fastapi-nuxt-template:local
 APP_VERSION ?= $(shell sed -n 's/.*"version"[^"]*"\([^"]*\)".*/\1/p' version.json)
 GIT_SHA ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
-# Extra `docker build` flags, e.g. DOCKER_BUILD_FLAGS="--build-arg PYTHON_IMAGE=mirror.gcr.io/library/python:3.14.9-slim-trixie".
+# Extra `docker build` flags, e.g. DOCKER_BUILD_FLAGS="--platform linux/amd64 --no-cache".
 DOCKER_BUILD_FLAGS ?=
 SMOKE_PROJECT ?=$(or $(call dotenv,COMPOSE_PROJECT_NAME),fastapi-nuxt-template)-smoke
 

@@ -3,20 +3,16 @@
 # One image: Caddy (:8080) in front of FastAPI (127.0.0.1:8000) and Nuxt (127.0.0.1:3000),
 # plus the Taskiq worker and scheduler, supervised by s6-overlay. See docs/deployment.md.
 
-# Base images. Builder and runtime share the Python image so the venv's interpreter path matches;
-# the Node builder and the Node binary share the Debian release (glibc) of the runtime.
-ARG PYTHON_IMAGE=python:3.14.9-slim-trixie
-ARG NODE_IMAGE=node:24.19.0-trixie-slim
-ARG CADDY_IMAGE=caddy:2.11.7-alpine
-ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.13.5
-ARG DEBIAN_IMAGE=debian:trixie-slim
-
-FROM ${UV_IMAGE} AS uv
-FROM ${CADDY_IMAGE} AS caddy
-FROM ${NODE_IMAGE} AS node
+# Base images, pinned here once (Dependabot updates these FROM lines). Builder and runtime share
+# the Python image so the venv's interpreter path matches; Node (builder and the copied binary)
+# uses the same Debian release, so the same glibc, as the runtime.
+FROM python:3.14.9-slim-trixie AS python
+FROM node:24.19.0-trixie-slim AS node
+FROM caddy:2.11.7-alpine AS caddy
+FROM ghcr.io/astral-sh/uv:0.13.5 AS uv
 
 # ===== s6-overlay: downloaded and checksum-verified in a throwaway stage =====
-FROM ${DEBIAN_IMAGE} AS s6
+FROM debian:trixie-slim AS s6
 ARG S6_OVERLAY_VERSION=3.2.3.2
 ARG S6_NOARCH_SHA256=5379750ed30a84bbd2e2dd74847ba6b5bd29cd0b2e3ea2ec58049b57eb2eda12
 ARG S6_X86_64_SHA256=e6befcc96a437a3831386ecfc51808c5d3e939dc5fe3c02ae9284599e8aa2408
@@ -40,7 +36,7 @@ RUN set -eu; \
     tar -C /s6-root -Jxpf /tmp/arch.tar.xz
 
 # ===== Backend: locked production dependencies in /app/backend/.venv =====
-FROM ${PYTHON_IMAGE} AS backend-builder
+FROM python AS backend-builder
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -57,7 +53,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     && .venv/bin/python -m compileall -q app
 
 # ===== Frontend: Nuxt build output in /app/frontend/.output =====
-FROM ${NODE_IMAGE} AS frontend-builder
+FROM node AS frontend-builder
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     NUXT_TELEMETRY_DISABLED=1
 RUN corepack enable
@@ -71,7 +67,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     && pnpm run build
 
 # ===== Runtime =====
-FROM ${PYTHON_IMAGE} AS runtime
+FROM python AS runtime
 
 ARG APP_UID=1000
 ARG APP_GID=1000
