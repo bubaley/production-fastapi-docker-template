@@ -79,9 +79,12 @@ COPY --from=s6 /s6-root/ /
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=caddy /usr/bin/caddy /usr/local/bin/caddy
 
-# Node needs only glibc and libstdc++, both in the slim Python image; fail the build if that changes.
-# s6-overlay runs as the unprivileged user: /run holds its supervision tree.
-RUN node --version && caddy version \
+# Node 26 also links libatomic, which the slim Python image lacks; the version check fails the build if another
+# shared library goes missing. s6-overlay runs as the unprivileged user: /run holds its supervision tree.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libatomic1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && node --version && caddy version \
     && chown app:app /run
 
 COPY --from=backend-builder /app/backend /app/backend
