@@ -12,7 +12,7 @@ What the template can do today (purpose, scenarios): [docs/product.md](docs/prod
 | Frontend | Nuxt 4, Vue 3, Pinia, shadcn-vue / Reka UI, Tailwind CSS |
 | Infra | Docker Compose, Caddy (prod), Makefile |
 
-The backend exposes a REST API (`/api/v1`); the frontend is an SPA with a repo layer on top of `$api`. Data is scoped by user and current organization.
+The backend exposes a REST API (`/api/v1`); the frontend is a Nuxt 4 app (server-side rendered today; hybrid rendering is planned in [docs/roadmap.md](docs/roadmap.md)) with a repo layer on top of `$api`. Data is scoped by user and current organization.
 
 Structure, folder roles, and how to add a domain or feature: [docs/architecture.md](docs/architecture.md), [docs/backend-concept.md](docs/backend-concept.md), [docs/frontend-concept.md](docs/frontend-concept.md). Agent index: [AGENTS.md](AGENTS.md).
 
@@ -73,7 +73,7 @@ Other useful commands: `make mm` (create migrations), `make help`.
 
 ## UI catalogue and frontend checks
 
-Open `http://localhost:9001/ui` (or your configured frontend port) to inspect the public catalogue with local sample data. `/home/ui` redirects to `/ui`. App components use shadcn/Reka primitives, Tasker control sizes, semantic light/dark tokens, and `Modal` naming. Screen composition and repo/codec patterns are documented in [docs/frontend-concept.md](docs/frontend-concept.md).
+Open `http://localhost:9001/ui` (or your configured frontend port) to inspect the public catalogue with local sample data. App components use shadcn/Reka primitives, shared control sizes, semantic light/dark tokens, and `Modal` naming. Screen composition and repo/codec patterns are documented in [docs/frontend-concept.md](docs/frontend-concept.md).
 
 Run frontend checks from `frontend/`:
 
@@ -83,7 +83,7 @@ pnpm typecheck      # Nuxt + Vue TypeScript checks
 pnpm build         # production build
 ```
 
-Run `make lint` from the repository root. For UI changes, also inspect `/ui` and affected screens in a browser, including mobile width, both themes, empty/loading/error states and nested overlays. Passing automated checks does not substitute for that visual review.
+Run `make lint` from the repository root. For UI changes, also inspect `/ui` and affected screens in a browser — see the checklist in [docs/frontend-concept.md](docs/frontend-concept.md#ui-layers-and-visual-review). Passing automated checks does not substitute for that visual review.
 
 ## CI and releases
 

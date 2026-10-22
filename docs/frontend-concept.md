@@ -109,7 +109,7 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 | `AppConfirmModal` | Confirm/Decline modal: `:confirm` / `:decline`. Built on `AppModal` + `AppTemplateActions`. Live: `/ui` → Overlays |
 | `AppTable` / `AppColumn` | Table with declarative `field`, `header`, `format` and scoped `#body`; retained by `AppListTemplate` |
 | `AppSelect` | Single/multiple selection, search and pagination; repo-backed via `:repo="useRepo('user')"` |
-| `AppFilterToolbar` | Tasker IssueViewToolbar filter bar: search, fixed fields, compact conditions added through **+**, quick/actions slots |
+| `AppFilterToolbar` | List filter bar: search, fixed fields, compact conditions added through **+**, quick/actions slots |
 | `AppFilters` | Internal condition editor; toolbar uses `inline` mode. Specification and `v-model` are shared; feature owns query mapping |
 
 `templateVariant`: `page` | `section` | `flat-section`. Page templates use `AppPageView`; both nested variants use structural `AppSection`. Do not wrap a page template in another page heading. Use `AppCard` when a nested block needs visual emphasis; `AppBlock` is removed.
@@ -215,7 +215,7 @@ development dependency and Vitest 4 prevent Vite 7 types from being used to
 validate the Nuxt Vite 8 plugin configuration. Run `pnpm typecheck` separately
 from `pnpm build`; the production build does not enable TypeScript checks.
 
-`shared/ui/shadcn/` contains the local shadcn/Reka primitives. Product views consume `App*` wrappers from `shared/ui/app/`, which share Tasker sizes (`types/control.ts`) and semantic CSS tokens in `assets/styles/tailwind.css`. Use those tokens for both themes rather than hard-coded colors. The catalogue at `/ui` is public with static examples; `/home/ui` is a compatibility redirect.
+`shared/ui/shadcn/` contains the local shadcn/Reka primitives. Product views consume `App*` wrappers from `shared/ui/app/`, which share control sizes (`types/control.ts`) and semantic CSS tokens in `assets/styles/tailwind.css`. Use those tokens for both themes rather than hard-coded colors. The catalogue at `/ui` is public with static examples.
 
 `AppListTemplate` keeps the repo/codec API and route/modal detail behavior. `useRepoData` owns **local** items, search, pagination, loading and error state. Query requests use `storeInRepo: false`, ignore obsolete responses, and reset pagination when search or reactive `extraParams` changes. Optional `storeInRepo` publishes the accepted result to the repo; a picker or nested list must not read another consumer's pagination/loading state. Pass reactive parameters as a getter when calling the composable. `AppSelect` likewise keeps its own query state and selected-item hydration.
 
@@ -283,7 +283,7 @@ Feature label maps: a composable like `composables/useProjectLabels.ts` (`LabelC
 
 ## Notifications and checks
 
-Use `useToast()` with `toast.default` for ordinary confirmations, matching Tasker. `useNotify` is removed. `AppToaster` is mounted once at application level; errors can use `toast.error`.
+Use `useToast()` with `toast.default` for ordinary confirmations. `useNotify` is removed. `AppToaster` is mounted once at application level; errors can use `toast.error`.
 
 ```ts
 const toast = useToast()
@@ -293,7 +293,18 @@ toast.error('Не удалось сохранить', { description: 'Попро
 
 `useActionState` and template actions retain their loading and notification contracts. Avoid sending a second toast when the action helper already handles it.
 
-From `frontend/`, run `pnpm test`, `pnpm typecheck` and `pnpm build`; run `make lint` from the repository root. UI acceptance also needs browser inspection of the catalogue and affected screens at desktop/mobile widths in both themes, with empty/loading/error states, keyboard focus and nested popovers in modals.
+From `frontend/`, run `pnpm test`, `pnpm typecheck` and `pnpm build`; run `make lint` from the repository root.
+
+## UI layers and visual review
+
+Dependencies point one way: `shared/ui/shadcn` → `shared/ui/app` → `shared/ui/template` → `features`. shadcn primitives know nothing about repos or routes; features use `App*` and template components, never `shared/ui/shadcn` directly. `AppListTemplate` owns CRUD, search and pagination; `AppTable` only renders.
+
+Automated checks do not replace a browser pass. For a UI change, open `/ui` and every affected screen at **390px, 768px and 1440px** in **both themes** and check:
+
+- empty, loading, error and retry states; long names; disabled and loading buttons;
+- search, the next page and back navigation; create/edit/delete in route and modal modes;
+- menus and date pickers inside modals and drawers: clipping, stacking, Escape, Tab and focus return;
+- no double scroll, overlaps or page-wide horizontal scroll; no hydration warnings or console errors after a reload.
 
 ## Button and table variants
 
@@ -303,7 +314,7 @@ Choose by the action role:
 | Variant | Scenario |
 |---|---|
 | `default` | Main action of the current form/block: save, create, continue; normally one per action group |
-| `secondary` | Filled neutral button, as in Tasker: companion action (cancel, back). Uses `--ds-surface-raised`; no visible border |
+| `secondary` | Filled neutral companion action (cancel, back). Uses `--ds-surface-raised`; no visible border |
 | `outline` | Transparent button with a border: filters, export, column settings |
 | `ghost` | Compact row/menu actions or a lower-priority third action |
 | `destructive` | Final confirmation of deletion or another destructive operation |
@@ -317,15 +328,15 @@ both variants with the same data and loading/empty/error states.
 
 ### Filter toolbar
 
-Use `AppFilterToolbar` for the IssueToolbar pattern, not a standalone vertical
-`AppFilters`. It ports Tasker `ViewFilterToolbar`: `v-model` holds conditions,
+Use `AppFilterToolbar` for a list search-and-filter bar, not a standalone vertical
+`AppFilters`. `v-model` holds conditions,
 `v-model:search` holds search text, `spec` supplies fields and current repo adapters.
 `fixedFields` pins single/multiple/optional controls; their keys are excluded from
 repeated dynamic conditions. `visibleFields` / `hiddenFields` restrict available fields.
 Slots `primary`, `fixed-<field>`, `quick`, `actions` supply feature-specific tools.
 `wrap` wraps conditions on narrow screens; `alwaysShowAdd` keeps the plus visible.
-Tasker's issue-specific pickers and display-settings menu are not part of this generic
-filter bar; a feature can provide them through the slots. Existing repo + codec stays intact.
+Feature-specific pickers and display settings are not part of this generic filter
+bar; a feature provides them through the slots. Existing repo + codec stays intact.
 
 ### Semantic colors
 
@@ -357,7 +368,7 @@ The Overlays catalogue demonstrates a date picker and a modal opened from a draw
 
 ### Page regions and automatic list pagination
 
-`AppPageView` follows Tasker's `AppPage` layout: `header` (custom whole header),
+`AppPageView` builds on `AppPage` with these regions: `header` (custom whole header),
 `subheader` (below the header, before the divider), `controls` (after the divider),
 `default` (scrolling body), and `footer` (fixed bottom region). The standard
 `PageHeader` accepts `prefix`, `title`, `title-append`, and `actions`; AppPageView
