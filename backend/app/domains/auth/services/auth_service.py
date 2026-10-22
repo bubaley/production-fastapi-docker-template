@@ -5,8 +5,8 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 import bcrypt
+import jwt
 from fastapi import Response
-from jose import JWTError, jwt
 
 from app.core.settings import settings
 
@@ -80,7 +80,7 @@ class AuthService:
         try:
             payload = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
             return payload
-        except JWTError:
+        except jwt.PyJWTError:
             return None
 
     @staticmethod

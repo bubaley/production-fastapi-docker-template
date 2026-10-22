@@ -1,6 +1,3 @@
-# https://github.com/bubaley/production-fastapi-docker-template
-# version: 0.0.0 | Increase the version after changes from the template, this will make
-
 from pathlib import Path
 from typing import Literal
 
@@ -33,8 +30,8 @@ class Settings(BaseSettings):
 
     # JWT settings
     jwt_algorithm: str = 'HS256'
-    jwt_access_token_expire_minutes: int = 60 * 24 * 1  # 24 hour
-    jwt_refresh_token_expire_minutes: int = 60 * 24 * 30  # 7 days
+    jwt_access_token_expire_minutes: int = 60 * 24  # 24 hours
+    jwt_refresh_token_expire_minutes: int = 60 * 24 * 30  # 30 days
 
     # cookie settings
     cookie_secure: bool = False
