@@ -130,7 +130,7 @@ async def db(request: pytest.FixtureRequest):
     sqlite = request.config.getoption('--sqlite')
     ctx = TortoiseContext()
     async with ctx:
-        await ctx.init(config=_get_config(sqlite=sqlite), _create_db=False, use_tz=False)
+        await ctx.init(config=_get_config(sqlite=sqlite), _create_db=False, use_tz=True)
         if sqlite:
             await Tortoise.generate_schemas()
         else:

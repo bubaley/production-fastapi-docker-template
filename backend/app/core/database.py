@@ -58,7 +58,7 @@ class DatabaseConnection:
 
     async def tortoise_init(self):
         if not self._initialized:
-            self._tortoise_instance = await Tortoise.init(config=TORTOISE_ORM, use_tz=False)
+            self._tortoise_instance = await Tortoise.init(config=TORTOISE_ORM, use_tz=True)
             self._initialized = True
 
     def __enter__(self):
