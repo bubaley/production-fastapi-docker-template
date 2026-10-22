@@ -32,7 +32,7 @@ Order: 1 → 2 → (3, 4, 6 in parallel) → 5 → 7.
 | Stage | Status |
 |---|---|
 | 1 | done |
-| 2 | in progress |
+| 2 | done |
 | 3 | pending |
 | 4 | pending |
 | 5 | pending |
@@ -40,6 +40,8 @@ Order: 1 → 2 → (3, 4, 6 in parallel) → 5 → 7.
 | 7 | pending |
 
 ## Known follow-ups
+
+- Stage 2 deviations: Oxlint runs without type-aware rules (tsgolint cannot resolve types exported from `.vue` files); `knip` (`pnpm check:unused`) is not part of `check` because it reports existing unused template files (shadcn `table`/`range-calendar`, several `shared/utils`, `useOrganization`, `DurationLabel`, `useWebSocket`) that need a keep-or-delete decision; the architecture guard carries two known `shared → features` imports (`useSetupStore` type, `AppLayoutHeader` → `OrganizationPicker`). `nuxt dev` prints `NUXT_B5004` for the Vite+ `vite.config.ts` (expected; Nuxt ignores the file).
 
 - Stage 5: adding a member from the organization page uses the organization in the header (`Organization-Key`), not the organization being viewed. Fix with the new data layer.
 - Optional data migration: lowercase existing `user.email` values so login can drop `iexact`.

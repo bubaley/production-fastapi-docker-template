@@ -31,7 +31,7 @@ Same change, all of this (skip a row only if it does not apply):
 | Frontend | Feature: model + codec, repo, `useRepo` registry, views on `AppListTemplate` / `AppDetailTemplate`, thin page, drawer item if needed. User-facing copy in **Russian** |
 | Realtime | Org events go through **`OrganizationWebSocketService`**, not a new websocket stack |
 | Docs | [product.md](product.md) if the user can see or do something new. Concept docs if the pattern itself changed |
-| Lint | `make lint` is green |
+| Checks | `make lint` applied, `make check` is green |
 | Migration | Tell the user `make mm` / `make m` is needed. Do not run it unless they ask |
 
 ---

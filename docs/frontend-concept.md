@@ -210,10 +210,10 @@ context. Logout failures keep the current screen and show an error.
 Token codecs include `user_id` only when creating a token; edits encode its
 name without ownership fields. The backend rejects ownership fields on updates.
 
-Use Vite 8 consistently for Nuxt, Tailwind and the test runner. The direct Vite
-development dependency and Vitest 4 prevent Vite 7 types from being used to
-validate the Nuxt Vite 8 plugin configuration. Run `pnpm typecheck` separately
-from `pnpm build`; the production build does not enable TypeScript checks.
+Keep the direct `vite` 8 development dependency: it gives `nuxt typecheck` the
+same Vite types Nuxt and `@tailwindcss/vite` use. Run `pnpm typecheck`
+separately from `pnpm build`; the production build does not enable TypeScript
+checks. Tooling is described in [Tooling](#tooling).
 
 `shared/ui/shadcn/` contains the local shadcn/Reka primitives. Product views consume `App*` wrappers from `shared/ui/app/`, which share control sizes (`types/control.ts`) and semantic CSS tokens in `assets/styles/tailwind.css`. Use those tokens for both themes rather than hard-coded colors. The catalogue at `/ui` is public with static examples.
 
@@ -293,7 +293,33 @@ toast.error('Не удалось сохранить', { description: 'Попро
 
 `useActionState` and template actions retain their loading and notification contracts. Avoid sending a second toast when the action helper already handles it.
 
-From `frontend/`, run `pnpm test`, `pnpm typecheck` and `pnpm build`; run `make lint` from the repository root.
+Before handing off, run `make lint` and `make check` from the repository root (see [Tooling](#tooling)).
+
+## Tooling
+
+Vite+ (`vite-plus`, pinned) runs formatting, linting and tests; Nuxt still owns dev, build and typecheck.
+
+| Script (`frontend/`) | What it does |
+|---|---|
+| `pnpm fmt` / `pnpm fmt:check` | Oxfmt: no semicolons, single quotes, width 120, trailing commas, one attribute per line, Tailwind class order (`cn`, `cva`, `clsx` arguments too) |
+| `pnpm lint` / `pnpm lint:fix` | Oxlint over all TS/JS/Vue scripts, then ESLint over `*.vue` templates; warnings fail |
+| `pnpm test` | `vp test run` (Vitest, happy-dom). Tests live in `tests/` and import from `vite-plus/test` |
+| `pnpm typecheck` | `nuxt typecheck` (vue-tsc, TypeScript 6) |
+| `pnpm check:architecture` | Layer guard, see below |
+| `pnpm check:unused` | knip with the Nuxt plugin: unused files and dependencies. Not part of `check` |
+| `pnpm check` | `fmt:check` + `lint` + `typecheck` + `test` + `check:architecture` — what CI runs |
+
+From the repository root: `make lint` fixes and formats backend and frontend, `make check` runs every CI check without changing files (`make check-frontend BUILD=1` adds `nuxt build`).
+
+**Config.** `frontend/vite.config.ts` holds the `fmt`, `lint` and `test` blocks and is read only by `vp`. Nuxt runs Vite with `configFile: false`, so this file never affects the app; `nuxt dev` prints a one-line `NUXT_B5004` warning about it, which is expected. App build settings belong in `nuxt.config.ts`.
+
+**Why ESLint stays for `*.vue`.** Oxlint lints the `<script>` blocks of SFCs but not `<template>`. `eslint.config.mjs` therefore runs `eslint-plugin-vue` (`flat/recommended`) on `*.vue` only, turns off its layout rules (Oxfmt owns layout), and uses `eslint-plugin-oxlint` to switch off every rule Oxlint already reports. Deliberate exceptions: `vue/valid-template-root` (redirect pages and renderless components have empty templates), `vue/require-default-prop` (optional props are `prop?: T`), `vue/multi-word-component-names` (shadcn names). Add script rules to the `lint` block in `vite.config.ts`, not to ESLint.
+
+**Type-aware Oxlint is off.** Its type checker (tsgolint) cannot resolve types exported from `.vue` files, so those types become `any` and produce false positives; `nuxt typecheck` covers types instead.
+
+**Architecture guard.** `scripts/check-architecture.mjs` checks explicit imports in `app/`: features never import `reka-ui` or `~/shared/ui/shadcn` (use `App*` wrappers); `shared/**` never imports `features/**`; `shared/ui/shadcn` never imports `shared/ui/app` or `shared/ui/template`. Existing exceptions are listed in `KNOWN_VIOLATIONS`; remove an entry when the code is fixed (stale entries fail the check). Do not add new ones.
+
+**Formatter caveat.** With `semi: false`, Oxfmt drops the `;` between statements of an inline handler (`@save="a(); b = false"`), which Vue cannot parse. Write multi-statement handlers as a function (`@save="() => { a(); b = false }"`) or a method.
 
 ## UI layers and visual review
 

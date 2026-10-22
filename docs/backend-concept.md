@@ -238,4 +238,4 @@ SQLite covers API behavior and permissions, not PostgreSQL migrations or engine-
 
 Canonical example: `app/domains/organization/tests/test_organization.py`. Also `app/core/tests/test_health.py`.
 
-Frontend tests (Vitest) are described in [frontend-concept.md](frontend-concept.md).
+Frontend tests (Vitest via `vp test`) are described in [frontend-concept.md](frontend-concept.md).
