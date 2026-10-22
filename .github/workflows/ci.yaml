@@ -201,7 +201,6 @@ jobs:
           cat > .env <<'EOF'
           SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123456789abcdefghijklmnop
           ENCRYPTION_KEY=ci-only-encryption-key-32-chars!
-          NUXT_PUBLIC_BASE_URL=http://127.0.0.1:8080
           EOF
           docker compose -f compose.yaml up -d --wait --wait-timeout 240
           base=http://127.0.0.1:8080
@@ -211,7 +210,8 @@ jobs:
 
           curl -fsSL "$base/" -o page.html
           grep -q 'id="__nuxt"' page.html
-          echo "/ renders the Nuxt app"
+          grep -q 'property="og:title"' page.html
+          echo "/ is server-rendered with its meta tags"
 
           asset=$(grep -o '/_nuxt/[^"]*\.js' page.html | head -n 1)
           curl -fsS -D headers.txt -o /dev/null "$base$asset"
