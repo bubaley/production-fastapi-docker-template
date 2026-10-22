@@ -1,0 +1,3 @@
+# Hooks run on the system python3 (3.9+); otherwise the backend's Ruff settings apply.
+extend = "../../backend/pyproject.toml"
+target-version = "py39"

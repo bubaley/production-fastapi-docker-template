@@ -4,13 +4,13 @@ import json
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, ClassVar
-from urllib.parse import urlsplit
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.encoders import jsonable_encoder
 from loguru import logger
 
 from app.core.auth import authenticate_connection
+from app.core.csrf import is_trusted_origin
 from app.core.services.pubsub import get_pubsub
 from app.core.settings import settings
 from app.core.utils.date_utils import utcnow
@@ -47,13 +47,10 @@ def encode_message(message_type: str, data: Any) -> str:
 
 
 def is_allowed_origin(websocket: WebSocket) -> bool:
-    """Browsers always send Origin: allow same-origin and CORS origins. Clients without Origin are not browsers."""
+    """Browsers always send Origin: allow trusted origins (same host, CORS origins). Clients without Origin are not
+    browsers, so no ambient cookie can be abused."""
     origin = websocket.headers.get('origin')
-    if not origin:
-        return True
-    if origin in settings.cors_origins:
-        return True
-    return urlsplit(origin).netloc == websocket.headers.get('host')
+    return not origin or is_trusted_origin(origin, websocket)
 
 
 class BaseWebSocketService:

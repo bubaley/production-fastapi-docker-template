@@ -1,0 +1,2 @@
+# Repository scripts follow the backend's Ruff settings.
+extend = "../backend/pyproject.toml"

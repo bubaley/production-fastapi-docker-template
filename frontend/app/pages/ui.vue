@@ -3,5 +3,5 @@
 </template>
 <script setup lang="ts">
 import UIView from '~/features/ui/views/UIView.vue'
-definePageMeta({ layout: false })
+definePageMeta({ layout: false, auth: false })
 </script>

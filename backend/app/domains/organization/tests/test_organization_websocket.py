@@ -73,3 +73,55 @@ async def test_secure_base_channels_require_explicit_access_policy():
     assert not await service.check_access(websocket, 'private')
     assert await service.check_access(websocket, 'public')
     assert not await service.check_access(websocket, 'unknown')
+
+
+async def _handshake(path: str, headers: list[tuple[bytes, bytes]]) -> dict:
+    """Run a websocket handshake against the real app in the test's event loop; return the first ASGI message."""
+    sent: list[dict] = []
+    incoming = iter([{'type': 'websocket.connect'}, {'type': 'websocket.disconnect', 'code': 1000}])
+
+    async def receive():
+        return next(incoming)
+
+    async def send(message):
+        sent.append(message)
+
+    scope = {
+        'type': 'websocket',
+        'asgi': {'version': '3.0'},
+        'scheme': 'ws',
+        'path': path,
+        'raw_path': path.encode(),
+        'query_string': b'',
+        'root_path': '',
+        'headers': [(b'host', b'test'), *headers],
+        'subprotocols': [],
+        'client': ('127.0.0.1', 1),
+        'server': ('test', 80),
+    }
+    await app(scope, receive, send)
+    return sent[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'origin, expected',
+    [(b'http://test', 'websocket.accept'), (b'https://evil.example', 'websocket.close')],
+)
+async def test_websocket_handshake_authenticates_with_access_cookie(db, user_factory, origin, expected):
+    actor = await user_factory()
+    organization = await Organization.create(name='Org', key='org')
+    await OrganizationUser.create(organization=organization, user=actor)
+    token = (await AuthService.start_session(actor)).access.token
+    message = await _handshake(
+        f'/ws/organizations/{organization.id}',
+        [(b'cookie', f'access_token={token}'.encode()), (b'origin', origin)],
+    )
+    assert message['type'] == expected
+
+
+@pytest.mark.asyncio
+async def test_websocket_handshake_without_cookie_is_denied(db):
+    organization = await Organization.create(name='Org', key='org')
+    message = await _handshake(f'/ws/organizations/{organization.id}', [(b'origin', b'http://test')])
+    assert message == {'type': 'websocket.close', 'code': 1008, 'reason': 'Access denied'}

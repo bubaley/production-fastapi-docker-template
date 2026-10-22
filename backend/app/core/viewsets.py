@@ -1,18 +1,20 @@
 from typing import Any, TypeVar
 
-from fastapi import Query
+from fastapi import Depends, Query
 from fastapi_ronin.generics import GenericViewSet
 from fastapi_ronin.lookups import UUIDLookup
 from fastapi_ronin.pagination import Pagination
 from fastapi_ronin.permissions import IsAuthenticated
 from fastapi_ronin.state import BaseStateManager
+from fastapi_ronin.types import T
 from fastapi_ronin.viewsets import ModelViewSet, ReadOnlyViewSet
-from fastapi_ronin.wrappers import PaginatedResponseDataWrapper
+from fastapi_ronin.wrappers import PaginatedResponseDataWrapper, PaginationType
 from pypika_tortoise import Order
 from tortoise.queryset import QuerySet
 
-from app.core.auth import AuthState
+from app.core.auth import AuthState, organization_key_header
 from app.core.models import BaseModel
+from app.core.scope import Scope
 from app.core.utils.process_state_to_model import process_state_to_model
 from app.shared.services.filter_objects_manager import FilterObjectsManager
 
@@ -58,11 +60,40 @@ class LightPageNumberPagination(Pagination[BaseModelT]):
         self.has_next = bool(await queryset.offset(next_page_offset).limit(1).only('id').first())
 
 
+class PageResponse(PaginatedResponseDataWrapper[T, PaginationType]):
+    """`{data: [...], meta: {page, page_size, has_next}}`, named `<ReadSchema>Page` in OpenAPI."""
+
+    @classmethod
+    def model_parametrized_name(cls, params: tuple[Any, ...]) -> str:
+        return f'{getattr(params[0], "__name__", params[0])}Page'
+
+
 class BaseGenericViewSet(GenericViewSet[BaseModelT]):
     pagination = LightPageNumberPagination
-    list_wrapper = PaginatedResponseDataWrapper
+    list_wrapper = PageResponse
     lookup_class = UUIDLookup
     permission_classes = [IsAuthenticated]  # noqa: RUF012 - ronin declares this attribute as a list
+    # Declare the `Organization-Key` header on every route of the viewset. None: when the model is
+    # organization-scoped or gets its `organization` from the header on create (`process_state_to_model`).
+    organization_header: bool | None = None
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        # Routes are added during ronin's __init__, and a router copies its dependencies into each new route.
+        if self.uses_organization_header() and not any(
+            dependency.dependency is organization_key_header for dependency in self.router.dependencies
+        ):
+            self.router.dependencies.append(Depends(organization_key_header))
+        super().__init__(*args, **kwargs)
+
+    @classmethod
+    def uses_organization_header(cls) -> bool:
+        if cls.organization_header is not None:
+            return cls.organization_header
+        model = getattr(cls, 'model', None)
+        if model is None:
+            return False
+        scope = getattr(model, 'tenant_scope', None)
+        return (isinstance(scope, Scope) and scope.organization is not None) or 'organization' in model._meta.fields_map
 
     async def get_queryset(self) -> QuerySet[BaseModelT]:
         result: AuthState = BaseStateManager.get_state().get('auth_state') or AuthState(user=self.user)

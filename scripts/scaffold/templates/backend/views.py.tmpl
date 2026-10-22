@@ -1,0 +1,19 @@
+from fastapi import APIRouter
+from fastapi_ronin.decorators import viewset
+
+from app.core.viewsets import BaseModelViewSet
+from app.domains.${name}.filters import ${Name}FilterSet
+from app.domains.${name}.models import ${Name}
+${schemas_import}
+
+${plural}_router = APIRouter(prefix='/${plural_kebab}', tags=['${plural_kebab}'])
+routers = (${plural}_router,)
+
+
+@viewset(${plural}_router)
+class ${Name}ViewSet(BaseModelViewSet[${Name}]):
+    model = ${Name}
+    read_schema = ${Name}ReadSchema
+    create_schema = ${Name}CreateSchema
+    update_schema = ${Name}UpdateSchema
+    filterset_class = ${Name}FilterSet

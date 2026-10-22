@@ -21,7 +21,9 @@ import AppLoadingIndicator from './AppLoadingIndicator.vue'
 import SelectChip from './select/SelectChip.vue'
 import { useSelectSource } from './select/useSelectSource'
 import { normalizeSelection, readItem, selectionKey, valueOf } from './select/selection'
-import type { AppSelectProps, SelectValue } from './select/types'
+import type { AppSelectProps, SelectSource, SelectValue } from './select/types'
+import { resourceSource } from '~/shared/api/resource'
+import { useApiClient } from '~/shared/api/useResource'
 import {
   activeOutlineClasses,
   appSelectIconSize,
@@ -61,14 +63,9 @@ const open = defineModel<boolean>('open', { default: false })
 const { contentStyle: overlayStyle } = useOverlayStack(open)
 const search = ref('')
 const cache = shallowRef(new Map<SelectValue, T>())
-watch(
-  () => props.repo?.revision,
-  () => {
-    open.value = false
-    model.value = props.multiple ? [] : null
-    cache.value = new Map()
-  },
-  { flush: 'sync' },
+const client = props.resource ? useApiClient() : null
+const optionSource = computed<SelectSource<T> | undefined>(
+  () => props.source ?? (props.resource && client ? resourceSource(props.resource, client) : undefined),
 )
 const trigger = ref<HTMLElement>()
 const messages = computed(() =>
@@ -139,10 +136,10 @@ watch(
   },
   { immediate: true, deep: true },
 )
-const source = useSelectSource(() => props, open, search, key, remember)
+const source = useSelectSource(() => ({ ...props, source: optionSource.value }), open, search, key, remember)
 const options = computed(() => {
-  const items = props.repo ? source.items.value : (props.options ?? props.items ?? [])
-  if ((props.repo && !props.onlyClientSearch) || props.filter === false) return items
+  const items = optionSource.value ? source.items.value : (props.options ?? props.items ?? [])
+  if ((optionSource.value && !props.onlyClientSearch) || props.filter === false) return items
   const query = search.value.trim().toLocaleLowerCase()
   return items.filter((item) =>
     (props.filterFields?.length

@@ -1,10 +1,13 @@
-export type AppDetailActionsSaveResult<T> = {
-  item: T | undefined
+export type AppDetailActionsSaveResult<F, T = unknown> = {
+  /** The form rebuilt from the saved record. */
+  item: F | undefined
+  /** The record the API returned. */
+  saved?: T
   created: boolean
   success: boolean
 }
 
-export type AppDetailActionsDeleteResult<T> = {
+export type AppDetailActionsDeleteResult<F> = {
   success: boolean
-  item: T | undefined
+  item: F | undefined
 }

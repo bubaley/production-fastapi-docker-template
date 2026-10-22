@@ -17,13 +17,14 @@
   />
 </template>
 
-<script setup generic="T extends AppModel" lang="ts">
+<script setup generic="T extends ResourceItem, F extends ResourceForm" lang="ts">
+import type { Resource, ResourceForm, ResourceItem } from '~/shared/api/resource'
 import type { AppTemplateAction } from './types/template-types'
 import type { ActionDisplayMode } from './types/template-ui-tokens'
 import type { AppButtonSize } from '../app/types/control'
 import { Trash2 } from '@lucide/vue'
 
-export type AppDetailActionsProps<T extends AppModel> = {
+export type AppDetailActionsProps<T extends ResourceItem, F extends ResourceForm> = {
   labels?: {
     save?: string
     cancel?: string
@@ -36,8 +37,8 @@ export type AppDetailActionsProps<T extends AppModel> = {
     saveError?: string
     deleteError?: string
   }
-  repo: AppRepoStore<T>
-  item: T
+  resource: Resource<T, F, any, any>
+  item: F
   hideCreateButton?: boolean
   hideUpdateButton?: boolean
   hideSaveButton?: boolean
@@ -52,26 +53,26 @@ export type AppDetailActionsProps<T extends AppModel> = {
   deleteMode?: ActionDisplayMode
   disableRouterAutoResolving?: boolean
   reverseActions?: boolean
-  beforeSave?: (item: T) => Promise<void> | void
-  beforeDelete?: (item: T) => Promise<void> | void
+  beforeSave?: (item: F) => Promise<void> | void
+  beforeDelete?: (item: F) => Promise<void> | void
 }
 
 defineOptions({ inheritAttrs: false })
 
-const props = withDefaults(defineProps<AppDetailActionsProps<T>>(), {
+const props = withDefaults(defineProps<AppDetailActionsProps<T, F>>(), {
   fullWidth: false,
   saveMode: 'label',
   deleteMode: 'both',
 })
 
 const emit = defineEmits<{
-  save: [event: AppDetailActionsSaveResult<T>]
-  delete: [event: AppDetailActionsDeleteResult<T>]
+  save: [event: AppDetailActionsSaveResult<F, T>]
+  delete: [event: AppDetailActionsDeleteResult<F>]
   cancel: []
 }>()
 
 const deleteModal = ref(false)
-const { updateOrCreate, saveLoading, deleteLoading, deleteItem } = useDetailActions(props.repo)
+const { updateOrCreate, saveLoading, deleteLoading, deleteItem } = useDetailActions(() => props.resource)
 
 const hideSaveButton = computed(() => {
   if (props.hideSaveButton || props.hideActions) return true

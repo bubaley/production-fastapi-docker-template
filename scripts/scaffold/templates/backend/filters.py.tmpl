@@ -1,0 +1,10 @@
+from fastapi_ronin import filters
+
+from app.domains.${name}.models import ${Name}
+
+
+class ${Name}FilterSet(filters.FilterSet):
+    fields = (filters.CharFilter('name', default_lookup='icontains'),)
+
+    class Meta:
+        model = ${Name}

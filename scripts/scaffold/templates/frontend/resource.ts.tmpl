@@ -1,0 +1,29 @@
+import {
+  ${sdkPrefix}Create,
+  ${sdkPrefix}Destroy,
+  ${sdkPrefix}List,
+  ${sdkPrefix}Retrieve,
+  ${sdkPrefix}Update,
+  type ${Name}ReadSchema,
+} from '~/shared/api/generated'
+import { defineResource } from '~/shared/api/resource'
+
+export type ${Name} = ${Name}ReadSchema
+export type ${Name}Form = { id: string | null; name: string }
+
+export const ${camel}Resource = defineResource({
+  key: '${plural_kebab}',
+  sdk: {
+    list: ${sdkPrefix}List,
+    retrieve: ${sdkPrefix}Retrieve,
+    create: ${sdkPrefix}Create,
+    update: ${sdkPrefix}Update,
+    destroy: ${sdkPrefix}Destroy,
+  },
+  toForm: (item?: Partial<${Name}>): ${Name}Form => ({
+    id: item?.id ?? null,
+    name: item?.name ?? '',
+  }),
+  toCreate: (form) => ({ name: form.name }),
+  toUpdate: (form) => ({ name: form.name }),
+})

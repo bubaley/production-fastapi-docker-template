@@ -17,6 +17,7 @@ from app.domains.user.models import User
 
 organizations_router = APIRouter(prefix='/organizations', tags=['organizations'])
 organization_users_router = APIRouter(prefix='/organization-users', tags=['organization-users'])
+routers = (organizations_router, organization_users_router)
 
 
 @viewset(organizations_router)
@@ -38,12 +39,17 @@ class OrganizationUserViewSet(BaseModelViewSet[OrganizationUser]):
     create_schema = OrganizationUserCreateSchema
     update_schema = OrganizationUserUpdateSchema
     filterset_class = OrganizationUserFilterSet
+    # The organization comes from the body and is checked by OrganizationService, not from `Organization-Key`.
+    organization_header = False
 
     async def get_queryset(self):
         user: User = self.user
         if user.is_superuser:
             return OrganizationUser.all()
         return await super().get_queryset()
+
+    async def before_save(self, obj: OrganizationUser) -> None:
+        pass
 
     async def perform_create(self, obj: OrganizationUser) -> OrganizationUser:
         return await OrganizationService.add_member(obj, self.user)

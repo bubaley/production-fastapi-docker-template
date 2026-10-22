@@ -13,7 +13,12 @@ ME = '/api/v1/auth/me'
 
 
 def _bearer(token: str) -> dict[str, str]:
-    return {'Authorization': f'Bearer {token}'}
+    # An empty Cookie header keeps the client's cookie jar out: the request authenticates by the header only.
+    return {'Authorization': f'Bearer {token}', 'Cookie': ''}
+
+
+def _cookie(api_client, name: str) -> str | None:
+    return next((cookie.value for cookie in api_client.cookies.jar if cookie.name == name), None)
 
 
 async def _login(api_client, user: User) -> dict:
@@ -22,8 +27,10 @@ async def _login(api_client, user: User) -> dict:
     return response.json()
 
 
-async def _refresh(api_client, refresh_token: str):
-    return await api_client.post(REFRESH, json={'refresh_token': refresh_token})
+async def _refresh(api_client, refresh_token: str | None = None):
+    """Refresh with the client's cookie jar, or with only the given refresh token as the cookie."""
+    headers = {'Cookie': f'refresh_token={refresh_token}'} if refresh_token else None
+    return await api_client.post(REFRESH, headers=headers)
 
 
 # ROTATION
@@ -32,14 +39,17 @@ async def _refresh(api_client, refresh_token: str):
 @pytest.mark.asyncio
 async def test_refresh_rotates_the_pair(api_client, user_factory):
     user = await user_factory()
-    tokens = await _login(api_client, user)
-    response = await _refresh(api_client, tokens['refresh_token'])
+    await _login(api_client, user)
+    old_refresh = _cookie(api_client, 'refresh_token')
+    assert old_refresh
+    response = await _refresh(api_client)
     assert response.status_code == 200
-    rotated = response.json()
-    assert rotated['refresh_token'] != tokens['refresh_token']
-    assert (await api_client.get(ME, headers=_bearer(rotated['access_token']))).status_code == 200
-    old_claims = TokenService.decode(tokens['refresh_token'], TokenType.REFRESH)
-    new_claims = TokenService.decode(rotated['refresh_token'], TokenType.REFRESH)
+    assert set(response.json()) == {'access_expires_at', 'refresh_expires_at'}
+    new_refresh = _cookie(api_client, 'refresh_token')
+    assert new_refresh and new_refresh != old_refresh
+    assert (await api_client.get(ME)).status_code == 200
+    old_claims = TokenService.decode(old_refresh, TokenType.REFRESH)
+    new_claims = TokenService.decode(new_refresh, TokenType.REFRESH)
     assert old_claims is not None
     assert new_claims is not None
     old = await RefreshSession.get(jti=old_claims.jti)
@@ -52,9 +62,11 @@ async def test_refresh_rotates_the_pair(api_client, user_factory):
 async def test_reused_refresh_token_revokes_the_family(api_client, user_factory, monkeypatch):
     monkeypatch.setattr(settings, 'refresh_reuse_leeway_seconds', 0)
     user = await user_factory()
-    stolen = (await _login(api_client, user))['refresh_token']
-    legit = (await _refresh(api_client, stolen)).json()['refresh_token']
-    other_session = (await _login(api_client, user))['refresh_token']
+    await _login(api_client, user)
+    stolen = _cookie(api_client, 'refresh_token')
+    legit = (await _refresh(api_client, stolen)).cookies['refresh_token']
+    await _login(api_client, user)
+    other_session = _cookie(api_client, 'refresh_token')
 
     assert (await _refresh(api_client, stolen)).status_code == 401
     # The legitimate continuation of the reused token dies with it; other logins are untouched.
@@ -65,8 +77,9 @@ async def test_reused_refresh_token_revokes_the_family(api_client, user_factory,
 @pytest.mark.asyncio
 async def test_reuse_within_leeway_does_not_revoke_the_family(api_client, user_factory):
     user = await user_factory()
-    first = (await _login(api_client, user))['refresh_token']
-    second = (await _refresh(api_client, first)).json()['refresh_token']
+    await _login(api_client, user)
+    first = _cookie(api_client, 'refresh_token')
+    second = (await _refresh(api_client, first)).cookies['refresh_token']
     # A parallel tab presenting the just-rotated token gets 401, but the session survives.
     assert (await _refresh(api_client, first)).status_code == 401
     assert (await _refresh(api_client, second)).status_code == 200
@@ -90,21 +103,29 @@ async def test_refresh_without_token_is_rejected(api_client):
     assert response.status_code == 401
 
 
+@pytest.mark.asyncio
+async def test_refresh_ignores_tokens_in_the_body(api_client, user_factory):
+    pair = await AuthService.start_session(await user_factory())
+    response = await api_client.post(REFRESH, json={'refresh_token': pair.refresh.token})
+    assert response.status_code == 401
+
+
 # LOGOUT
 
 
 @pytest.mark.asyncio
 async def test_logout_clears_cookies_and_revokes_the_session(api_client, user_factory):
     user = await user_factory()
-    tokens = await _login(api_client, user)
-    assert api_client.cookies.get('access_token')
+    await _login(api_client, user)
+    refresh_token = _cookie(api_client, 'refresh_token')
+    assert _cookie(api_client, 'access_token')
     assert (await api_client.get(ME)).status_code == 200
     response = await api_client.post('/api/v1/auth/logout')
-    assert response.status_code == 200
-    assert not api_client.cookies.get('access_token')
-    assert not api_client.cookies.get('refresh_token')
+    assert response.status_code == 204
+    assert not _cookie(api_client, 'access_token')
+    assert not _cookie(api_client, 'refresh_token')
     assert (await api_client.get(ME)).status_code == 401
-    assert (await _refresh(api_client, tokens['refresh_token'])).status_code == 401
+    assert (await _refresh(api_client, refresh_token)).status_code == 401
 
 
 @pytest.mark.asyncio
@@ -112,7 +133,7 @@ async def test_logout_with_bearer_only_revokes_its_session(api_client, user_fact
     user = await user_factory()
     pair = await AuthService.start_session(user)
     other = await AuthService.start_session(user)
-    assert (await api_client.post('/api/v1/auth/logout', headers=_bearer(pair.access.token))).status_code == 200
+    assert (await api_client.post('/api/v1/auth/logout', headers=_bearer(pair.access.token))).status_code == 204
     assert (await _refresh(api_client, pair.refresh.token)).status_code == 401
     assert (await _refresh(api_client, other.refresh.token)).status_code == 200
 
@@ -123,7 +144,7 @@ async def test_logout_all_invalidates_every_token(api_client, user_factory):
     first = await AuthService.start_session(user)
     second = await AuthService.start_session(user)
     response = await api_client.post('/api/v1/auth/logout-all', headers=_bearer(first.access.token))
-    assert response.status_code == 200
+    assert response.status_code == 204
     for pair in (first, second):
         assert (await api_client.get(ME, headers=_bearer(pair.access.token))).status_code == 401
         assert (await _refresh(api_client, pair.refresh.token)).status_code == 401

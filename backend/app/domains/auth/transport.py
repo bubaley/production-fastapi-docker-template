@@ -1,4 +1,4 @@
-"""How auth tokens travel (cookies, Authorization header). The token lifecycle itself lives in AuthService."""
+"""How auth tokens travel (HttpOnly cookies, Authorization header). The token lifecycle itself lives in AuthService."""
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -64,9 +64,9 @@ def clear_auth_cookies(response: Response) -> None:
 
 
 class CredentialKind(StrEnum):
-    BEARER = 'bearer'  # access JWT in `Authorization: Bearer ...`
-    API_TOKEN = 'token'  # API token in `Authorization: Token ...`
-    COOKIE = 'cookie'  # access JWT in the access cookie
+    COOKIE = 'cookie'  # access JWT in the HttpOnly access cookie (browsers, SSR with the forwarded Cookie header)
+    API_TOKEN = 'token'  # API token in `Authorization: Token ...` (integrations)
+    BEARER = 'bearer'  # access JWT in `Authorization: Bearer ...` (tests, server-side scripts)
 
 
 @dataclass(frozen=True)
@@ -75,22 +75,35 @@ class Credential:
     value: str
 
 
-def read_credential(connection: HTTPConnection) -> Credential | None:
-    """The Authorization header wins over the access cookie; an unknown scheme yields no credential."""
+def read_credentials(connection: HTTPConnection) -> list[Credential]:
+    """Every credential the connection carries, in resolution order: access cookie, then Authorization header."""
+    credentials: list[Credential] = []
+    if cookie := connection.cookies.get(ACCESS_COOKIE):
+        credentials.append(Credential(kind=CredentialKind.COOKIE, value=cookie))
     auth_header = connection.headers.get('Authorization')
     if auth_header:
         scheme, _, value = auth_header.strip().partition(' ')
         value = value.strip()
-        kinds = {'bearer': CredentialKind.BEARER, 'token': CredentialKind.API_TOKEN}
-        kind = kinds.get(scheme.lower())
-        return Credential(kind=kind, value=value) if kind and value else None
-    cookie = connection.cookies.get(ACCESS_COOKIE)
-    return Credential(kind=CredentialKind.COOKIE, value=cookie) if cookie else None
+        kinds = {'token': CredentialKind.API_TOKEN, 'bearer': CredentialKind.BEARER}
+        if (kind := kinds.get(scheme.lower())) and value:
+            credentials.append(Credential(kind=kind, value=value))
+    return credentials
+
+
+def has_auth_cookie(connection: HTTPConnection) -> bool:
+    return ACCESS_COOKIE in connection.cookies or REFRESH_COOKIE in connection.cookies
 
 
 def read_access_token(connection: HTTPConnection) -> str | None:
-    credential = read_credential(connection)
-    return credential.value if credential and credential.kind != CredentialKind.API_TOKEN else None
+    """The access JWT from the cookie or a Bearer header (never an API token)."""
+    return next(
+        (
+            credential.value
+            for credential in read_credentials(connection)
+            if credential.kind != CredentialKind.API_TOKEN
+        ),
+        None,
+    )
 
 
 def read_refresh_token(connection: HTTPConnection) -> str | None:

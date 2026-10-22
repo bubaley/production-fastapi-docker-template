@@ -56,7 +56,9 @@ const scriptOf = (file, source) => {
 
 const importPattern = /\b(?:from\s*|import\s*\(?\s*|export\s*\*\s*from\s*)(['"])([^'"\n]+)\1/g
 
-const files = walk(appDir).filter((file) => /\.(?:vue|ts|js|mjs)$/.test(file))
+// The generated API client (`pnpm gen:api`) is not hand-written code.
+const GENERATED_DIR = path.join(appDir, 'shared/api/generated') + path.sep
+const files = walk(appDir).filter((file) => /\.(?:vue|ts|js|mjs)$/.test(file) && !file.startsWith(GENERATED_DIR))
 const failures = []
 const seenKnown = new Set()
 

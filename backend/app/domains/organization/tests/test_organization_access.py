@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock
+from uuid import uuid4
 
 import pytest
 
@@ -14,19 +15,47 @@ async def test_member_can_add_remove_and_duplicate_is_reported(api_client, user_
     added = await user_factory()
     organization = await Organization.create(name='Org', key='org')
     await OrganizationUser.create(organization=organization, user=actor)
-    headers = {
-        'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}',
-        'Organization-Key': organization.key,
-    }
-    response = await api_client.post('/api/v1/organization-users', headers=headers, json={'user_id': str(added.id)})
+    headers = {'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}'}
+    body = {'organization_id': str(organization.id), 'user_id': str(added.id)}
+    response = await api_client.post('/api/v1/organization-users', headers=headers, json=body)
     assert response.status_code == 201
+    assert response.json()['organization_id'] == str(organization.id)
     membership_id = response.json()['id']
-    duplicate = await api_client.post('/api/v1/organization-users', headers=headers, json={'user_id': str(added.id)})
+    duplicate = await api_client.post('/api/v1/organization-users', headers=headers, json=body)
     assert duplicate.status_code == 400
     assert await OrganizationUser.filter(organization=organization, user=added).count() == 1
     response = await api_client.delete(f'/api/v1/organization-users/{membership_id}', headers=headers)
     assert response.status_code == 204
     assert not await OrganizationUser.filter(organization=organization, user=added).exists()
+
+
+@pytest.mark.asyncio
+async def test_member_is_added_to_the_organization_in_the_body_not_the_header(api_client, user_factory):
+    actor = await user_factory()
+    added = await user_factory()
+    viewed = await Organization.create(name='Viewed', key='viewed')
+    active = await Organization.create(name='Active', key='active')
+    await OrganizationUser.create(organization=viewed, user=actor)
+    await OrganizationUser.create(organization=active, user=actor)
+    response = await api_client.post(
+        '/api/v1/organization-users',
+        headers={
+            'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}',
+            'Organization-Key': active.key,
+        },
+        json={'organization_id': str(viewed.id), 'user_id': str(added.id)},
+    )
+    assert response.status_code == 201
+    assert await OrganizationUser.filter(organization=viewed, user=added).exists()
+    assert not await OrganizationUser.filter(organization=active, user=added).exists()
+
+
+@pytest.mark.asyncio
+async def test_membership_create_requires_organization_id(api_client, user_factory):
+    actor = await user_factory()
+    headers = {'Authorization': f'Bearer {(await AuthService.start_session(actor)).access.token}'}
+    response = await api_client.post('/api/v1/organization-users', headers=headers, json={'user_id': str(actor.id)})
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -41,11 +70,22 @@ async def test_member_cannot_remove_foreign_organization_membership(api_client, 
     assert await OrganizationUser.filter(id=membership.id).exists()
     response = await api_client.post(
         '/api/v1/organization-users',
-        headers={**headers, 'Organization-Key': organization.key},
-        json={'user_id': str(actor.id)},
+        headers=headers,
+        json={'organization_id': str(organization.id), 'user_id': str(actor.id)},
     )
-    assert response.status_code == 400
+    assert response.status_code == 403
     assert not await OrganizationUser.filter(organization=organization, user=actor).exists()
+
+
+@pytest.mark.asyncio
+async def test_superuser_adding_member_to_unknown_organization_gets_404(api_client, user_factory):
+    admin = await user_factory(is_superuser=True)
+    response = await api_client.post(
+        '/api/v1/organization-users',
+        headers={'Authorization': f'Bearer {(await AuthService.start_session(admin)).access.token}'},
+        json={'organization_id': str(uuid4()), 'user_id': str(admin.id)},
+    )
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio

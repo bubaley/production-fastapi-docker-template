@@ -1,14 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
-import { effectScope, nextTick, reactive, ref } from 'vue'
+import { effectScope, nextTick, ref } from 'vue'
 import { useSelectSource } from '../app/shared/ui/app/select/useSelectSource'
 import { conditionRows, writeCondition } from '../app/shared/ui/app/filters/filterConditions'
 import { tableViewFiltersToQueryParams } from '../app/shared/ui/app/filters/query'
 import type { ViewFilterField } from '../app/shared/ui/app/filters/types'
 
-const response = (ids: number[], hasNext = false) => ({
-  items: ids.map((id) => ({ id })),
-  pagination: { page: 1, size: 30, total: ids.length, pages: 1, has_next: hasNext },
-})
+const response = (ids: number[], hasNext = false) => ({ items: ids.map((id) => ({ id })), hasNext })
 const deferred = () => {
   let resolve!: (value: ReturnType<typeof response>) => void
   const promise = new Promise<ReturnType<typeof response>>((done) => {
@@ -17,22 +14,23 @@ const deferred = () => {
   return { promise, resolve }
 }
 afterEach(() => vi.useRealTimers())
-describe('select repository source', () => {
-  it('clears options and never remembers pending results from a previous user context', async () => {
+describe('select options source', () => {
+  it('drops pending results when the dropdown closes', async () => {
     const pending = deferred()
-    const repo = reactive({ revision: 0, list: vi.fn().mockReturnValue(pending.promise) })
+    const list = vi.fn().mockReturnValue(pending.promise)
     const remember = vi.fn()
+    const open = ref(true)
     const scope = effectScope()
     const source = scope.run(() =>
       useSelectSource(
-        () => ({ repo }),
-        ref(true),
+        () => ({ source: { list } }),
+        open,
         ref(''),
         (item: { id: number }) => item.id,
         remember,
       ),
     )!
-    repo.revision++
+    open.value = false
     pending.resolve(response([1]))
     await nextTick()
     expect(source.items.value).toEqual([])
@@ -50,7 +48,7 @@ describe('select repository source', () => {
     const remember = vi.fn()
     const source = scope.run(() =>
       useSelectSource(
-        () => ({ repo: { list }, extraParams: { organization_id: 'a' }, debounce: 10 }),
+        () => ({ source: { list }, extraParams: { organization_id: 'a' }, debounce: 10 }),
         ref(true),
         search,
         (item: { id: number }) => item.id,
@@ -67,7 +65,7 @@ describe('select repository source', () => {
     expect(remember).toHaveBeenCalledTimes(1)
     expect(list.mock.calls[1]).toEqual([
       { organization_id: 'a', search: 'new' },
-      { storeInRepo: false, pagination: { page: 1, size: 30, total: 0, pages: 0, has_next: false } },
+      { page: 1, size: 30 },
     ])
     scope.stop()
   })
@@ -80,7 +78,7 @@ describe('select repository source', () => {
     const scope = effectScope()
     const source = scope.run(() =>
       useSelectSource(
-        () => ({ repo: { list } }),
+        () => ({ source: { list } }),
         ref(true),
         ref(''),
         (item: { id: number }) => item.id,
@@ -94,18 +92,18 @@ describe('select repository source', () => {
     source.loadMore()
     await nextTick()
     expect(source.hasMore.value).toBe(false)
-    expect(list.mock.calls[2]![1].pagination.page).toBe(3)
+    expect(list.mock.calls[2]![1].page).toBe(3)
     scope.stop()
   })
-  it('exposes swallowed repo failures and retries the same page', async () => {
+  it('exposes failures and retries the same page', async () => {
     const list = vi
       .fn()
-      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValueOnce(response([1]))
     const scope = effectScope()
     const source = scope.run(() =>
       useSelectSource(
-        () => ({ repo: { list } }),
+        () => ({ source: { list } }),
         ref(true),
         ref(''),
         (item: { id: number }) => item.id,
@@ -131,7 +129,7 @@ describe('filter condition migration', () => {
     expect(writeCondition(filters, field, 'range', null)).toEqual({})
     expect(writeCondition(filters, field, 'range', 'lte', ['a', 'b'])).toEqual({ created_at__lte: 'b' })
   })
-  it('omits drafts while preserving false and zero in repo query params', () => {
+  it('omits drafts while preserving false and zero in query params', () => {
     expect(tableViewFiltersToQueryParams({ enabled: false, amount: 0, draft: '', ids: [1, 2], empty: [] })).toEqual({
       enabled: false,
       amount: 0,

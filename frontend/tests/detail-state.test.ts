@@ -1,33 +1,43 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { flushPromises, mount } from '@vue/test-utils'
-import { computed, nextTick, reactive } from 'vue'
+import { nextTick, reactive } from 'vue'
 import { useTemplateDetail } from '../app/shared/ui/template/composables/useTemplateDetail'
 import AppDetailTemplate from '../app/shared/ui/template/AppDetailTemplate.vue'
+import { defineResource } from '../app/shared/api/resource'
+import { installColada } from './colada'
 
+type Record = { id: string; name: string }
 const deferred = () => {
-  let resolve!: (value: { id: string; name: string }) => void
+  let resolve!: (value: { data: Record }) => void
   let reject!: (reason: Error) => void
-  const promise = new Promise<{ id: string; name: string }>((yes, no) => {
+  const promise = new Promise<{ data: Record }>((yes, no) => {
     resolve = yes
     reject = no
   })
   return { promise, resolve, reject }
 }
-let route: ReturnType<typeof reactive<{ params: { id: string } }>>
+const createResource = (retrieve: ReturnType<typeof vi.fn>) =>
+  defineResource({
+    key: 'records',
+    sdk: { retrieve: retrieve as never },
+    toForm: (item?: Partial<Record>) => ({ id: item?.id ?? null, name: item?.name ?? '' }),
+  })
+
+let route: { params: { id: string } }
 beforeEach(() => {
   route = reactive({ params: { id: 'A' } })
   vi.stubGlobal('useRoute', () => route)
   vi.stubGlobal('useRouter', () => ({ back: vi.fn() }))
-  vi.stubGlobal('useSectionBind', () => computed(() => ({})))
   vi.stubGlobal('useTemplateDetail', useTemplateDetail)
-  vi.stubGlobal('computed', computed)
 })
 afterEach(() => vi.unstubAllGlobals())
-const render = (repo: unknown) =>
-  mount(AppDetailTemplate, {
-    props: { repo: repo as never },
+const render = (resource: unknown) => {
+  const plugins = installColada()
+  return mount(AppDetailTemplate, {
+    props: { resource: resource as never },
     slots: { default: '<div>{{ params.item.name }}</div>' },
     global: {
+      plugins: plugins as never,
       stubs: {
         AppPageView: { template: '<main><slot /></main>' },
         AppSection: { template: '<section><slot /></section>' },
@@ -37,47 +47,51 @@ const render = (repo: unknown) =>
       },
     },
   })
-describe('detail request ownership', () => {
-  it('keeps B visible when A returns late without publishing either result to the shared repo', async () => {
-    const a = deferred(),
-      b = deferred()
-    const repo = { item: null, retrieve: vi.fn().mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise) }
-    const wrapper = render(repo)
+}
+
+describe('detail record from the [key, id] query', () => {
+  it('keeps B visible when A returns late', async () => {
+    const a = deferred()
+    const b = deferred()
+    const retrieve = vi.fn().mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise)
+    const wrapper = render(createResource(retrieve))
     await nextTick()
-    await flushPromises()
     expect(wrapper.get('[role="status"]').text()).toContain('Загрузка')
     route.params.id = 'B'
-    b.resolve({ id: 'B', name: 'Current B' })
+    await flushPromises()
+    b.resolve({ data: { id: 'B', name: 'Current B' } })
     await flushPromises()
     expect(wrapper.text()).toBe('Current B')
-    a.resolve({ id: 'A', name: 'Old A' })
+    a.resolve({ data: { id: 'A', name: 'Old A' } })
     await flushPromises()
     expect(wrapper.text()).toBe('Current B')
-    expect(repo.item).toBeNull()
-    expect(repo.retrieve.mock.calls[0]?.[3]).toEqual({ storeInRepo: false })
+    expect(retrieve.mock.calls.map(([options]) => options.path.item_id)).toEqual(['A', 'B'])
     wrapper.unmount()
   })
+
   it('shows a failed load and retries the same record', async () => {
-    const repo = {
-      retrieve: vi.fn().mockRejectedValueOnce(new Error('404')).mockResolvedValueOnce({ id: 'A', name: 'Recovered' }),
-    }
-    const wrapper = render(repo)
+    const retrieve = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('404'))
+      .mockResolvedValueOnce({ data: { id: 'A', name: 'Recovered' } })
+    const wrapper = render(createResource(retrieve))
     await flushPromises()
     expect(wrapper.get('[role="alert"]').text()).toContain('Не удалось загрузить запись')
     await wrapper.get('button').trigger('click')
     await flushPromises()
     expect(wrapper.text()).toBe('Recovered')
-    expect(repo.retrieve).toHaveBeenCalledTimes(2)
+    expect(retrieve).toHaveBeenCalledTimes(2)
     wrapper.unmount()
   })
-  it('clears the visible record immediately when the repository context is reset', async () => {
-    const repo = reactive({ revision: 0, retrieve: vi.fn().mockResolvedValue({ id: 'A', name: 'Private A' }) })
-    const wrapper = render(repo)
+
+  it('builds a new record for the `new` route without a request', async () => {
+    route.params.id = 'new'
+    const retrieve = vi.fn()
+    const resource = createResource(retrieve)
+    const wrapper = render({ ...resource, toForm: () => ({ id: null, name: 'Draft' }) })
     await flushPromises()
-    expect(wrapper.text()).toBe('Private A')
-    repo.revision++
-    await flushPromises()
-    expect(wrapper.text()).not.toContain('Private A')
+    expect(wrapper.text()).toBe('Draft')
+    expect(retrieve).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 })

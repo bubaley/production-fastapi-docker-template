@@ -97,18 +97,17 @@
     </div>
 
     <AppPagination
-      v-if="showPagination && pagination?.has_next && !infiniteScroll"
-      v-model="page"
+      v-if="showPagination && !infiniteScroll"
+      :has-next="hasNextPage"
       :loading="loading"
       class="mt-4"
-      :pagination="pagination"
-      @page-change="emit('pageChange', $event)"
+      @load-more="emit('loadMore')"
     />
 
     <AppInfiniteScroll
       v-if="infiniteScroll"
-      :has-more="Boolean(pagination?.has_next)"
-      :request-key="`${search}:${pagination?.page}:${items.length}`"
+      :has-more="hasNextPage"
+      :request-key="`${search}:${items.length}`"
       :loading="loading && items.length > 0"
       :error="error"
       @load="emit('loadMore')"
@@ -120,7 +119,6 @@
 <script setup generic="T" lang="ts">
 import AppListToolbar from './AppListToolbar.vue'
 import AppPagination from '../template/AppPagination.vue'
-import type { AppPaginationEvent } from '../template/AppPagination.vue'
 
 export interface ItemClickEvent<T> {
   item: T
@@ -150,8 +148,6 @@ export type AppListProps<T> = {
   showSearch?: boolean
   searchLoading?: boolean
   showPagination?: boolean
-  pagination?: AppPagination
-  paginationLoading?: boolean
 }
 
 const props = withDefaults(defineProps<AppListProps<T>>(), {
@@ -164,17 +160,14 @@ const props = withDefaults(defineProps<AppListProps<T>>(), {
   hideToolbar: false,
   searchLoading: false,
   showPagination: true,
-  paginationLoading: false,
 })
 
 const search = defineModel<string>('search', { default: '' })
-const page = defineModel<number>('page', { default: 1 })
 
 const emit = defineEmits<{
   itemClick: [event: ItemClickEvent<T>]
   rowSelect: [event: { data: T }]
   loadMore: []
-  pageChange: [event: AppPaginationEvent]
   'update:selection': [selection: T | T[] | undefined]
 }>()
 

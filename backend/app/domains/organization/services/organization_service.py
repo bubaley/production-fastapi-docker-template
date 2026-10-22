@@ -25,7 +25,10 @@ class OrganizationService:
 
     @staticmethod
     async def add_member(membership: OrganizationUser, actor: User) -> OrganizationUser:
+        """Add a user to `membership.organization_id`; the actor must be a member of it (or a superuser)."""
         await OrganizationService.validate_membership_change(membership, actor)
+        if not await Organization.exists(id=membership.organization_id):
+            raise AppException.from_attrs(ErrorCode.NOT_FOUND, 'Organization not found')
         try:
             await membership.save()
         except IntegrityError:

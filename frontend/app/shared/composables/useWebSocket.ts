@@ -22,19 +22,12 @@ const resolveChannelValue = (channel: MaybeRefOrGetter<string | null>): string |
   return channel
 }
 
-// The API origin (`NUXT_PUBLIC_BASE_URL`) serves `/ws`; without it the page origin does (Caddy proxies `/ws/*`).
+// Same origin as the page: Caddy (production) and the dev proxy (`nuxt dev`) route `/ws/*` to FastAPI, and the
+// browser sends the HttpOnly access cookie with the handshake — no token in the URL.
 const resolveWsBaseUrl = (): string | undefined => {
-  const baseUrl = useRuntimeConfig().public.baseUrl as string | undefined
-  const origin = baseUrl?.trim() || (import.meta.client ? window.location.origin : undefined)
-  if (!origin) return undefined
-
-  try {
-    const url = new URL(origin)
-    const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-    return `${protocol}//${url.host}/ws`
-  } catch {
-    return undefined
-  }
+  if (!import.meta.client) return undefined
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/ws`
 }
 
 export const useWebSocketService = (channel: MaybeRefOrGetter<string | null>, options: UseWebSocketOptions = {}) => {

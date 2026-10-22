@@ -34,13 +34,21 @@ class Authentication:
     expires_at: datetime | None = None
 
 
+@dataclass(frozen=True)
+class Session:
+    """A started session: the user and the tokens the transport hands out (as cookies)."""
+
+    user: User
+    tokens: TokenPair
+
+
 def _unauthorized(message: str) -> AppException:
     return AppException.from_attrs(ErrorCode.UNAUTHORIZED, message)
 
 
 class AuthService:
     """
-    Token lifecycle. Transport-agnostic: callers decide whether tokens travel in cookies or JSON bodies.
+    Token lifecycle. Transport-agnostic: `domains/auth/transport.py` puts the tokens into HttpOnly cookies.
 
     - login: verify password (rate limited per IP + email) and start a refresh-session family
     - refresh: rotate the refresh token; reuse of a rotated token revokes the whole family
@@ -52,7 +60,7 @@ class AuthService:
     # LOGIN
 
     @staticmethod
-    async def login(email: str, password: str, client_ip: str) -> TokenPair:
+    async def login(email: str, password: str, client_ip: str) -> Session:
         if retry_after := await login_rate_limiter.retry_after(client_ip, email):
             raise AppException.from_attrs(
                 ErrorCode.RATE_LIMITED, 'Too many login attempts', headers={'Retry-After': str(retry_after)}
@@ -65,7 +73,7 @@ class AuthService:
             await login_rate_limiter.hit(client_ip, email)
             raise _unauthorized(INVALID_CREDENTIALS)
         await login_rate_limiter.reset(client_ip, email)
-        return await AuthService.start_session(user)
+        return Session(user=user, tokens=await AuthService.start_session(user))
 
     @staticmethod
     async def start_session(user: User) -> TokenPair:

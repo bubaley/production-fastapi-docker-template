@@ -3,4 +3,6 @@
 exec 2>&1
 cd /app/frontend || exit 1
 export NITRO_HOST=127.0.0.1 NITRO_PORT=3000
+# SSR calls FastAPI directly (uvicorn in this container); browsers use the public origin through Caddy.
+export NUXT_API_INTERNAL_URL="${NUXT_API_INTERNAL_URL:-http://127.0.0.1:8000}"
 exec /usr/local/bin/node .output/server/index.mjs

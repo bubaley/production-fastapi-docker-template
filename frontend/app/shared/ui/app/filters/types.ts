@@ -1,5 +1,5 @@
 import type { Component } from 'vue'
-import type { SelectRepo } from '../select/types'
+import type { Resource } from '~/shared/api/resource'
 import type { AppLabelConfig } from '../types/label-types'
 export type FilterValue = string | number | boolean | (string | number)[]
 export type ViewFilters = Record<string, FilterValue>
@@ -11,7 +11,8 @@ export interface ViewFilterField {
   kind: 'choice' | 'text' | 'number' | 'date' | 'datetime' | 'boolean'
   lookups: string[]
   items?: { id: string | number; name: string; appearance?: AppLabelConfig }[]
-  repo?: SelectRepo<object> & { retrieve?(id: string | number): Promise<object | undefined> }
+  /** Options and restored selections come from this API resource. */
+  resource?: Resource<any, any, any, any>
   query?: Record<string, unknown>
   itemLabel?: string | ((item: unknown) => string)
 }

@@ -1,0 +1,18 @@
+<template>
+  <AppDetailTemplate
+    title="${item_title}"
+    :resource="${camel}Resource"
+    :back-action="() => navigateTo({ name: '${route}' })"
+  >
+    <template #default="{ item }">
+      <AppInput
+        v-model="item.name"
+        label="Наименование"
+      />
+    </template>
+  </AppDetailTemplate>
+</template>
+
+<script setup lang="ts">
+import { ${camel}Resource } from '../resources/${camel}'
+</script>

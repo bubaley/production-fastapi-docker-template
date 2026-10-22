@@ -1,3 +1,8 @@
+import type { MaybeRefOrGetter } from 'vue'
+import { computed, toValue } from 'vue'
+import type { Resource, ResourceForm, ResourceItem } from '~/shared/api/resource'
+import { useResourceMutations } from '~/shared/api/useResource'
+
 export type AppDetailActionsConfig = {
   successMessage?: string
   errorMessage?: string
@@ -5,65 +10,23 @@ export type AppDetailActionsConfig = {
   changeRouteParam?: boolean
 }
 
-export const useDetailActions = <T extends AppModel>(repo: AppRepoStore<T>) => {
+/** Save/delete for a detail form through the resource mutations (lists refresh by invalidation). */
+export function useDetailActions<TItem extends ResourceItem, TForm extends ResourceForm>(
+  resource: MaybeRefOrGetter<Resource<TItem, TForm, any, any>>,
+) {
   const toast = useToast()
-
-  const saveLoading = ref(false)
   const route = useRoute()
   const router = useRouter()
-  const deleteLoading = ref(false)
-  const _items = toRef(repo, 'items')
+  const { save, remove } = useResourceMutations(resource)
 
-  const { updateListItem, deleteListItem } = useListEvents({
-    items: _items,
-    key: 'id',
-  })
-
-  const _handleError = (error: any, summary: string, config?: AppDetailActionsConfig) => {
-    if (!config?.disableNotification) {
-      toast.error(summary)
-    }
-    console.error({
-      error: error?.toString(),
-      data: error?.response?.data,
-    })
+  const notifyError = (error: unknown, summary: string, config?: AppDetailActionsConfig) => {
+    if (!config?.disableNotification) toast.error(summary)
+    console.error(error)
   }
 
-  const updateOrCreate = async (item: T, config?: AppDetailActionsConfig): Promise<AppDetailActionsSaveResult<T>> => {
-    let result: T | undefined
-    let created = false
-    let success = true
-
-    try {
-      saveLoading.value = true
-      if (item.id) {
-        result = await repo.update(item)
-      } else {
-        result = await repo.create(item)
-        created = true
-        if (config?.changeRouteParam && result) changeRouteParam(result)
-      }
-      if (!result) throw new Error('Сервер не вернул сохранённую запись')
-      updateListItem(result)
-      if (!config?.disableNotification) {
-        toast.default(config?.successMessage || 'Сохранено')
-      }
-    } catch (error: any) {
-      _handleError(error, config?.errorMessage || 'Ошибка сохранения', config)
-      success = false
-    } finally {
-      saveLoading.value = false
-    }
-    return {
-      item: result,
-      created,
-      success,
-    }
-  }
-
-  const changeRouteParam = (item: T) => {
+  const changeRouteParam = (item: { id: string }) => {
     const routeKey = Object.keys(route.params).at(-1)
-    if (routeKey && item?.id) {
+    if (routeKey && item.id) {
       void router.replace({
         name: route.name,
         params: { ...route.params, [routeKey]: item.id },
@@ -71,27 +34,41 @@ export const useDetailActions = <T extends AppModel>(repo: AppRepoStore<T>) => {
     }
   }
 
-  const deleteItem = async (item: T, config?: AppDetailActionsConfig): Promise<AppDetailActionsDeleteResult<T>> => {
-    let success = true
+  const updateOrCreate = async (
+    form: TForm,
+    config?: AppDetailActionsConfig,
+  ): Promise<AppDetailActionsSaveResult<TForm, TItem>> => {
     try {
-      deleteLoading.value = true
-      await repo.delete(item)
-      deleteListItem(item)
-      if (!config?.disableNotification) toast.default(config?.successMessage || 'Удалено')
+      const { item, created } = await save.mutateAsync(form)
+      if (created && config?.changeRouteParam) changeRouteParam(item)
+      if (!config?.disableNotification) toast.default(config?.successMessage || 'Сохранено')
+      return { item: toValue(resource).toForm(item), saved: item, created, success: true }
     } catch (error) {
-      _handleError(error, config?.errorMessage || 'Ошибка удаления', config)
-      success = false
-    } finally {
-      deleteLoading.value = false
+      notifyError(error, config?.errorMessage || 'Ошибка сохранения', config)
+      return { item: undefined, created: false, success: false }
     }
-    return { success, item }
+  }
+
+  const deleteItem = async (
+    form: TForm,
+    config?: AppDetailActionsConfig,
+  ): Promise<AppDetailActionsDeleteResult<TForm>> => {
+    try {
+      if (!form.id) throw new Error('Запись ещё не сохранена')
+      await remove.mutateAsync(form.id)
+      if (!config?.disableNotification) toast.default(config?.successMessage || 'Удалено')
+      return { success: true, item: form }
+    } catch (error) {
+      notifyError(error, config?.errorMessage || 'Ошибка удаления', config)
+      return { success: false, item: form }
+    }
   }
 
   return {
     updateOrCreate,
     deleteItem,
     changeRouteParam,
-    saveLoading,
-    deleteLoading,
+    saveLoading: computed(() => save.isLoading.value),
+    deleteLoading: computed(() => remove.isLoading.value),
   }
 }

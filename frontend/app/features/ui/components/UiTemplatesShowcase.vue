@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Ellipsis } from '@lucide/vue'
-import { useUiDemoRepo, uiDemoCodec } from '../composables/useUiDemoRepo'
-const repo = useUiDemoRepo()
-const detail = ref(uiDemoCodec.decode({ name: 'New project', owner: 'Anna Smith' }))
+import { useUiDemoProjects } from '../composables/useUiDemoResource'
+const { projects, resource } = useUiDemoProjects()
+const detail = ref(resource.toForm({ name: 'New project', owner: 'Anna Smith' }))
 const toast = useToast()
 const actionLabels = {
   save: 'Save',
@@ -59,7 +59,7 @@ const states = [
         empty-text="No data"
         loading-text="Loading…"
         :variant="tableVariant"
-        :items="tableState === 'normal' ? repo.items : []"
+        :items="tableState === 'normal' ? projects : []"
         :loading="tableState === 'loading'"
         :error="tableState === 'error' ? 'Could not load the list. Please try again.' : undefined"
         clickable
@@ -92,7 +92,7 @@ const states = [
     </AppSection>
     <AppSection
       title="List template"
-      description="Search, create and edit in a Modal using repo + codec. Demo data stays on this page."
+      description="Search, create and edit in a Modal through a resource descriptor. Demo data stays on this page."
     >
       <AppCard>
         <AppListTemplate
@@ -100,12 +100,12 @@ const states = [
           create-label="Create"
           search-placeholder="Search"
           empty-text="No data"
-          :repo="repo"
+          :resource="resource"
           filter
           item-label="name"
           detail-mode="modal"
           template-variant="section"
-          :build-new-item="() => uiDemoCodec.decode({})"
+          :build-new-item="() => resource.toForm()"
           :detail-modal-props="{
             title: 'Project',
             closeLabel: 'Close',
@@ -136,11 +136,11 @@ const states = [
     </AppSection>
     <AppSection
       title="Detail template"
-      description="AppDetailTemplate uses the same actions and repository. Saving adds a record to the demo list."
+      description="AppDetailTemplate uses the same actions and resource. Saving adds a record to the demo list."
     >
       <AppCard class="max-w-xl">
         <AppDetailTemplate
-          :repo="repo"
+          :resource="resource"
           :item="detail"
           mode="inline"
           template-variant="section"

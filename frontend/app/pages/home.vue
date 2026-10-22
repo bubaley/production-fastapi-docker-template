@@ -1,4 +1,4 @@
 <template><NuxtPage /></template>
 <script setup lang="ts">
-definePageMeta({ path: '/', layout: 'default' })
+definePageMeta({ layout: 'default' })
 </script>

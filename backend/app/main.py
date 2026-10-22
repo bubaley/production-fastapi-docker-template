@@ -5,21 +5,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from starlette.types import ASGIApp
 
-from app.core.auth import get_auth_state
+from app.core.auth import PUBLIC_PATHS, get_auth_state
 from app.core.broker import broker
 from app.core.database import register_database
+from app.core.discovery import discover_routers
 from app.core.exceptions import register_exceptions_handlers
-from app.core.health import health_router
+from app.core.health import health_router, warm_up_database
 from app.core.logging import setup_logging
+from app.core.openapi import ERROR_RESPONSES, generate_operation_id, install_openapi, split_put_patch_routes
 from app.core.redis import close_redis
 from app.core.request_id import REQUEST_ID_HEADER, RequestIdMiddleware
 from app.core.services.websocket_service import start_websocket_fanout, stop_websocket_fanout
 from app.core.settings import settings
 from app.core.telemetry import telemetry_config
-from app.domains.auth.views import auth_router
 from app.domains.organization.services.organization_websocket_service import OrganizationWebSocketService
-from app.domains.organization.views import organization_users_router, organizations_router
-from app.domains.user.views import user_tokens_router, users_router
 
 setup_logging()
 
@@ -34,6 +33,7 @@ async def lifespan(app: FastAPI):
             stack.push_async_callback(broker.shutdown)
         except Exception as e:
             logger.warning('Task broker unavailable at startup ({}); /ready reports Redis', e)
+        await warm_up_database()
         await start_websocket_fanout()
         stack.push_async_callback(stop_websocket_fanout)
         logger.info('Application started: version {} ({})', settings.app_version, settings.git_sha or 'no sha')
@@ -51,6 +51,7 @@ app = App(
     version=settings.app_version,
     lifespan=lifespan,
     telemetry=telemetry_config(),
+    generate_unique_id_function=generate_operation_id,
 )
 
 register_exceptions_handlers(app)
@@ -70,12 +71,10 @@ app.add_middleware(
 register_database(app)
 
 
-api_router = APIRouter(prefix='/api/v1', dependencies=[Depends(get_auth_state)])
-api_router.include_router(auth_router)
-api_router.include_router(users_router)
-api_router.include_router(user_tokens_router)
-api_router.include_router(organizations_router)
-api_router.include_router(organization_users_router)
+api_router = APIRouter(prefix='/api/v1', dependencies=[Depends(get_auth_state)], responses=ERROR_RESPONSES)
+# Each domain's `views.py` exports `routers` (or `router`); see app/core/discovery.py.
+for domain_router in discover_routers():
+    api_router.include_router(domain_router)
 app.include_router(api_router)
 
 
@@ -84,3 +83,7 @@ OrganizationWebSocketService.register_routes(ws_router)
 app.include_router(ws_router)
 
 app.include_router(health_router)
+
+# TEMPORARY: remove with the fastapi-ronin release that registers PUT and PATCH separately (docs/follow-ups.md).
+split_put_patch_routes(app.router, generate_operation_id)
+install_openapi(app, PUBLIC_PATHS)

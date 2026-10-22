@@ -1,0 +1,19 @@
+from fastapi_ronin.decorators import schema
+
+from app.core.models import BaseCreateSchema, BaseReadSchema
+from app.domains.${name}.models import ${Name}
+
+
+@schema(model=${Name})
+class ${Name}CreateSchema(BaseCreateSchema):
+    name: str
+
+
+@schema(model=${Name})
+class ${Name}UpdateSchema(BaseCreateSchema):
+    name: str
+
+
+@schema(model=${Name})
+class ${Name}ReadSchema(BaseReadSchema, ${Name}CreateSchema):
+    pass

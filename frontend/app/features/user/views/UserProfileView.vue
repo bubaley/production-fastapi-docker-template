@@ -12,10 +12,19 @@
         <div>
           <div class="text-xl font-bold break-all">{{ data.email }}</div>
           <div class="mt-1 text-muted-foreground">{{ data.first_name }} {{ data.last_name }}</div>
-          <UserChangePasswordButton
-            v-if="userId"
-            :user-id="userId"
-          />
+          <div class="flex flex-wrap items-center gap-x-4">
+            <UserChangePasswordButton
+              v-if="userId"
+              :user-id="userId"
+            />
+            <AppTextButton
+              v-if="userId"
+              label="Выйти на всех устройствах"
+              tone="muted"
+              class="text-sm"
+              @click="logoutAllState.execute"
+            />
+          </div>
         </div>
       </div>
       <UserTokensSection
@@ -30,15 +39,18 @@
 import UserChangePasswordButton from '~/features/user/components/UserChangePasswordButton.vue'
 import UserTokensSection from '~/features/user/components/UserTokensSection.vue'
 
-const { session } = useAuth()
+const { user, logoutAll } = useSession()
 
-const data = computed(() => {
-  return {
-    email: session.value?.email,
-    first_name: session.value?.first_name,
-    last_name: session.value?.last_name,
-  }
+const data = computed(() => ({
+  email: user.value?.email,
+  first_name: user.value?.first_name,
+  last_name: user.value?.last_name,
+}))
+
+const userId = computed(() => user.value?.id ?? null)
+
+// Ends every session of the user (all devices), then signs out here too.
+const logoutAllState = useActionState(() => logoutAll.mutateAsync(), {
+  errorNotification: 'Не удалось завершить сеансы. Попробуйте ещё раз',
 })
-
-const userId = computed(() => (session.value?.id as string | undefined) || null)
 </script>

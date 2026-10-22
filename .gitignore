@@ -163,7 +163,10 @@ Thumbs.db
 
 # Editor directories and files
 .idea/
-.vscode/
+# Shared editor setup is committed: extensions.json and the *.example files (copy them to settings.json, launch.json).
+.vscode/*
+!.vscode/extensions.json
+!.vscode/*.example
 *.swp
 *.swo
 *~
@@ -179,7 +182,6 @@ Thumbs.db
 .idea/
 
 # Visual Studio Code
-.vscode/
 *.code-workspace
 
 # Sublime Text
@@ -300,5 +302,6 @@ logs
 .env.*
 !.env.example
 
-# Claude Code local worktrees
+# Claude Code: skills, agents, hooks and settings.json are committed; worktrees and personal settings are not.
 .claude/worktrees/
+.claude/settings.local.json

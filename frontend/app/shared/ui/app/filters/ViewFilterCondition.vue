@@ -111,7 +111,7 @@ function appearance(item: unknown): AppLabelConfig | undefined {
       :size="size"
       :class="inline && (hasValue ? 'text-foreground' : 'text-muted-foreground')"
       :model-value="(modelValue === '' ? (['in', 'not_in'].includes(lookup) ? [] : null) : modelValue) as never"
-      :repo="field.repo"
+      :resource="field.resource"
       :query="field.query"
       :selected-items="selectedItems"
       :items="field.items"

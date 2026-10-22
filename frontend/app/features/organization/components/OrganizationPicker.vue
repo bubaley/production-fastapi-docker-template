@@ -4,7 +4,7 @@
     :class="selectClass"
     :filter="false"
     option-label="name"
-    :repo="useRepo('organization')"
+    :resource="organizationResource"
     :variant="compact ? 'ghost' : 'outline'"
     aria-label="Организация"
     class="bg-transparent!"
@@ -12,6 +12,8 @@
 </template>
 
 <script setup lang="ts">
+import { organizationResource } from '../resources/organization'
+
 const props = withDefaults(defineProps<{ compact?: boolean }>(), {
   compact: false,
 })

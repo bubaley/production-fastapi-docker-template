@@ -46,6 +46,9 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
+              - 'scripts/**'
+              - '.claude/hooks/**'
+              - '.claude/settings.json'
               - '.python-version'
               - 'Makefile'
               - '.github/workflows/ci.yaml'
@@ -201,7 +204,6 @@ jobs:
           cat > .env <<'EOF'
           SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123456789abcdefghijklmnop
           ENCRYPTION_KEY=ci-only-encryption-key-32-chars!
-          NUXT_PUBLIC_BASE_URL=http://127.0.0.1:8080
           EOF
           docker compose -f compose.yaml up -d --wait --wait-timeout 240
           base=http://127.0.0.1:8080
@@ -211,7 +213,8 @@ jobs:
 
           curl -fsSL "$base/" -o page.html
           grep -q 'id="__nuxt"' page.html
-          echo "/ renders the Nuxt app"
+          grep -q 'property="og:title"' page.html
+          echo "/ is server-rendered with its meta tags"
 
           asset=$(grep -o '/_nuxt/[^"]*\.js' page.html | head -n 1)
           curl -fsS -D headers.txt -o /dev/null "$base$asset"
@@ -326,6 +329,8 @@ jobs:
           mv "$RUNNER_TEMP/package.json" frontend/package.json
           uv version "$VERSION" --project backend --no-sync
           uvx --from "git-cliff==${GIT_CLIFF_VERSION}" git-cliff --tag "$TAG" --output CHANGELOG.md
+          # git-cliff ends the file with a blank line; end-of-file-fixer expects exactly one newline.
+          perl -0pi -e 's/\n+\z/\n/' CHANGELOG.md
           uvx --from "git-cliff==${GIT_CLIFF_VERSION}" git-cliff --tag "$TAG" --unreleased --strip all --output "$RUNNER_TEMP/release-notes.md"
           git diff --stat
       - name: Commit, tag and push

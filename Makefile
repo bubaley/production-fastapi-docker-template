@@ -51,21 +51,39 @@ install-frontend: ## install frontend dependencies via pnpm
 	$(PNPM) --dir $(FRONTEND_DIR) install
 
 make-migrations: ## create migrations from model changes
-	cd $(BACKEND_DIR) && python -m tortoise makemigrations
+	cd $(BACKEND_DIR) && $(UV) run python -m tortoise makemigrations
 
 migrate: ## run migrations
-	cd $(BACKEND_DIR) && python -m tortoise migrate
+	cd $(BACKEND_DIR) && $(UV) run python -m tortoise migrate
+
+createsuperuser: ## create the first user (interactive)
+	cd $(BACKEND_DIR) && $(UV) run manage.py create_superuser
+
+init: ## turn a fresh template copy into a new product: make init name=<kebab-name> [title="Название"] [force=1]
+	@test -n "$(name)" || { echo 'usage: make init name=<kebab-name> [title="Название"] [force=1]'; exit 2; }
+	$(UV) run --no-project python scripts/bootstrap/init.py "$(name)" $(if $(title),--title "$(title)") $(if $(force),--force)
+
+new-domain: ## scaffold a backend domain + frontend feature: make new-domain name=<snake_name> [title="Проекты"] [item_title="Проект"] [plural=...]
+	@test -n "$(name)" || { echo 'usage: make new-domain name=<snake_name> [title="Проекты"] [item_title="Проект"] [plural=<snake_plural>]'; exit 2; }
+	$(UV) run --no-project python scripts/scaffold/new_domain.py "$(name)" $(if $(title),--title "$(title)") \
+		$(if $(item_title),--item-title "$(item_title)") $(if $(plural),--plural "$(plural)")
 
 prepare: ## prepare project
 	cd $(FRONTEND_DIR) && pnpm nuxt prepare
 
+openapi: ## write the OpenAPI schema to frontend/openapi.json (no database needed)
+	cd $(BACKEND_DIR) && $(UV) run manage.py openapi --output ../$(FRONTEND_DIR)/openapi.json
+
+gen-client: openapi ## regenerate the typed frontend API client (frontend/app/shared/api/generated) from the schema
+	$(PNPM) --dir $(FRONTEND_DIR) run gen:api
+
 shell: ## run backend shell
-	cd $(BACKEND_DIR) && python -m manage shell
+	cd $(BACKEND_DIR) && $(UV) run python -m manage shell
 
 # ----------- DEVELOPMENT ----------- #
 
 run-backend: ## run FastAPI with reload
-	cd $(BACKEND_DIR) && uvicorn $(BACKEND_APP) --reload --host $(BACKEND_HOST) --port $(BACKEND_PORT)
+	cd $(BACKEND_DIR) && $(UV) run uvicorn $(BACKEND_APP) --reload --host $(BACKEND_HOST) --port $(BACKEND_PORT)
 
 run-frontend: ## run Nuxt dev server
 	cd $(FRONTEND_DIR) && pnpm dev --port $(FRONTEND_PORT)
@@ -74,10 +92,10 @@ run-taskiq: ## Run both scheduler and worker
 	$(MAKE) -j2 run-taskiq-scheduler run-taskiq-worker
 
 run-taskiq-worker: ## Run taskiq worker
-	cd $(BACKEND_DIR) && python -m taskiq worker app.core.broker:broker --fs-discover --tasks-pattern "app/**/tasks.py" --workers $(TASKIQ_WORKERS)
+	cd $(BACKEND_DIR) && $(UV) run python -m taskiq worker app.core.broker:broker --fs-discover --tasks-pattern "app/**/tasks.py" --workers $(TASKIQ_WORKERS)
 
 run-taskiq-scheduler: ## Run taskiq scheduler
-	cd $(BACKEND_DIR) && python -m taskiq scheduler app.core.broker:scheduler --fs-discover --tasks-pattern "app/**/tasks.py" --update-interval $(TASKIQ_UPDATE_INTERVAL)
+	cd $(BACKEND_DIR) && $(UV) run python -m taskiq scheduler app.core.broker:scheduler --fs-discover --tasks-pattern "app/**/tasks.py" --update-interval $(TASKIQ_UPDATE_INTERVAL)
 
 test: test-backend ## run backend tests
 
@@ -98,15 +116,19 @@ docker-stop: ## stop the docker-run stack and delete its volumes
 
 # ----------- QUALITY ----------- #
 
-.PHONY: check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
+.PHONY: init new-domain createsuperuser openapi gen-client check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
 
 check: check-backend check-frontend ## run every CI check without changing files
 
-check-backend: ## ruff, ruff format --check, ty, pytest (PYTEST_ARGS=--sqlite without Postgres)
-	cd $(BACKEND_DIR) && $(UV) run ruff check .
-	cd $(BACKEND_DIR) && $(UV) run ruff format --check .
+# Repository tooling outside backend/ that runs on the backend's Python: scaffolder, bootstrap, Claude Code hooks.
+TOOLING := ../scripts ../.claude/hooks
+
+check-backend: ## ruff, ruff format --check, ty, pytest (PYTEST_ARGS=--sqlite without Postgres), tooling tests
+	cd $(BACKEND_DIR) && $(UV) run ruff check . $(TOOLING)
+	cd $(BACKEND_DIR) && $(UV) run ruff format --check . $(TOOLING)
 	cd $(BACKEND_DIR) && $(UV) run ty check
 	cd $(BACKEND_DIR) && $(UV) run manage.py test $(PYTEST_ARGS)
+	cd $(BACKEND_DIR) && $(UV) run pytest ../scripts/tests -q -p no:cacheprovider
 
 check-frontend: ## pnpm check (fmt, lint, typecheck, test, architecture); BUILD=1 adds nuxt build
 	$(PNPM) --dir $(FRONTEND_DIR) run check
@@ -116,16 +138,16 @@ endif
 
 lint: lint-backend lint-frontend ## fix lint issues and format backend+frontend
 
-lint-backend: ## ruff check --fix + ruff format
-	cd $(BACKEND_DIR) && $(UV) run ruff check --fix .
-	cd $(BACKEND_DIR) && $(UV) run ruff format .
+lint-backend: ## ruff check --fix + ruff format (backend and tooling)
+	cd $(BACKEND_DIR) && $(UV) run ruff check --fix . $(TOOLING)
+	cd $(BACKEND_DIR) && $(UV) run ruff format . $(TOOLING)
 
 lint-frontend: ## oxfmt + oxlint/eslint --fix
 	$(PNPM) --dir $(FRONTEND_DIR) run fmt
 	$(PNPM) --dir $(FRONTEND_DIR) run lint:fix
 
 fmt: ## format backend+frontend (ruff format, oxfmt)
-	cd $(BACKEND_DIR) && $(UV) run ruff format .
+	cd $(BACKEND_DIR) && $(UV) run ruff format . $(TOOLING)
 	$(PNPM) --dir $(FRONTEND_DIR) run fmt
 
 # ----------- HELPERS ----------- #

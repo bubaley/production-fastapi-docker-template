@@ -2,66 +2,126 @@
 
 How to add and grow a feature. Folder roles: [architecture.md](architecture.md). Full working example: `frontend/app/features/organization/` (`user` for tokens/nested lists, `/ui` for primitives).
 
-A feature is `frontend/app/features/<name>/` with `models/`, `repos/`, `views/`. Add `components/` and `composables/` as soon as a view would otherwise mix unrelated UI or logic.
+A feature is `frontend/app/features/<name>/` with `resources/` (API descriptors) and `views/`. Add `components/` and `composables/` as soon as a view would otherwise mix unrelated UI or logic.
 
-Pages stay thin. Views talk to data only through `useRepo('key')` — never `useFetch` for API resources. `$api` is already configured (`baseURL: /api/v1`, org header). The current organization is `useSetupStore().state.organization`.
-
----
-
-## Models — one entity, one file, type + codec
-
-`models/project.ts` holds **only** `Project`: the interface and `projectCodec`. Another entity (`ProjectMember`) gets `models/projectMember.ts`, not a second model in the same file.
-
-```typescript
-type ProjectRaw = DeepPartial<Project>
-
-export interface Project {
-  id: string | null
-  organization_id: string | null
-  created_at: string | null
-  updated_at: string | null
-  name: string
-}
-
-export const projectCodec = createCodec<Project>({
-  decode: (raw: ProjectRaw) => ({
-    id: raw.id || null,
-    organization_id: raw.organization_id || null,
-    created_at: raw.created_at || null,
-    updated_at: raw.updated_at || null,
-    name: raw.name ?? '',
-  }),
-  encode: (data) => ({
-    organization_id: data.organization_id || null,
-    name: data.name || null,
-  }),
-})
-```
-
-- `id` is `string | null` (UUID from the API)
-- `decode` — response → typed object, every field defaulted
-- `encode` — typed object → payload; writable fields only (no `id` / `created_at` / `updated_at`)
-- `createCodec`, `DeepPartial` are auto-imported from `shared/toolkits/repo/`
-
-See `features/organization/models/organization.ts` and `organizationUser.ts`.
+Pages stay thin. Views get API data only through a **resource descriptor** and the templates or `shared/api` composables built on it (Pinia Colada queries and mutations over the generated client) — never `useFetch`/`$fetch` for API resources. The current organization is `useSetupStore().state.organization`; every request sends its `Organization-Key`.
 
 ---
 
-## Repo
+## Data layer
 
-`resource` is the backend URL prefix (kebab-case, plural). Register the store in `shared/composables/useRepo.ts`, then use `useRepo('project')` in views — do not import the store directly from screens.
+```
+openapi.json ──pnpm gen:api──► shared/api/generated/   types + SDK functions (organizationsList, …) + fetch client
+                                      │
+plugins/api.ts ── $api (one client per app instance: cookies, Organization-Key, 401 refresh)
+                                      │
+features/<name>/resources/<entity>.ts ── defineResource({ key, sdk, toForm, toCreate, toUpdate })
+                                      │
+shared/api/useResource.ts ── useResourceList / useResourceItem / useResourceMutations (Pinia Colada)
+                                      │
+AppListTemplate / AppDetailTemplate / AppSelect :resource="organizationResource"
+```
+
+### Generated client
+
+`frontend/openapi.json` is written by `make openapi` from the backend; `pnpm gen:api` (`openapi-ts.config.ts`, `@hey-api/openapi-ts` pinned) turns it into `app/shared/api/generated/`: request/response types named after the backend schemas (`OrganizationReadSchema`, `OrganizationCreateSchema`, …) and one function per operationId (`organizations_list` → `organizationsList`). `make gen-client` runs both. Never edit generated files; commit them with the schema. `pnpm gen:api:check` (part of `pnpm check`) fails when they are stale. The folder is excluded from Oxlint, knip and the architecture guard but typechecked.
+
+The client flavor is `@hey-api/client-fetch` (native fetch, also on the Nitro server). Operation paths already contain `/api/v1`, so the base URL is only the origin:
+
+| Where | Base URL | Credentials |
+|---|---|---|
+| Browser | `''` — same origin: Caddy in the image, the `nuxt dev` proxy (`modules/dev-proxy.ts`) in development | HttpOnly cookies set by FastAPI; a 401 runs `POST /auth/refresh` once (single flight for concurrent requests) and replays the request; a failed refresh clears the session and sends app routes to `/auth?redirect=…` |
+| SSR | `NUXT_API_INTERNAL_URL` (server-only runtime config) | The incoming `cookie` header is forwarded; no refresh: a 401 renders signed out. SSR only issues GETs (the CSRF Origin check rejects cookie-authenticated unsafe requests without `Origin`) |
+
+`plugins/api.ts` creates the client per Nuxt app instance — never share one client between SSR requests — and provides it as `$api`; `useApiClient()` returns it. Failed requests reject with `ApiError` (`status`, `code`, `details` from the `ErrorResponse` envelope); check them with `isApiError(error, 401)`. Calling an SDK function directly (actions that are not CRUD, e.g. `usersChangePassword`) always passes `{ client: useApiClient(), throwOnError: true }`.
+
+### Resource descriptor
+
+One file per entity in `features/<name>/resources/`: the descriptor plus the type aliases views use. Example (`features/organization/resources/organization.ts`):
 
 ```typescript
-import { projectCodec } from '../models/project'
+export type Organization = OrganizationReadSchema
+export type OrganizationForm = { id: string | null; name: string; key: string }
 
-export const useProjectRepo = defineStore('projectRepo', () => {
-  const config = getRepoConfig({ resource: 'projects', codec: projectCodec })
-  const { state, actions } = createAppRepo(config)()
-  return { ...state, ...actions }
+export const organizationResource = defineResource({
+  key: 'organizations', // query-key root: the plural resource name
+  sdk: {
+    list: organizationsList,
+    retrieve: organizationsRetrieve,
+    create: organizationsCreate,
+    update: organizationsUpdate,
+    destroy: organizationsDestroy,
+  },
+  // Editable copy for the detail form; called without an item for a new record.
+  toForm: (item?: Partial<Organization>): OrganizationForm => ({
+    id: item?.id ?? null,
+    name: item?.name ?? '',
+    key: item?.key ?? '',
+  }),
+  toCreate: (form) => ({ name: form.name, key: form.key }), // typed as OrganizationCreateSchema
+  toUpdate: (form) => ({ name: form.name }), // typed as OrganizationUpdateSchema
+  invalidates: ['session'], // other query roots a write makes stale
 })
 ```
 
-See `features/organization/repos/organizationRepo.ts`. Extra state on a repo is fine when it is still *that* resource (`organization` current-org ref).
+- The read type comes from `toForm`'s parameter; `toCreate`/`toUpdate` must return the generated body types (inferred from the SDK functions), so a schema change breaks the build instead of the request. Bodies contain writable fields only; the backend rejects unknown fields on some schemas.
+- Leave out SDK functions the API does not have; templates fail loudly when a missing one is needed.
+- Validation that needs the UI (`Выберите пользователя`) can throw from `toCreate`.
+- Form types are plain objects with `id: string | null`; no hand-written codecs. `/ui` has a local descriptor with an in-memory "SDK" (`features/ui/composables/useUiDemoResource.ts`).
+
+### Query keys and invalidation
+
+| Key | What |
+|---|---|
+| `['session']` | `GET /auth/me` (`useSession`) |
+| `[key, 'list', params]` | Infinite list: `params` = search + filters + `extraParams` + `page_size`; pages are appended by `loadNextPage` |
+| `[key, id]` | One record |
+
+A successful save stores the returned record under `[key, id]` and invalidates the `[key]` prefix (lists refetch, every loaded page) plus the `invalidates` roots; delete does the same without refetching the deleted record. Do not patch list caches by hand. Global defaults live in `colada.options.ts` (`staleTime` 30 s). Composables in `shared/api/useResource.ts`:
+
+```typescript
+const { items, hasNextPage, loadNextPage, isLoading, error } = useResourceList(organizationResource, {
+  params: () => ({ name: search.value }),
+})
+const { data, refetch } = useResourceItem(organizationResource, () => route.params.id as string)
+const { save, remove } = useResourceMutations(organizationResource) // save.mutateAsync(form), remove.mutateAsync(id)
+```
+
+### Session and route guards
+
+`useSession()` (`shared/composables/useSession.ts`) exposes `session`, `user`, `organizations`, `isSignedIn` and the `login`, `logout`, `logoutAll` mutations. Login stores the session and drops every cached query of the previous identity; logout clears the session, the organization choice and the cache, then goes to `/auth`. There is no token in the frontend: FastAPI sets and rotates the HttpOnly cookies.
+
+Page meta drives the global middleware (`app/middleware/`):
+
+| Meta | Meaning |
+|---|---|
+| (none) | App route: `auth.global.ts` requires a session (else `/auth?redirect=<path>`), `setup.global.ts` restores the organization from the session and requires one (else `/home/setup`) |
+| `auth: false` | Public page: no session needed, rendered on the server (`/`, `/ui`) |
+| `auth: 'guest'` | Signed-out only (`/auth`); a signed-in user goes to `redirect` or `/home` |
+| `organization: false` | App route that works before an organization is chosen (`/home/setup`, `/settings/profile`) |
+
+`useSetupStore().restore()` picks the organization stored for the same user, else the only membership; a stored id from another account is ignored. A superuser's stored non-member organization is loaded with `organizationsRetrieve`.
+
+### Rendering
+
+`routeRules` in `nuxt.config.ts`: app routes (`/home/**`, `/settings/**`, `/auth`, `/ui`) are `ssr: false` — the server sends the SPA shell and guards run in the browser. Everything else renders on the server. A public page:
+
+- lives under `pages/` with `definePageMeta({ auth: false })` and mounts a feature view (example: `pages/index.vue` → `features/landing/views/LandingView.vue`);
+- sets `useSeoMeta` (title, description, `og:*`);
+- may read `useSession()`: during SSR it runs with the forwarded cookie and the result is serialized into the payload, so the client hydrates without a refetch or mismatch. Any other query on a public page must be a GET and must render the same with and without a session;
+- use `prerender: true` in `routeRules` instead when the page does not depend on the visitor.
+
+### Realtime
+
+`useWebSocketService(channel)` (`shared/composables/useWebSocket.ts`) connects to the same origin (`/ws/<channel>`, proxied like `/api/v1`); the browser sends the access cookie with the handshake. The organization channel is `organizations/<organization_id>`. The backend sends no events yet, so nothing uses it; when it does, invalidate the matching query key in `onMessage` (e.g. `[organization-users, 'list']` on a membership event) instead of patching data.
+
+### Adding a feature end to end
+
+1. Backend endpoint (see [backend-concept.md](backend-concept.md)), then `make gen-client` and commit `openapi.json` + `generated/`.
+2. `features/<name>/resources/<entity>.ts`: types and `defineResource` with the generated SDK functions.
+3. Views on `AppListTemplate` / `AppDetailTemplate` with `:resource="…"`; custom calls through `useResource*` or an SDK function with `useApiClient()`.
+4. A thin page in `pages/`, a drawer item (`app/navigation/settings.ts` for settings); public pages get `auth: false` and SEO meta. `make new-domain` generates steps 2–4 for a settings CRUD entity.
+5. Tests for non-trivial descriptor logic or composables (`tests/resource.test.ts` shows the pattern with a real Colada cache).
 
 ---
 
@@ -100,15 +160,15 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 | `AppPageView` / `PageHeader` | Page composition: one `h1`, actions and description, bounded scrolling content; optional controls and footer |
 | `AppSection` | Structural grouping with title, `description` and optional actions/back action; no colored surface |
 | `AppCard` | Visual surface on the shadcn `card`: `variant` = `outline` (default), `default`, `muted`, `elevated`; `tone` tints surface and border; `padding`, `interactive` |
-| `AppListTemplate` | List page or nested list: search, pagination, create, detail as route or modal |
-| `AppDetailTemplate` | Form + save/delete (`AppDetailActions`) |
+| `AppListTemplate` | List page or nested list on a `resource` (or local `items`): search, filters, infinite pagination, create, detail as route or modal |
+| `AppDetailTemplate` | Form + save/delete (`AppDetailActions`) on a `resource` |
 | `AppTemplateActions` | **Two or more buttons in a row.** Do not put several `AppButton`s side by side |
 | `AppTabs` / `AppTabPanel` | Sections on a screen. `v-model` is the active tab `value`. `query-key` writes it to the URL. Live: `/ui` |
 | `AppMenu` | Overflow, context menu, or custom overlay (`:actions`, `label` for heading). Live: `/ui` → Overlays |
 | `AppModal` | Custom modal: `v-model`, `title`, `description` (`subtitle` compatibility), `width`. App-level overlay names use `Modal` |
 | `AppConfirmModal` | Confirm/Decline modal: `:confirm` / `:decline`. Built on `AppModal` + `AppTemplateActions`. Live: `/ui` → Overlays |
 | `AppTable` / `AppColumn` | Table with declarative `field`, `header`, `format` and scoped `#body`; retained by `AppListTemplate` |
-| `AppSelect` | Single/multiple selection, search and pagination; repo-backed via `:repo="useRepo('user')"` |
+| `AppSelect` | Single/multiple selection, search and pagination; API-backed via `:resource="userResource"` (or a custom `:source`) |
 | `AppFilterToolbar` | List filter bar: search, fixed fields, compact conditions added through **+**, quick/actions slots |
 | `AppFilters` | Internal condition editor; toolbar uses `inline` mode. Specification and `v-model` are shared; feature owns query mapping |
 | `AppCheckbox` / `AppSwitch` / `AppRadioGroup` | Choice controls on the shadcn primitives. `AppRadioGroup` takes `:items="[{ label, value }]"` + `v-model` |
@@ -151,14 +211,14 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 <AppListTemplate
   title="Проекты"
   detail-route-name="settings-projects-id"
-  :repo="useRepo('project')"
+  :resource="projectResource"
   filter
 >
   <AppColumn field="name" header="Название" />
 </AppListTemplate>
 ```
 
-**List owned by a parent, detail in a modal**
+**List owned by a parent, detail in a modal** (`detailItem` is the form from `toForm`)
 
 ```vue
 <AppListTemplate
@@ -166,8 +226,8 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
   detail-mode="modal"
   template-variant="section"
   :extra-params="{ parent_id: props.parentId }"
-  :build-new-item="() => projectCodec.decode({ parent_id: props.parentId })"
-  :repo="useRepo('project')"
+  :build-new-item="() => projectResource.toForm({ parent_id: props.parentId })"
+  :resource="projectResource"
 >
   <AppColumn header="Название" :format="(row) => row.name || '—'" />
   <template #detail-modal="{ detailItem }">
@@ -176,13 +236,12 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 </AppListTemplate>
 ```
 
-**Detail page**
+**Detail page** (`:id` route param; `new` builds a new form)
 
 ```vue
 <AppDetailTemplate
-  :build-new-item="() => projectCodec.decode({ organization_id: useSetupStore().state.organization?.id })"
   title="Проект"
-  :repo="useRepo('project')"
+  :resource="projectResource"
   :back-action="() => navigateTo({ name: 'settings-projects' })"
 >
   <template #default="{ item }">
@@ -191,29 +250,19 @@ Build screens from `shared/ui/app/` and `shared/ui/template/`. Extend those prim
 </AppDetailTemplate>
 ```
 
-See `features/organization/views/` and `features/user/views/`. Props worth knowing: `mode` (`page` \| `inline`), `actions-props`, `hide-back-button` (modals).
+See `features/organization/views/` and `features/user/views/`. Props worth knowing: `mode` (`page` \| `inline`), `actions-props`, `hide-back-button` (modals), `build-new-item` (defaults to `resource.toForm()`). `AppListTemplate` emits `save` (`{ item, saved, created }`) after a modal save — `saved` is the raw API response (the API token secret is only there).
 
 ---
 
 ## UI foundations and query state
 
-Detail pages also own their local record state. `useTemplateDetail` calls
-`retrieve(id, params, onError, { storeInRepo: false })`, accepts only the current
-route request, and invalidates requests when the component is disposed or the
-repo is reset. `AppDetailTemplate` shows loading, a Russian error message and a
-retry action instead of an empty form when retrieval fails. Successful saves
-replace the local record with the server response.
+`AppDetailTemplate` reads the record from the `[key, id]` query and copies it into a form once per record, so background refetches never overwrite edits; a late response for the previous route id cannot replace the open record (keys differ). It shows loading, a Russian error message and a retry action instead of an empty form when retrieval fails. Successful saves replace the form with the server response; creating on a route page swaps `new` for the new id.
 
-Business repos expose a `revision` that increases on `resetStore()`. Responses
-started before a reset cannot repopulate repo state or trigger response parsing
-side effects. Lists, selects and details clear their local state on that revision.
-The user-context plugin watches the authenticated user identity and resets all
-business repos and the organization setup when the user logs out or changes.
-Setup restoration and auth requests also ignore responses from a previous
-context. Logout failures keep the current screen and show an error.
+In modal mode `AppListTemplate` shows the clicked row at once and replaces it with the fresh `[key, id]` record when that has loaded (`retrieveOnOpen`, default on). Saves and deletes go through `useResourceMutations`, so the list refreshes by invalidation.
 
-Token codecs include `user_id` only when creating a token; edits encode its
-name without ownership fields. The backend rejects ownership fields on updates.
+Signing out or in as another user drops every cached query (`resetQueryCache`) and the organization choice; nothing from the previous user stays on screen. Logout failures keep the current screen and show an error.
+
+Token forms include `user_id` only when creating a token; edits send the name only. The backend rejects ownership fields on updates.
 
 Keep the direct `vite` 8 development dependency: it gives `nuxt typecheck` the
 same Vite types Nuxt and `@tailwindcss/vite` use. Run `pnpm typecheck`
@@ -222,7 +271,7 @@ checks. Tooling is described in [Tooling](#tooling).
 
 `shared/ui/shadcn/` contains the local shadcn/Reka primitives. Product views consume `App*` wrappers from `shared/ui/app/`. Styling rules are in [Design system](#design-system). The catalogue at `/ui` is public with static examples.
 
-`AppListTemplate` keeps the repo/codec API and route/modal detail behavior. `useRepoData` owns **local** items, search, pagination, loading and error state. Query requests use `storeInRepo: false`, ignore obsolete responses, and reset pagination when search or reactive `extraParams` changes. Optional `storeInRepo` publishes the accepted result to the repo; a picker or nested list must not read another consumer's pagination/loading state. Pass reactive parameters as a getter when calling the composable. `AppSelect` likewise keeps its own query state and selected-item hydration.
+`AppListTemplate` keeps route/modal detail behavior. `useListData` (template composable) owns search (debounced), filters and `extraParams` and hands them to `useResourceList`; each combination is its own infinite query from page 1. Without a resource (or with `onlyClientSearch`) it filters `items` locally and never requests pages. `AppSelect` keeps its own page requests and selected-item hydration (`resourceSource`); it reloads options every time it opens.
 
 `AppTable` keeps its header visible for empty, loading and error states. A body slot receives `{ data, item, index }`; buttons and links inside a row do not activate row navigation. Existing `AppColumn` formatting remains available:
 
@@ -236,11 +285,11 @@ checks. Tooling is described in [Tooling](#tooling).
 </AppColumn>
 ```
 
-`AppListTemplate` accepts `filterSpec` (`ViewFilterSpec`) describing field labels, kinds and supported lookups, `fixedFields` (`ViewFixedField[]`) for permanently displayed controls, and `availableFilters` (field-name array) for the add-filter menu. Omit `availableFilters` to offer all fields; pass `[]` to offer none. Fixed controls remain visible independently of that menu. `v-model:filters` optionally controls the `ViewFilters` record. Conditions automatically join the repo query and reset pagination; reactive `extraParams` take precedence to preserve page scope. The toolbar remains outside the page scroll area. Existing `#filters` and `#search-actions` slots work alongside the declarative filters. Backend endpoints must explicitly support each offered field/lookup.
+`AppListTemplate` accepts `filterSpec` (`ViewFilterSpec`) describing field labels, kinds and supported lookups, `fixedFields` (`ViewFixedField[]`) for permanently displayed controls, and `availableFilters` (field-name array) for the add-filter menu. Omit `availableFilters` to offer all fields; pass `[]` to offer none. Fixed controls remain visible independently of that menu. `v-model:filters` optionally controls the `ViewFilters` record. Conditions join the list query and restart from page 1; reactive `extraParams` take precedence to preserve page scope. Choice fields load options from `resource` (`ViewFilterField.resource`). The toolbar remains outside the page scroll area. Existing `#filters` and `#search-actions` slots work alongside the declarative filters. Backend endpoints must explicitly support each offered field/lookup.
 
 ```vue
 <AppListTemplate
-  :repo="useRepo('organization')"
+  :resource="organizationResource"
   search-param="name"
   :filter-spec="{ fields: [{ field: 'key', label: 'Ключ', kind: 'text', lookups: ['icontains', 'exact'] }] }"
   :fixed-fields="[{ field: 'key', mode: 'single' }]"
@@ -263,18 +312,16 @@ import ProjectListView from '~/features/project/views/ProjectListView.vue'
 </script>
 ```
 
-**Drawer** — `layouts/settings.vue` `navigationSections`:
+**Drawer** — the settings drawer is data: `app/navigation/settings.ts` (`settingsNavigation`), rendered by `layouts/settings.vue`. Add an entry above the marker line (`make new-domain` does it); `superuserOnly: true` hides it from other users:
 
 ```typescript
-// import { Folder } from '@lucide/vue'
-{ to: { name: 'settings-projects' }, label: 'Проекты', icon: Folder }
+import { Folder } from '@lucide/vue'
+{ to: { name: 'settings-projects' }, label: 'Проекты', icon: Folder },
 ```
 
-**Repo registry** — `shared/composables/useRepo.ts`: `project: useProjectRepo`.
+Resources are plain modules: import them where they are used; there is no registry.
 
 Route names follow the file path: `settings/projects/[id].vue` → `settings-projects-id`.
-
----
 
 ## Async actions and labels
 
@@ -314,7 +361,8 @@ Vite+ (`vite-plus`, pinned) runs formatting, linting and tests; Nuxt still owns 
 | `pnpm check:architecture` | Layer guard, see below |
 | `pnpm check:unused` | knip with the Nuxt plugin: unused files and dependencies (`knip.jsonc`; deliberate keeps are listed under `ignore` with a reason) |
 | `pnpm ui:add <name>` | Adds a shadcn-vue primitive, see [Adding a shadcn primitive](#adding-a-shadcn-primitive) |
-| `pnpm check` | `fmt:check` + `lint` + `typecheck` + `test` + `check:architecture` + `check:unused` — what CI runs |
+| `pnpm gen:api` / `pnpm gen:api:check` | Regenerate the API client from `openapi.json` / fail when the committed one is stale (see [Data layer](#data-layer)) |
+| `pnpm check` | `fmt:check` + `lint` + `typecheck` + `test` + `gen:api:check` + `check:architecture` + `check:unused` — what CI runs |
 
 From the repository root: `make lint` fixes and formats backend and frontend, `make check` runs every CI check without changing files (`make check-frontend BUILD=1` adds `nuxt build`).
 
@@ -324,7 +372,7 @@ From the repository root: `make lint` fixes and formats backend and frontend, `m
 
 **Type-aware Oxlint is off.** Its type checker (tsgolint) cannot resolve types exported from `.vue` files, so those types become `any` and produce false positives; `nuxt typecheck` covers types instead.
 
-**Architecture guard.** `scripts/check-architecture.mjs` checks explicit imports in `app/`: features never import `reka-ui` or `~/shared/ui/shadcn` (use `App*` wrappers); `shared/**` never imports `features/**`; `shared/ui/shadcn` never imports `shared/ui/app` or `shared/ui/template`. `KNOWN_VIOLATIONS` is empty; keep it that way. When shared UI needs feature content, expose a slot and fill it from `app/layouts` or a page (example: the header `context` slot holds `OrganizationPicker`).
+**Architecture guard.** `scripts/check-architecture.mjs` checks explicit imports in `app/`: features never import `reka-ui` or `~/shared/ui/shadcn` (use `App*` wrappers); `shared/**` never imports `features/**`; `shared/ui/shadcn` never imports `shared/ui/app` or `shared/ui/template`. The generated client (`shared/api/generated/`) is skipped. `KNOWN_VIOLATIONS` is empty; keep it that way. When shared UI needs feature content, expose a slot and fill it from `app/layouts` or a page (example: the header `context` slot holds `OrganizationPicker`).
 
 **Formatter caveat.** With `semi: false`, Oxfmt drops the `;` between statements of an inline handler (`@save="a(); b = false"`), which Vue cannot parse. Write multi-statement handlers as a function (`@save="() => { a(); b = false }"`) or a method.
 
@@ -388,7 +436,7 @@ use it somewhere real or in `/ui` (knip fails on unused files) and add a demo to
 
 ## UI layers and visual review
 
-Dependencies point one way: `shared/ui/shadcn` → `shared/ui/app` → `shared/ui/template` → `features`. shadcn primitives know nothing about repos or routes; features use `App*` and template components, never `shared/ui/shadcn` directly. `AppListTemplate` owns CRUD, search and pagination; `AppTable` only renders.
+Dependencies point one way: `shared/ui/shadcn` → `shared/ui/app` → `shared/ui/template` → `features`. shadcn primitives know nothing about resources or routes; features use `App*` and template components, never `shared/ui/shadcn` directly. `AppListTemplate` owns CRUD, search and pagination (through the resource); `AppTable` only renders.
 
 Automated checks do not replace a browser pass. For a UI change, open `/ui` and every affected screen at **390px, 768px and 1440px** in **both themes** and check:
 
@@ -423,13 +471,13 @@ both variants with the same data and loading/empty/error states.
 
 Use `AppFilterToolbar` for a list search-and-filter bar, not a standalone vertical
 `AppFilters`. `v-model` holds conditions,
-`v-model:search` holds search text, `spec` supplies fields and current repo adapters.
+`v-model:search` holds search text, `spec` supplies fields (choice fields may name a `resource`).
 `fixedFields` pins single/multiple/optional controls; their keys are excluded from
 repeated dynamic conditions. `visibleFields` / `hiddenFields` restrict available fields.
 Slots `primary`, `fixed-<field>`, `quick`, `actions` supply feature-specific tools.
 `wrap` wraps conditions on narrow screens; `alwaysShowAdd` keeps the plus visible.
 Feature-specific pickers and display settings are not part of this generic filter
-bar; a feature provides them through the slots. Existing repo + codec stays intact.
+bar; a feature provides them through the slots.
 
 ### Semantic tones
 
@@ -477,7 +525,7 @@ last page or error, and offers a manual retry. A configured `scrollHeight` bound
 the list and its sentinel together. Local/onlyClientSearch lists do not request
 more pages. Set `:infinite-scroll="false"` for manual “Показать ещё” pagination.
 Organization list/setup pass `search-param="name"` to match their backend filter. Keep search
-and filter resets in `useRepoData`; do not add another observer in feature views.
+and filter resets in `useListData`; do not add another observer in feature views.
 
 ### Fixed list tools, table edges and profile layout
 
@@ -485,7 +533,7 @@ Page-mode `AppListTemplate` puts search, `search-actions` and `filters` in
 AppPageView's fixed `controls` region. `AppListToolbar` owns their shared layout;
 AppList hides its inline toolbar in page mode to avoid duplicate controls. Nested
 lists keep the same toolbar inside their section, sticky within its scroll area.
-Search/query/pagination state remains owned by useRepoData.
+Search/query/pagination state remains owned by useListData.
 
 Page table lists default to `tableBleed=true`: `-mx-3 md:-mx-4` compensates for the
 standard AppPageView body padding and places the table against the page edges.

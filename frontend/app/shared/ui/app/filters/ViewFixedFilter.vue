@@ -114,7 +114,7 @@ function appearance(item: unknown) {
     v-else-if="field.kind === 'choice'"
     :model-value="value as never"
     :items="field.items"
-    :repo="field.repo"
+    :resource="field.resource"
     :query="field.query"
     :item-label="field.itemLabel || 'name'"
     :selected-items="selectedItems"
