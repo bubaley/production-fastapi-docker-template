@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Ellipsis } from '@lucide/vue'
 import { useUiDemoRepo, uiDemoCodec } from '../composables/useUiDemoRepo'
 const repo = useUiDemoRepo()
 const detail = ref(uiDemoCodec.decode({ name: 'New project', owner: 'Anna Smith' }))
@@ -79,7 +80,7 @@ const states = [
         <AppColumn header="Actions">
           <template #body="{ data }">
             <AppButton
-              icon="lucide:ellipsis"
+              :icon="Ellipsis"
               size="icon-sm"
               variant="ghost"
               :aria-label="`Actions: ${data.name}`"
