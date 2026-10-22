@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 from tortoise import fields
 
 from app.core.models import BaseModel
+from app.core.scope import Scope
 from app.core.settings import settings
 from app.domains.auth.services.auth_service import AuthService
 
@@ -13,6 +14,8 @@ class User(BaseModel):
     first_name = fields.CharField(max_length=128)
     last_name = fields.CharField(max_length=128)
     is_superuser = fields.BooleanField(default=False)
+
+    tenant_scope = Scope(user='id')
 
     @staticmethod
     def _password_peppers(user_id: UUID) -> tuple[str, str]:
@@ -58,6 +61,8 @@ class UserToken(BaseModel):
     value_hash = fields.CharField(max_length=64, unique=True, db_index=True)
     value_preview = fields.CharField(max_length=64)
     last_used_at = fields.DatetimeField(null=True)
+
+    tenant_scope = Scope(user='user_id')
 
     class Meta:
         table = 'user_token'

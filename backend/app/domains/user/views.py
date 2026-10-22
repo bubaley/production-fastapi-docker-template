@@ -44,8 +44,7 @@ class UserViewSet(BaseModelViewSet[User]):
         user: User = self.user
         if user.is_superuser:
             return User.all()
-
-        return User.filter(id=user.id)
+        return await super().get_queryset()
 
     async def validate_data(self, data: PydanticModel):
         if isinstance(data, UserCreateSchema):
@@ -100,7 +99,7 @@ class UserTokenViewSet(
         user: User = self.user
         if user.is_superuser:
             return UserToken.all()
-        return UserToken.filter(user_id=user.id)
+        return await super().get_queryset()
 
     @action(methods=['POST'], detail=False)
     async def create(self, data: UserTokenCreateSchema) -> UserTokenCreatedReadSchema:

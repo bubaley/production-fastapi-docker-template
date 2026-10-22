@@ -10,12 +10,13 @@ Viewsets stay thin: HTTP only — schema, permissions, queryset. **Almost no bus
 
 ## Model
 
-Always inherit `BaseModel`. Declare each FK as the field plus a `_id: UUID` annotation. `related_name` is plural.
+Always inherit `BaseModel`. Declare each FK as the field plus a `_id: UUID` annotation. `related_name` is plural. Every model declares `tenant_scope` (see [Scoping](#scoping)).
 
 ```python
 from uuid import UUID
 from tortoise import fields
 from app.core.models import BaseModel
+from app.core.scope import Scope
 
 class Project(BaseModel):
     organization = fields.ForeignKeyField(
@@ -23,6 +24,11 @@ class Project(BaseModel):
     )
     organization_id: UUID
     name = fields.CharField(max_length=255)
+
+    tenant_scope = Scope(
+        user='organization__org_users__user_id',
+        organization='organization_id',
+    )
 
     class Meta:
         table = 'project'
@@ -116,16 +122,28 @@ Custom create/destroy/queryset: `perform_create`, `perform_destroy`, `get_querys
 
 ## Scoping
 
-`get_queryset()` applies `FilterObjectsManager` automatically. Register every model in `app/shared/services/filter_objects_manager.py`:
+`get_queryset()` passes every queryset through `FilterObjectsManager`, which reads the model's `tenant_scope` (`app/core/scope.py`). It **fails closed**:
+
+| Declaration | Effect |
+|---|---|
+| none | `ScopeConfigurationError` on the first query. `app/shared/tests/test_filter_objects_manager.py` fails for every registered model without a scope |
+| `Scope(user=...)` | Rows matching the current user only. The user rule is mandatory; anonymous state is rejected (401) |
+| `Scope(user=..., organization=...)` | User rule **and** the organization from `Organization-Key`. No header → 400 `Organization-Key header is required` |
+| `Scope(..., require_organization=False)` | Without the header only the user rule applies: rows from every organization the user belongs to, never other tenants |
+| `Unscoped(reason='...')` | No filter. Only for intentionally global reference data |
+
+Each rule is a lookup path compared with `=` (`'organization__org_users__user_id'`) or a callable `value -> Q` for custom rules, e.g. a subquery (`OrganizationUser` uses one because Tortoise mis-aliases a self-join).
 
 ```python
-Project: Scope(
-    user='org_users__user_id',
+tenant_scope = Scope(
+    user='organization__org_users__user_id',  # Project -> Organization -> OrganizationUser
     organization='organization_id',
-),
+)
 ```
 
-Empty `Scope()` means **no** auto-filter — override `get_queryset()` when the rule is custom (`OrganizationUserViewSet`).
+The user rule always applies, so a forged or stale `Organization-Key` cannot widen access. Superuser bypass lives on the viewset (`if user.is_superuser: return Model.all()`, else `await super().get_queryset()`), not in the scope.
+
+`organization` is assigned from `AuthState` on **create only** (`process_state_to_model` in `BaseGenericViewSet.before_save`); an update never moves a row to another organization.
 
 ---
 
@@ -178,7 +196,7 @@ The viewset calls `validate_issue` then `issue`. It does not load models or enco
 
 1. `app/core/database.py` — `'app.domains.project.models'` in `MODELS`
 2. `app/main.py` — `api_router.include_router(projects_router)`
-3. `filter_objects_manager.py` — `Scope` for the model
+3. `tenant_scope` on every model (`Scope(...)` or `Unscoped(reason=...)`)
 4. Tell the user a migration is needed (`make mm` then `make m`). Do not run it unless they ask.
 
 ---

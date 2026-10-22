@@ -41,9 +41,7 @@ class OrganizationUserViewSet(BaseModelViewSet[OrganizationUser]):
         user: User = self.user
         if user.is_superuser:
             return OrganizationUser.all()
-
-        org_ids = await OrganizationUser.filter(user_id=user.id).values_list('organization_id', flat=True)
-        return OrganizationUser.filter(organization_id__in=org_ids)
+        return await super().get_queryset()
 
     async def perform_create(self, obj: OrganizationUser) -> OrganizationUser:
         return await OrganizationService.add_member(obj, self.user)
