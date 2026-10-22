@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { shallowMount } from '@vue/test-utils'
 import AppFilterToolbar from '../app/shared/ui/app/filters/AppFilterToolbar.vue'
 import type { ViewFilterSpec } from '../app/shared/ui/app/filters/types'

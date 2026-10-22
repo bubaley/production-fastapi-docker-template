@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 import { computed, ref } from 'vue'
 import { useAuth } from '../modules/base-auth/runtime/composables/useAuth'
 vi.mock('../modules/base-auth/runtime/utils/config-utils', () => ({

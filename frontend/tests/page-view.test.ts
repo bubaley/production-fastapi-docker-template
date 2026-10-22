@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { mount } from '@vue/test-utils'
 import AppPageView from '../app/shared/ui/app/AppPageView.vue'
 import AppPage from '../app/shared/ui/app/AppPage.vue'

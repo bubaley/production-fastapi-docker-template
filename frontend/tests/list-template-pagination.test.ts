@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { flushPromises, mount } from '@vue/test-utils'
 import { computed, ref, shallowRef } from 'vue'
 import AppListToolbar from '../app/shared/ui/app/AppListToolbar.vue'

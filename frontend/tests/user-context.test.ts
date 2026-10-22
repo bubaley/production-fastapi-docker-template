@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { computed, effectScope, proxyRefs, ref } from 'vue'
 import { createAppRepo } from '../app/shared/toolkits/repo/appRepo'
 import { AppApi } from '../app/shared/toolkits/repo/appApi'

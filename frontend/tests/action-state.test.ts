@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { useActionState } from '../app/shared/composables/useActionState'
 
 const toast = { default: vi.fn(), error: vi.fn() }

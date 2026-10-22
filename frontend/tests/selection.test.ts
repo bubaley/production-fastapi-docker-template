@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 import { effectScope, nextTick, reactive, ref } from 'vue'
 import { useSelectSource } from '../app/shared/ui/app/select/useSelectSource'
 import { conditionRows, writeCondition } from '../app/shared/ui/app/filters/filterConditions'

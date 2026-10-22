@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { flushPromises, mount } from '@vue/test-utils'
 import { computed, nextTick, reactive } from 'vue'
 import { useTemplateDetail } from '../app/shared/ui/template/composables/useTemplateDetail'

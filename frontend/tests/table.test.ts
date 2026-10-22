@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import AppTable from '../app/shared/ui/app/AppTable.vue'

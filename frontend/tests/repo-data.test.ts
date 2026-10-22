@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { effectScope, nextTick, reactive, ref, watchEffect } from 'vue'
 import { useRepoData } from '../app/shared/toolkits/repo/composables/useRepoData'
 import { filterBySearch } from '../app/shared/utils/filterUtils'
