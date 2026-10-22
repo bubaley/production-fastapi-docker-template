@@ -108,7 +108,7 @@ const actions = [
       discard-label="Discard"
       cancel-label="Cancel"
       close-label="Close"
-      @save="toast.default('Changes saved'); unsaved = false"
+      @save="() => { toast.default('Changes saved'); unsaved = false }"
       @discard="unsaved = false"
     />
     <AppDrawer
