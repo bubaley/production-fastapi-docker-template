@@ -77,7 +77,7 @@ def read_template_version(root: Path) -> dict[str, str]:
 
 def write_template_version(root: Path, values: dict[str, str]) -> str:
     return (
-        '# Template this product was created from; /sync-template diffs template-owned paths from `commit`\n'
+        '# Template this product was created from; the sync-template skill diffs template-owned paths from `commit`\n'
         '# (or tag v<version> when the commit is not in the template history) and updates both.\n'
         '# See docs/template-ownership.md. Written by `make init`.\n'
         f'repository={values.get("repository", "")}\n'

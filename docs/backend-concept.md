@@ -232,7 +232,7 @@ Domains are discovered, not registered (`app/core/discovery.py`):
 | Backend | `domains/<name>/` `models.py` (`organization` FK, `tenant_scope` via organization), `schemas.py` (create/update/read), `filters.py` (`name` icontains), `views.py` (thin viewset, `routers`), `services/`, `tests/test_<name>.py` (CRUD + tenant isolation) |
 | Frontend | `features/<camelName>/resources/<camelName>.ts`, `views/<Name>ListView.vue` + `<Name>DetailView.vue`, `pages/settings/<plural-kebab>/index.vue` + `[id].vue`, an entry in `app/navigation/settings.ts` |
 
-It validates the name (singular snake_case, up to 24 characters, not a kernel domain), refuses to overwrite anything and runs no migrations. Then: replace the placeholder field with the real ones, ask the user for `make mm` + `make m`, `make gen-client`, run the new tests (`--sqlite` until the migration exists), update [product.md](product.md). The `/new-domain` skill (`.claude/skills/new-domain/`) walks through it.
+It validates the name (singular snake_case, up to 24 characters, not a kernel domain), refuses to overwrite anything and runs no migrations. Then: replace the placeholder field with the real ones, ask the user for `make mm` + `make m`, `make gen-client`, run the new tests (`--sqlite` until the migration exists), update [product.md](product.md). The `new-domain` skill (`.agents/skills/new-domain/`) walks through it.
 
 ---
 

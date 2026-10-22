@@ -1,6 +1,6 @@
 # Template core
 
-Capabilities every product built from this template inherits. **Template-owned**: forks receive changes to this file through `/sync-template` ([template-ownership.md](template-ownership.md)) and do not edit it — product-specific changes go to [product.md](product.md), which wins when the two disagree.
+Capabilities every product built from this template inherits. **Template-owned**: forks receive changes to this file through the `sync-template` skill ([template-ownership.md](template-ownership.md)) and do not edit it — product-specific changes go to [product.md](product.md), which wins when the two disagree.
 
 Behavior only; how it is built: [architecture.md](architecture.md), [backend-concept.md](backend-concept.md), [frontend-concept.md](frontend-concept.md), [deployment.md](deployment.md). UI copy is **Russian**; code comments English.
 
@@ -51,5 +51,5 @@ Behavior only; how it is built: [architecture.md](architecture.md), [backend-con
 
 ## Agent tooling
 
-- `make init name=…` turns a template copy into a product; `make new-domain name=…` scaffolds a CRUD entity end to end; `/sync-template` pulls template changes into a fork.
-- Claude Code project settings block migration commands and format edited files; skills and review subagents live in `.claude/` ([architecture.md](architecture.md#agent-tooling)).
+- `make init name=…` turns a template copy into a product; `make new-domain name=…` scaffolds a CRUD entity end to end; the `sync-template` skill pulls template changes into a fork.
+- Agent skills shared by Claude Code and Codex live in `.agents/skills/`; Claude Code project hooks block migration commands and format edited files ([architecture.md](architecture.md#agent-tooling)).

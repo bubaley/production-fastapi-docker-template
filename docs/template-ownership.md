@@ -1,6 +1,6 @@
 # Template ownership
 
-Products are created from this template (`make init`) and keep receiving its improvements through `/sync-template` (`.claude/skills/sync-template/`). This map decides, per path, who owns a file in a fork and what a sync does with it. **Template-owned** (this file included).
+Products are created from this template (`make init`) and keep receiving its improvements through the `sync-template` skill (`.agents/skills/sync-template/`). This map decides, per path, who owns a file in a fork and what a sync does with it. **Template-owned** (this file included).
 
 `.template-version` records where a fork stands: `repository`, `version` (template `version.json` at that point) and `commit` (template commit). `make init` writes it; every sync updates it.
 
@@ -25,7 +25,7 @@ First matching row wins (top to bottom).
 | `frontend/nuxt.config.ts`, `frontend/knip.jsonc` | shared | 3-way merge; product route rules and ignores stay |
 | `backend/pyproject.toml`, `frontend/package.json` | shared | 3-way merge; product name, version and extra dependencies win |
 | `.env.example`, `Makefile`, `README.md`, `compose*.yaml`, `Dockerfile`, `.github/**` | shared | 3-way merge; values written by `make init` (names, image, title) win |
-| `.claude/skills/**`, `.claude/agents/**` | template | Template skills and agents are taken; a product adds its own under new names (prefix them, e.g. `.claude/skills/acme-billing/`) and those are never touched |
+| `.agents/skills/**`, `.claude/skills/**` | template | Template skills and their `.claude/skills/<name>` symlinks are taken; a skill deleted upstream is deleted with its symlink. A product adds its own under new names (prefix them, e.g. `.agents/skills/acme-billing/` + symlink) and those are never touched |
 | everything else (`backend/app/{core,shared,scripts}/**`, `backend/app/conftest.py`, `backend/manage.py`, `frontend/app/{shared,plugins,middleware,assets}/**`, `frontend/{scripts,modules,tests}/**`, `docs/**` except `product.md`, `scripts/**`, `.claude/{hooks,settings.json}`, `AGENTS.md`, `CLAUDE.md`, configs) | template | Taken from the template |
 
 Product code is product-owned; a fork adds files, it does not edit template-owned ones. Tests a product adds for template code go next to its own domain.

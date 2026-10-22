@@ -1,4 +1,4 @@
-# Template this product was created from; /sync-template diffs template-owned paths from `commit`
+# Template this product was created from; the sync-template skill diffs template-owned paths from `commit`
 # (or tag v<version> when the commit is not in the template history) and updates both.
 # See docs/template-ownership.md. Written by `make init`.
 repository=https://github.com/bubaley/production-fastapi-docker-template

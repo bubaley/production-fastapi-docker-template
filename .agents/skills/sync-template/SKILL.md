@@ -1,6 +1,6 @@
 ---
 name: sync-template
-description: Pull improvements from the upstream FastAPI + Nuxt template into a product created from it, path by path according to the ownership map. Use when the user asks to sync, update or upgrade from the template, pull template changes, or runs /sync-template in a fork.
+description: Pull improvements from the upstream FastAPI + Nuxt template into a product created from it, path by path according to the ownership map. Use when the user asks to sync, update or upgrade from the template, pull template changes, or invokes sync-template (/sync-template, $sync-template) in a fork.
 ---
 
 # Sync template
