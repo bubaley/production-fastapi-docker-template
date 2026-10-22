@@ -26,6 +26,9 @@ class OrganizationReadSchema(BaseReadSchema, OrganizationCreateSchema):
 
 @schema(model=OrganizationUser)
 class OrganizationUserCreateSchema(BaseCreateSchema):
+    """The organization is explicit (not `Organization-Key`): members are managed from the organization's page."""
+
+    organization_id: UUID
     user_id: UUID
 
 
