@@ -10,7 +10,8 @@ This file is an index. Do not copy patterns here — follow the linked docs.
 | How does existing code work, who calls X, what depends on Y? | MCP **codebase-memory** first (`search_graph`, `get_architecture`, `trace_path`, `get_code_snippet`). Then open the files it points to. |
 | Where does a new file go? What is each folder for? | [docs/architecture.md](docs/architecture.md) |
 | How to add a backend domain, model, viewset, service? | [docs/backend-concept.md](docs/backend-concept.md) — canonical code: `backend/app/domains/organization/` |
-| How to add a frontend feature, model, repo, view? | [docs/frontend-concept.md](docs/frontend-concept.md) — canonical code: `frontend/app/features/organization/` |
+| How to add a frontend feature, resource descriptor, view? | [docs/frontend-concept.md](docs/frontend-concept.md) — canonical code: `frontend/app/features/organization/` |
+| How does the frontend call the API (generated client, query keys, session, SSR pages)? After an API change? | [docs/frontend-concept.md](docs/frontend-concept.md#data-layer) — `make gen-client` regenerates the client |
 | Auth contract (cookies, CSRF, SSR), OpenAPI conventions, `make openapi`? | [docs/backend-concept.md](docs/backend-concept.md#auth-and-tokens) and [#openapi-contract](docs/backend-concept.md#openapi-contract) |
 | When to write backend tests, where they live? | [docs/backend-concept.md](docs/backend-concept.md#tests) — canonical: `backend/app/domains/organization/tests/test_organization.py` |
 | How to run the project locally? | [README.md](README.md) |
@@ -38,7 +39,7 @@ A change is incomplete if the matching doc still describes the old product or pa
 | User-facing behavior or scenario | [docs/product.md](docs/product.md) |
 | Folder roles, request flow, where new files go | [docs/architecture.md](docs/architecture.md) |
 | How to add/grow a backend domain (model, schema, viewset, scope, tests) | [docs/backend-concept.md](docs/backend-concept.md) |
-| How to add/grow a frontend feature (model, repo, view, templates) | [docs/frontend-concept.md](docs/frontend-concept.md) |
+| How to add/grow a frontend feature (resource descriptor, view, templates, data layer) | [docs/frontend-concept.md](docs/frontend-concept.md) |
 | How to run, ports, first user, Makefile | [README.md](README.md) |
 | New recurring pattern not covered above | New `docs/<topic>.md` **and** a row in the lookup table in this file |
 

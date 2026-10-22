@@ -20,7 +20,8 @@ Do not invent capabilities that are not listed here. When a scenario changes, up
 
 ### Access
 
-- **Вход** (`/auth`) — email + password. Session via JWT cookies (`access_token` / `refresh_token`).
+- **Публичная страница** (`/`) — заготовка шаблона: название продукта, короткий текст-заглушка и кнопка «Войти» (для вошедшего пользователя — «Перейти в приложение»). Отрисовывается на сервере, с заголовком и описанием для поисковиков и превью ссылок (`og:*`). Замените текст описанием продукта.
+- **Вход** (`/auth`) — email + password. Session via HttpOnly JWT cookies (`access_token` / `refresh_token`) set by the API; an expired access cookie is renewed silently, a dead session returns to `/auth` and back to the requested page after sign-in.
 - **Выбор организации** (`/home/setup`) — required before the rest of the app. Creating an org adds the current user as a member.
 - **Главная** — смена организации, настройки, каталог UI (`/ui`) и интерактивный пример AppPageView: действия в шапке, контекст под шапкой, поиск и переключатель под разделителем, прокручиваемые карточки и закреплённая нижняя зона. Поиск фильтрует возможности страницы; сброс возвращает исходный пример.
 - **Оформление** — в меню профиля (иконка пользователя в шапке): тема «Системная / Светлая / Тёмная» и акцентный цвет (нейтральный, синий, фиолетовый, зелёный, оранжевый). Выбор сохраняется в cookie и применяется до первой отрисовки.
@@ -29,20 +30,20 @@ Do not invent capabilities that are not listed here. When a scenario changes, up
 
 - **Каталог UI** (`/ui`) is public and uses local sample data. Its copy is English (including its theme and palette switch) so it reads alongside the prop names it demonstrates.
 - Demonstrates the design tokens (colors, radii, control sizes, type scale), variant/size/tone matrices for App controls with disabled, loading and invalid states, forms, dates, selects, checkboxes, radio groups, switches, badges, tooltips, alerts, progress, skeletons, scroll areas, modals, drawers, menus, the image lightbox, page/section patterns, cards in semantic tones, AppTitle sizes, the Lucide icon picker and the color picker. Theme (system/light/dark) and palette switch at the top; tables switch between default and outline styles.
-- `AppFilters` lets users add filter conditions through **+**. It is a reusable UI component; each feature still defines its supported fields and maps filter values to repo query parameters; the component adds no business filtering rules by itself.
+- `AppFilters` lets users add filter conditions through **+**. It is a reusable UI component; each feature still defines its supported fields and maps filter values to list query parameters; the component adds no business filtering rules by itself.
 
 ### Settings
 
 - **Организации** — list / create / edit (`name` + unique `key`), members (added to the organization being viewed, not the active one). `key` is the tenancy id (header `Organization-Key`). В списке доступны поиск по названию, постоянный фильтр по точному ключу и добавляемое условие «ключ содержит»; условия применяются совместно и остаются на экране при прокрутке.
 - **Пользователи** (superuser only) — directory and passwords. Users are created here, then attached to an org as members. **Токены** — named API tokens; the secret is shown once (`Authorization: Token …`).
-- **Профиль** — current user, change password, own tokens.
+- **Профиль** — current user, change password, own tokens, «Выйти на всех устройствах» (ends every session of the user).
 
 Создание и удаление пользователей доступны только суперпользователю. Профиль
 пользователя доступен и до выбора организации. При переименовании API-токена
 его владелец неизменен; обычный пользователь управляет только своими токенами.
 
-Выход очищает обе cookies сессии и выбранную организацию вместе с данными
-репозиториев. Вход другим аккаунтом начинает выбор организации заново. Ошибка
+Выход очищает обе cookies сессии и выбранную организацию вместе со всеми
+загруженными данными. Вход другим аккаунтом начинает выбор организации заново. Ошибка
 загрузки карточки показывается на странице с действием «Повторить»; запоздалый
 ответ предыдущей карточки не заменяет открытую карточку.
 
@@ -66,5 +67,5 @@ Refresh JWT не авторизует API и WebSocket. Анонимные по�
 ### List scrolling
 
 - Списки на AppListTemplate автоматически подгружают следующую страницу при прокрутке до конца. Уже показанные строки сохраняются; при ошибке доступен повтор запроса. Поиск и смена фильтров начинают выдачу с первой страницы.
-- Постраничный режим остаётся доступен через `infiniteScroll=false`; локальные списки без репозитория не запускают автоматические запросы.
+- Постраничный режим остаётся доступен через `infiniteScroll=false`; локальные списки без ресурса API не запускают автоматические запросы.
 - Поиск и фильтры списков остаются на экране при прокрутке.

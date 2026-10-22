@@ -22,7 +22,7 @@ make docker-run     # compose.yaml (PostgreSQL + Redis + IMAGE) as project <COMP
 make docker-stop    # stop it and delete its volumes
 ```
 
-`make docker-run` reads `.env` like production does; set `NUXT_PUBLIC_BASE_URL=http://127.0.0.1:8080` there to sign in through the container at `http://127.0.0.1:8080`.
+`make docker-run` reads `.env` like production does; sign in through the container at `http://127.0.0.1:8080` (the browser calls the API on that same origin).
 
 ### Processes (s6-overlay)
 
@@ -82,7 +82,7 @@ The container reads the same settings as local development (`.env.example`). Pro
 | `RUN_MIGRATIONS` | `true` | `false` skips the `migrate` oneshot (run migrations elsewhere) |
 | `DB_WAIT_TIMEOUT` | `60` | Seconds `migrate` waits for PostgreSQL |
 | `API_MAX_BODY_SIZE` | `25MB` | Caddy request body limit for `/api/v1/*` |
-| `NUXT_PUBLIC_BASE_URL` | — | Public origin of the API (e.g. `https://app.example.com`); the Nitro auth proxy calls it during SSR until [roadmap](roadmap.md) stage 5 removes that proxy |
+| `NUXT_API_INTERNAL_URL` | `http://127.0.0.1:8000` | FastAPI as seen from the Nuxt server during SSR (set by the `frontend` service). Browsers never use it: they call `/api/v1` and `/ws` on the public origin through Caddy |
 | `APP_VERSION`, `GIT_SHA` | baked in | Set by the build; do not override |
 
 `compose.yaml` forces `DEBUG=False`, `COOKIE_SECURE=True` and the in-network database/Redis addresses for the app.
@@ -189,6 +189,6 @@ Without `YC_REGISTRY_ID`/`IMAGE_NAME` the pipeline still releases (tag, changelo
 
 1. Install Docker Engine with the Compose plugin; create the deploy user in the `docker` group.
 2. Let the server pull from Yandex CR: attach a service account with `container-registry.images.puller` to the VM and configure the [Docker credential helper](https://yandex.cloud/en/docs/container-registry/operations/authentication), or `docker login cr.yandex` once with a pull-only key. The pipeline never copies its push credentials to the server.
-3. Create `DEPLOY_PATH` with a `.env` built from `.env.example`: real `SECRET_KEY`, `ENCRYPTION_KEY`, `PASSWORD_PEPPER`, `SQL_PASSWORD`, `REDIS_PASSWORD`, `NUXT_PUBLIC_BASE_URL`, and `COMPOSE_PROJECT_NAME`. The first deploy adds `APP_IMAGE` and `compose.yaml`.
+3. Create `DEPLOY_PATH` with a `.env` built from `.env.example`: real `SECRET_KEY`, `ENCRYPTION_KEY`, `PASSWORD_PEPPER`, `SQL_PASSWORD`, `REDIS_PASSWORD` and `COMPOSE_PROJECT_NAME`. The first deploy adds `APP_IMAGE` and `compose.yaml`.
 4. Terminate TLS in front of `APP_ENTRY_PORT` (host Caddy/nginx or a cloud load balancer) and set HSTS there.
 5. Create the first user: `docker compose exec -w /app/backend app python -m manage create_superuser`.

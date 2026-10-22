@@ -31,7 +31,7 @@ docker compose up -d db redis  # PostgreSQL + Redis on 127.0.0.1 (compose.overri
 make m                       # apply migrations
 ```
 
-Ports come from `.env` (`BACKEND_PORT`, `FRONTEND_PORT`); the defaults in `.env.example`, the Makefile and `nuxt.config.ts` are **9000** (API) and **9001** (Nuxt), and the backend CORS default allows the Nuxt origin. `NUXT_PUBLIC_BASE_URL` must point at the API. The Makefile reads only the keys it needs from `.env` and works without the file.
+Ports come from `.env` (`BACKEND_PORT`, `FRONTEND_PORT`); the defaults in `.env.example`, the Makefile and `nuxt.config.ts` are **9000** (API) and **9001** (Nuxt), and the backend CORS default allows the Nuxt origin. The browser always calls the API on the Nuxt origin: in development `nuxt dev` proxies `/api/v1/**` and `/ws/**` to the backend (`NUXT_API_INTERNAL_URL`, default `http://localhost:$BACKEND_PORT`), so the HttpOnly session cookies work as in production. The Makefile reads only the keys it needs from `.env` and works without the file.
 
 Public registration is off. Create the first user:
 
@@ -45,10 +45,10 @@ In two terminals:
 
 ```bash
 make rb   # backend → http://localhost:9000  (OpenAPI: /docs)
-make rf   # frontend → http://localhost:9001
+make rf   # frontend → http://localhost:9001 (public page `/`, app at /home)
 ```
 
-Sign in, then pick or create an organization on the setup screen. After that, Home and Settings work in that org.
+Open http://localhost:9001/auth, sign in, then pick or create an organization on the setup screen. After that, Home and Settings work in that org.
 
 For background tasks (optional; no product jobs are defined yet):
 
@@ -76,6 +76,7 @@ Other useful commands: `make mm` (create migrations), `make help`.
 | `make check-backend` | `ruff check`, `ruff format --check`, `ty check`, pytest (`PYTEST_ARGS`, default `--keepdb`; `PYTEST_ARGS=--sqlite` without Postgres) |
 | `make check-frontend` | `pnpm check` (format check, Oxlint + ESLint for Vue templates, typecheck, Vitest, architecture guard); `BUILD=1` adds `nuxt build` |
 | `make openapi` | Write the OpenAPI schema to `frontend/openapi.json` (no database needed); commit it with API changes |
+| `make gen-client` | `make openapi` + `pnpm gen:api`: regenerate the typed frontend client in `frontend/app/shared/api/generated/` (commit it; `pnpm check` fails when it is stale) |
 | `make test` / `make t` | Run backend tests (pytest, same `PYTEST_ARGS`) |
 | `make docker-build` | Build the production image (`IMAGE`, default `fastapi-nuxt-template:local`; version from `version.json`) |
 | `make docker-run` | Run `IMAGE` with PostgreSQL + Redis from `compose.yaml` (project `<COMPOSE_PROJECT_NAME>-smoke`) and wait until healthy |

@@ -1,13 +1,13 @@
 # Architecture
 
-Full-stack template: FastAPI REST API (`/api/v1`) + Nuxt 4 app with server-side rendering (Nuxt default; the Nitro server also proxies auth, see below). The approved move to hybrid rendering (client-only app routes, SSR for public pages) is tracked in [roadmap.md](roadmap.md). Data is scoped by the current user and organization (`FilterObjectsManager` on the backend, `Organization-Key` on the frontend).
+Full-stack template: FastAPI REST API (`/api/v1`) + Nuxt 4 app with hybrid rendering (client-only app routes, SSR for public pages). FastAPI owns auth (HttpOnly cookies); the frontend talks to it through a client generated from the OpenAPI schema. Data is scoped by the current user and organization (`FilterObjectsManager` on the backend, `Organization-Key` on the frontend).
 
 What the app does (purpose, scenarios): [product.md](product.md).
 
 | Layer | Stack |
 |---|---|
 | Backend | Python 3.14, FastAPI, Tortoise ORM, fastapi-ronin, Taskiq, Redis, PostgreSQL |
-| Frontend | Nuxt 4, Vue 3, Pinia, shadcn-vue / Reka UI, Tailwind CSS |
+| Frontend | Nuxt 4, Vue 3, Pinia, Pinia Colada, `@hey-api/openapi-ts` (generated client), shadcn-vue / Reka UI, Tailwind CSS |
 | Infra | One Docker image (s6-overlay: Caddy, uvicorn, Nuxt, Taskiq), Docker Compose, GitHub Actions, Makefile — see [deployment.md](deployment.md) |
 
 **Where to put new code**
@@ -18,7 +18,7 @@ What the app does (purpose, scenarios): [product.md](product.md).
 
 Canonical examples: `backend/app/domains/organization/`, `frontend/app/features/organization/`. Live UI primitives: `/ui` (public static catalogue). The catalogue uses local sample data and does not expose organization resources.
 
-`AppPageView` combines `AppPage` and `PageHeader` for one page heading and a bounded scrolling body. The fixed regions are header, subheader before the divider, controls after the divider, and footer; HomeView demonstrates them. `AppSection` groups content structurally; use `AppCard` for a visible surface. App controls share one set of control sizes (`shared/ui/app/types/control.ts`) and semantic light/dark tokens. Feature data still goes through the existing repo/codec toolkit.
+`AppPageView` combines `AppPage` and `PageHeader` for one page heading and a bounded scrolling body. The fixed regions are header, subheader before the divider, controls after the divider, and footer; HomeView demonstrates them. `AppSection` groups content structurally; use `AppCard` for a visible surface. App controls share one set of control sizes (`shared/ui/app/types/control.ts`) and semantic light/dark tokens. Feature data goes through resource descriptors over the generated client.
 
 ### New capability — definition of done
 
@@ -28,7 +28,7 @@ Same change, all of this (skip a row only if it does not apply):
 |---|---|
 | Backend | Domain files (`models`, `schemas`, `filters`, `views`). Register in `core/database.py` (`MODELS`) and `main.py` (`include_router`); declare **`tenant_scope`** on every model. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
 | Tests | Non-trivial rules get pytest next to the domain (`domains/<name>/tests/`). See [backend-concept.md](backend-concept.md#tests). Canonical: `domains/organization/tests/test_organization.py` |
-| Frontend | Feature: model + codec, repo, `useRepo` registry, views on `AppListTemplate` / `AppDetailTemplate`, thin page, drawer item if needed. User-facing copy in **Russian** |
+| Frontend | `make gen-client` (schema + generated client committed), feature resource descriptor, views on `AppListTemplate` / `AppDetailTemplate`, thin page, drawer item if needed. User-facing copy in **Russian** |
 | Realtime | Org events go through **`OrganizationWebSocketService`**, not a new websocket stack |
 | Docs | [product.md](product.md) if the user can see or do something new. Concept docs if the pattern itself changed |
 | Checks | `make lint` applied, `make check` is green |
@@ -124,24 +124,26 @@ services/invoice_builder/
 
 ```
 frontend/
-  modules/base-auth/      # Local Nuxt module: session auth over JWT cookies (see below)
-  server/                 # Nitro server utils used by base-auth (`utils/cookie.ts`)
+  openapi.json            # API contract, written by `make openapi`
+  openapi-ts.config.ts    # `pnpm gen:api`: generated client into app/shared/api/generated/
+  colada.options.ts       # Pinia Colada defaults (staleTime)
+  modules/dev-proxy.ts    # `nuxt dev` only: /api/v1 and /ws on the Nuxt origin -> FastAPI
 frontend/app/
   features/               # One folder per business module (mirrors a backend domain)
   pages/                  # Nuxt routes — thin wrappers over feature views
   layouts/                # Shell + drawer navigation (default, settings, setup, auth)
-  shared/                 # UI kit, repo toolkit, composables, utils
-  middleware/             # Auth / setup redirects
-  plugins/                # `$api` and other app plugins
+  shared/                 # API layer, UI kit, composables, utils
+  middleware/             # Session and organization guards (page meta `auth`, `organization`)
+  plugins/                # `$api`: the generated client per app instance
+  app.config.ts           # Product name (header, public page, meta tags)
 ```
 
 ### `features/<name>/`
 
 | Path | Why it exists |
 |---|---|
-| `models/` | One **entity per file**: TypeScript type + `createCodec` (decode API → model, encode model → payload). `organization.ts` and `organizationUser.ts` stay separate |
-| `repos/` | Pinia store around `createAppRepo`. `resource` matches the backend URL prefix. Register in `shared/composables/useRepo.ts` |
-| `views/` | Screen-level UI: list page, detail page, or a large section used as a page. Built on `AppListTemplate` / `AppDetailTemplate` |
+| `resources/` | One **entity per file**: type aliases over the generated schemas, the form type and `defineResource({ key, sdk, toForm, toCreate, toUpdate })`. `organization.ts` and `organizationUser.ts` stay separate |
+| `views/` | Screen-level UI: list page, detail page, or a large section used as a page. Built on `AppListTemplate` / `AppDetailTemplate` with `:resource` |
 | `components/` | Pieces used by those views. Split early — views should not grow into god-files |
 | `composables/` | Feature-wide logic used by **several** views/components (`useOrganization`) |
 
@@ -164,52 +166,47 @@ Same idea already exists in the UI kit: `shared/ui/app/date-picker/` (components
 
 | Path | Why it exists |
 |---|---|
-| `pages/**/*.vue` | Route only. Import a feature view; no business logic, no repo calls |
+| `pages/**/*.vue` | Route only. Import a feature view; no business logic, no API calls. `definePageMeta({ auth: false })` marks a public page |
 | `layouts/*.vue` | Chrome and **drawer items**. Nuxt route names come from the file path: `settings/organizations/[id].vue` → `settings-organizations-id` |
+
+Rendering is hybrid (`routeRules` in `nuxt.config.ts`): app routes (`/home/**`, `/settings/**`, `/auth`, `/ui`) render in the browser; public pages (`/`) render on the server with SEO meta. See [frontend-concept.md](frontend-concept.md#rendering).
 
 ### `shared/`
 
 | Path | Why it exists |
 |---|---|
+| `api/generated/` | Written by `pnpm gen:api`; never edited by hand |
+| `api/` | `client.ts` (client factory, `ApiError`, 401 refresh-and-retry), `resource.ts` (descriptor, query keys, page/save helpers), `useResource.ts` (Pinia Colada list/item/mutations, `useApiClient`) |
 | `ui/app/` | Primitives (`AppButton`, `AppInput`, `AppModal`, …). Extend these before adding a new kit component |
 | `ui/template/` | List/detail page templates, `PageHeader`, actions and their composables |
 | `ui/shadcn/` | Local shadcn primitives built on Reka UI; consumed through App components |
 | `ui/app/<cluster>/` | A primitive that needs several files (`select`, `date-picker`, `filters`) |
-| `composables/` | App-wide composables (`useRepo`, `useActionState`, `useToast`) |
-| `toolkits/repo/` | Generic repo/codec/pagination — do not fork this per feature |
+| `composables/` | App-wide composables (`useSession`, `useActionState`, `useToast`, `useWebSocketService`) |
 | `utils/` | Small frontend helpers |
 | `lib/` | Class-name composition (`cn`) for shadcn primitives; explicitly tracked despite Python `lib/` ignore rules |
 | `components/` | App chrome that is not a generic primitive (layout header, drawer) |
-| `stores/` | Rare app-level stores (setup wizard) |
+| `stores/` | Rare app-level stores (`useSetupStore`: the selected organization) |
 
-### `modules/base-auth/` and `server/` — current auth
-
-Current state; [roadmap.md](roadmap.md) stage 5 replaces it with FastAPI-owned HttpOnly cookies and removes the Nitro proxy.
-
-| Path | Why it exists |
-|---|---|
-| `modules/base-auth/index.ts` | Registers the module (`baseAuth` key in `nuxt.config.ts`): server handler, `useAuth`, `$auth` plugin, global middleware |
-| `runtime/server/api/auth/[...all].ts` | Nitro handler at `/api/auth/*` (`login`, `logout`, `refresh`, `me`, `tokens`) that calls FastAPI `/api/v1/auth/*` and sets `access_token` / `refresh_token` cookies |
-| `runtime/composables/useAuth.ts` | `session`, login/logout and periodic refresh on the client |
-| `runtime/middleware/auth.global.ts` | Loads tokens and session during SSR (skips `/ui`) |
-| `server/utils/cookie.ts` | `getCookieValue` — reads a cookie from the request or from fresh `Set-Cookie` headers |
-
-App-level redirects (`/auth`, `/home/setup`) live in `app/middleware/`. Business requests go through `$api` (`app/plugins/`), which forwards the request cookie during SSR.
+Auth lives in FastAPI: it sets and rotates HttpOnly cookies, the frontend never holds a token. The browser reaches the API on its own origin; during SSR Nitro calls `NUXT_API_INTERNAL_URL` with the request's cookie (GET only). There is no Nitro API proxy.
 
 ---
 
 ## Request flow (mental model)
 
 ```
-Page (pages/) → Feature view → useRepo('key') → $api /api/v1/…
+Page (pages/) → Feature view → AppListTemplate / AppDetailTemplate (:resource)
+              → Pinia Colada query/mutation ([key, 'list', params] / [key, id])
+              → generated SDK function (organizationsList) → $api client
+                  browser: /api/v1/… same origin (+cookies, Organization-Key, 401 → refresh → retry)
+                  SSR:     NUXT_API_INTERNAL_URL/api/v1/… (+forwarded cookie)
                                                       ↓
 Router (domains/*/views.py) → ViewSet → FilterObjectsManager → Model
                                          optional DomainService
 ```
 
-Frontend never calls `useFetch` for business resources — always a repo.
+Frontend never calls `useFetch`/`$fetch` for business resources — always a resource descriptor (or a generated SDK function with `useApiClient()` for non-CRUD actions).
 
-In production every request enters the container through Caddy (`:8080`): `/api/v1/*` and `/ws/*` go to uvicorn on `127.0.0.1:8000`, `/_nuxt/*` is served from the build output, everything else goes to the Nuxt server on `127.0.0.1:3000`. Details: [deployment.md](deployment.md).
+In production every request enters the container through Caddy (`:8080`): `/api/v1/*` and `/ws/*` go to uvicorn on `127.0.0.1:8000`, `/_nuxt/*` is served from the build output, everything else goes to the Nuxt server on `127.0.0.1:3000`. In development `nuxt dev` (`:9001`) proxies `/api/v1/**` and `/ws/**` to uvicorn (`:9000`), so cookies and the CSRF Origin check behave the same. Details: [deployment.md](deployment.md).
 
 ---
 
