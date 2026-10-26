@@ -6,7 +6,7 @@
 # Base images, pinned here once (Dependabot updates these FROM lines). Builder and runtime share
 # the Python image so the venv's interpreter path matches; Node (builder and the copied binary)
 # uses the same Debian release, so the same glibc, as the runtime.
-FROM python:3.15.1-slim-trixie AS python
+FROM python:3.16.0a1-slim-trixie AS python
 FROM node:26.12.1-trixie-slim AS node
 FROM caddy:2.11.7-alpine AS caddy
 FROM ghcr.io/astral-sh/uv:0.13.5 AS uv
