@@ -7,9 +7,9 @@
 # the Python image so the venv's interpreter path matches; Node (builder and the copied binary)
 # uses the same Debian release, so the same glibc, as the runtime.
 FROM python:3.15.1-slim-trixie AS python
-FROM node:26.12.1-trixie-slim AS node
+FROM node:26.13.0-trixie-slim AS node
 FROM caddy:2.11.7-alpine AS caddy
-FROM ghcr.io/astral-sh/uv:0.13.5 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.6 AS uv
 
 # ===== s6-overlay: downloaded and checksum-verified in a throwaway stage =====
 FROM debian:trixie-slim AS s6
