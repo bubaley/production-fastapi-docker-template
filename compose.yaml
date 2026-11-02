@@ -58,7 +58,7 @@ services:
     logging: *logging
 
   redis:
-    image: redis:8.10.2-alpine
+    image: redis:8.10.3-alpine
     restart: unless-stopped
     init: true
     stop_grace_period: 20s
