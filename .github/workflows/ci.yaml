@@ -426,6 +426,7 @@ jobs:
 
   # One build of the release tag, pushed to every configured registry: Yandex CR (vars.YC_REGISTRY_ID and
   # vars.IMAGE_NAME) and/or Docker Hub (vars.DOCKERHUB_USERNAME). Off until one of them is configured.
+  # Yandex CR rejects attestation manifests, so it always gets a plain image; Docker Hub follows ATTESTATIONS.
   publish:
     name: Publish image
     needs: release
@@ -443,14 +444,16 @@ jobs:
       tag: ${{ steps.release.outputs.tag }}
       latest: ${{ steps.ref.outputs.latest }}
       image: ${{ steps.ref.outputs.deploy-image }}
-      digest: ${{ steps.build.outputs.digest }}
+      # Digest of the deploy image: Yandex CR when configured, else Docker Hub (the two differ with attestations).
+      digest: ${{ steps.build-yc.outputs.digest || steps.build-hub.outputs.digest }}
     env:
       YC_IMAGE: ${{ vars.YC_REGISTRY_ID != '' && vars.IMAGE_NAME != '' && format('cr.yandex/{0}/{1}', vars.YC_REGISTRY_ID, vars.IMAGE_NAME) || '' }}
       DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
       DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
       REQUESTED_TAG: ${{ inputs.republish }}
       RELEASE_TAG: ${{ needs.release.outputs.tag }}
-      # registry: SBOM + provenance attached in the registries; ghcr: plain images, attested copy in GHCR; off: none.
+      # Docker Hub only (Yandex CR always gets a plain image): registry: SBOM + provenance attached on Docker Hub;
+      # ghcr: plain images, attested copy in GHCR; off: none.
       ATTESTATIONS: ${{ vars.ATTESTATIONS || 'registry' }}
     steps:
       - name: Release tag
@@ -493,7 +496,7 @@ jobs:
           if [ "$TAG" = "$newest" ]; then latest=true; else latest=false; fi
 
           images=()
-          [ -n "$YC_IMAGE" ] && images+=("$YC_IMAGE")
+          if [ -n "$YC_IMAGE" ]; then images+=("$YC_IMAGE"); fi
           dockerhub=""
           if [ -n "$DOCKERHUB_USERNAME" ]; then
             dockerhub="${DOCKERHUB_IMAGE:-$DOCKERHUB_REPOSITORY}"
@@ -519,10 +522,12 @@ jobs:
             echo "sha=$(git rev-parse HEAD)"
             echo "short=$(git rev-parse --short=7 HEAD)"
             echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "yc=${YC_IMAGE}"
             echo "dockerhub=${dockerhub}"
             # The deploy job pulls by digest from Yandex CR, or from Docker Hub when that is the only registry.
             echo "deploy-image=${images[0]}"
             echo "ghcr=ghcr.io/${GITHUB_REPOSITORY,,}"
+            # Docker Hub only; Yandex CR answers "Cannot read manifest data" to attestation manifests.
             if [ "$ATTESTATIONS" = registry ]; then echo "attest=true"; else echo "attest=false"; fi
             echo "images<<EOF"
             printf '%s\n' "${images[@]}"
@@ -546,17 +551,50 @@ jobs:
           labels: |
             org.opencontainers.image.version=${{ steps.ref.outputs.version }}
             org.opencontainers.image.revision=${{ steps.ref.outputs.sha }}
-      # The release commit only changes version.json and CHANGELOG.md, so this build reuses the layers the image
-      # job cached on main; it does not write the cache again.
-      - name: Build and push
-        id: build
+      - name: Tags per registry
+        id: tags
         if: steps.ref.outputs.proceed == 'true'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          YC: ${{ steps.ref.outputs.yc }}
+          DOCKERHUB: ${{ steps.ref.outputs.dockerhub }}
+        run: |
+          {
+            echo "yc<<EOF"
+            if [ -n "$YC" ]; then awk -v prefix="${YC}:" 'index($0, prefix) == 1' <<< "$TAGS"; fi
+            echo "EOF"
+            echo "dockerhub<<EOF"
+            if [ -n "$DOCKERHUB" ]; then awk -v prefix="${DOCKERHUB}:" 'index($0, prefix) == 1' <<< "$TAGS"; fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+      # The release commit only changes version.json and CHANGELOG.md, so this build reuses the layers the image
+      # job cached on main; it does not write the cache again. The Docker Hub push below reuses this build.
+      - name: Build and push to Yandex CR (no attestations)
+        id: build-yc
+        if: steps.ref.outputs.proceed == 'true' && steps.ref.outputs.yc != ''
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/amd64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.tags.outputs.yc }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.ref.outputs.version }}
+            GIT_SHA=${{ steps.ref.outputs.sha }}
+            BUILD_DATE=${{ steps.ref.outputs.created }}
+          provenance: false
+          sbom: false
+          cache-from: ${{ env.BUILD_CACHE }}
+      - name: Build and push to Docker Hub
+        id: build-hub
+        if: steps.ref.outputs.proceed == 'true' && steps.ref.outputs.dockerhub != ''
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.tags.outputs.dockerhub }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             APP_VERSION=${{ steps.ref.outputs.version }}
@@ -603,14 +641,15 @@ jobs:
         if: steps.ref.outputs.proceed == 'true'
         env:
           TAG: ${{ steps.release.outputs.tag }}
-          DIGEST: ${{ steps.build.outputs.digest }}
-          IMAGES: ${{ steps.ref.outputs.images }}
+          YC_DIGEST: ${{ steps.build-yc.outputs.digest }}
+          HUB_DIGEST: ${{ steps.build-hub.outputs.digest }}
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           {
             echo "### Image ${TAG}"
             echo
-            echo "Digest \`${DIGEST}\`. Attestations: ${ATTESTATIONS}."
+            if [ -n "$YC_DIGEST" ]; then echo "- Yandex CR: \`${YC_DIGEST}\`, no attestations"; fi
+            if [ -n "$HUB_DIGEST" ]; then echo "- Docker Hub: \`${HUB_DIGEST}\`, attestations: ${ATTESTATIONS}"; fi
             echo
             echo '```'
             echo "$TAGS"
