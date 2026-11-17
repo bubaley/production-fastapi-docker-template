@@ -3,6 +3,10 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.12.0] - 2026-11-17
+
+### Features
+- **auth:** create the first superuser in a first-run setup screen (f1edfa0)
 ## [0.11.0] - 2026-11-17
 
 ### Features
