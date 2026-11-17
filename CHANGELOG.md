@@ -3,6 +3,17 @@
 All notable changes to this project are documented in this file.
 It is generated from conventional commits by the release job; do not edit it by hand.
 
+## [0.11.0] - 2026-11-17
+
+### Features
+- **ui:** page lists take a subheader and a search model (f948ef8)
+
+### Bug fixes
+- **api:** send and read UTF-8 organization keys in the Organization-Key header (47d6793)
+- **api:** resolve the Organization-Id header (311e6e6)
+- **taskiq:** run cron schedules declared on tasks (5a497c7)
+- **make:** run the CI pre-commit hooks in make check (3e4d596)
+- **ci:** push plain images to Yandex CR and keep attestations for Docker Hub (26b4a6e)
 ## [0.10.0] - 2026-11-17
 
 ### Features
