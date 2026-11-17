@@ -5,16 +5,19 @@ description: Build or restyle frontend UI the way this template's design system 
 
 # Design system
 
-Rules: [frontend-concept.md](../../../docs/frontend-concept.md) — Design system, Templates, UI layers and visual review, Button and table variants. Live reference: `/ui`.
+Rules: [frontend-concept.md](../../../docs/frontend-concept.md) — Design system, Templates, UI layers and visual review, Button and table variants, Page shell, UI catalogue, Empty states. Live reference: `/ui` — a catalogue with its own sidebar, one route per section (`/ui/buttons`, `/ui/empty-state`, …).
 
 **Build**
 1. Compose screens from `AppPageView`, `AppListTemplate`/`AppDetailTemplate`, `AppSection`, `AppCard` and other `App*` components. Features never import `reka-ui` or `shared/ui/shadcn` (the architecture guard fails).
 2. Missing primitive? Extend an `App*` component; a genuinely new one → `add-shadcn-component` skill.
 3. Colors, radii, sizes only through tokens from `app/assets/styles/theme.css` via utilities (`bg-card`, `text-success`, `h-control-md`, `z-overlay`). No hex values, no `bg-[color:var(--…)]`, no inline geometry styles.
-4. One vocabulary: `variant`, `tone` (`success`/`info`/`warning`/`destructive`), `size` (`xs`–`lg`). Two or more buttons in a row → `AppTemplateActions`; a single async click → `useActionState`.
-5. Icons: `@lucide/vue` components. Dates: `useDate()`.
-6. Copy: **Russian** for product screens (titles, labels, empty states, toasts, errors). `/ui` is the only English screen.
-7. Re-branding (palette, neutral surfaces): "Re-branding a fork" in the doc; check `/ui` → Tokens.
+4. One vocabulary: `variant`, `tone` (`success`/`info`/`warning`/`destructive`), `size` (`xs`–`lg`). Buttons are `default` (neutral black/white) for every ordinary action; `primary` (palette accent) at most once per screen, only for the action that must stand out — "`default` vs `primary`" in the doc. Two or more buttons in a row → `AppTemplateActions`; a single async click → `useActionState`.
+5. Page geometry only through the page shell: `AppPageView` props (`divided`, `maxWidth`, `align`, `sticky`: `none` by default, `controls` pins the filter row, `header` the whole header) and the `--page-*` tokens in `theme.css` consumed by `pageContainer.ts`; no hand-written page paddings or dividers.
+6. Icons: `@lucide/vue` components. Dates: `useDate()`.
+7. Copy: **Russian** for product screens (titles, labels, empty states, toasts, errors). `/ui` is the only English screen.
+8. Empty list, table or block → `AppEmptyState` (one primary action, at most one secondary); flow outcome → `AppResultState`; missing value → `AppEmptyData`. See "Empty states" in the doc.
+9. Re-branding (palette, neutral surfaces): "Re-branding a fork" in the doc; check `/ui/colors`.
+10. A new or changed `App*` component gets a demo in its `/ui` section (`features/ui/sections/<group>/`); a new section is one file plus one entry in `features/ui/catalog.ts`.
 
 **Review in the browser** (required; checks do not replace it)
 1. `make run-backend` + `make run-frontend` (or use running servers); open the affected screens and `/ui`.

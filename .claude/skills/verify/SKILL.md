@@ -8,7 +8,7 @@ description: Run and interpret the project's full check suite (make check) for t
 `make check` is exactly what CI runs (read-only). Source of truth: the `check*` targets in the [Makefile](../../../Makefile).
 
 1. Fix-and-format first: `make lint` (ruff fix/format for backend + tooling, Oxfmt + Oxlint/ESLint fix for frontend).
-2. Run `make check`. Postgres down (`docker compose up -d db` fails or tests cannot connect) or the change has an unapplied migration → `make check PYTEST_ARGS=--sqlite`. Say which mode you used.
+2. Run `make check`. Postgres down (`docker compose up -d db` fails or tests cannot connect) → `make check PYTEST_ARGS=--sqlite`. Say which mode you used.
 3. Read the first failure, not the last line. Map it:
    | Failure | Meaning / fix |
    |---|---|
@@ -17,7 +17,7 @@ description: Run and interpret the project's full check suite (make check) for t
    | pytest `frontend/openapi.json is stale` | API changed: `make gen-client` and commit `openapi.json` + `generated/` |
    | pytest `DomainDiscoveryError` | A domain's `views.py` failed to import or exports no `routers` |
    | pytest `ScopeConfigurationError` | A model lacks `tenant_scope` ([backend-concept.md](../../../docs/backend-concept.md#scoping)) |
-   | pytest relation/table missing (Postgres only) | Migration not applied: ask the user to run `make m`, use `--sqlite` meanwhile |
+   | pytest relation/table missing (Postgres only) | Migration missing or not applied: `make mm` if models changed, then `make m` |
    | `scripts/tests` | Scaffolder, `make init` or `.claude/hooks` broke; a template file they rewrite may have changed shape |
    | `fmt:check` / `lint` (frontend) | `make lint`, then fix what Oxlint/ESLint still report |
    | `typecheck` | vue-tsc error; after an API change check resource descriptors against the regenerated types |
