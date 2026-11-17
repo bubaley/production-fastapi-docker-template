@@ -690,7 +690,9 @@ Page-mode `AppListTemplate` puts search, `search-actions` and `filters` in
 AppPageView's `controls` region (it scrolls with the page unless the list passes `sticky="controls"` or `"header"`). `AppListToolbar` owns their shared layout;
 AppList hides its inline toolbar in page mode to avoid duplicate controls. Nested
 lists keep the same toolbar inside their section, sticky within its scroll area.
-Search/query/pagination state remains owned by useListData.
+Search/query/pagination state remains owned by useListData. A page-mode list also forwards a `#subheader` slot (counters
+or a summary between the header and the controls, as in `AppPageView`), and `v-model:search` lets the parent preset or
+read the search text (e.g. from the URL); both are optional. Live: `/ui/templates`, «Page list».
 
 Page table lists default to `tableBleed=true`: `PAGE_TABLE_BLEED_CLASS` (`pageContainer.ts`) cancels the
 page gutter with `-mx-(--page-gutter-x)` and gives the edge cells the gutter back, so row lines and hover run edge to

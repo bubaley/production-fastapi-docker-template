@@ -18,6 +18,14 @@
       />
     </template>
 
+    <!-- Page mode: content between the header and the controls (counters, a summary), as in AppPageView. -->
+    <template
+      v-if="templateVariant === 'page' && $slots.subheader"
+      #subheader
+    >
+      <slot name="subheader" />
+    </template>
+
     <template
       v-if="templateVariant === 'page' && (showSearch || filterSpec || $slots['search-actions'] || $slots.filters)"
       #controls
@@ -172,6 +180,8 @@ const emit = defineEmits<{
 }>()
 
 const filters = defineModel<ViewFilters>('filters', { default: () => ({}) })
+/** Optional `v-model:search`: the search box text (a parent can preset it, e.g. from the URL). */
+const search = defineModel<string>('search', { default: '' })
 
 const router = useRouter()
 const toast = useToast()
@@ -180,6 +190,16 @@ const detailModal = ref(false)
 
 const sectionBind = useSectionBind(props)
 const listData = useListData<T, F>(() => props, filters)
+watch(
+  search,
+  (value) => {
+    if (value !== listData.search.value) listData.search.value = value
+  },
+  { immediate: true },
+)
+watch(listData.search, (value) => {
+  search.value = value
+})
 
 // Modal mode shows the row at once, then replaces it with a fresh `[key, id]` record once that has loaded.
 const openedId = ref<string | null>(null)

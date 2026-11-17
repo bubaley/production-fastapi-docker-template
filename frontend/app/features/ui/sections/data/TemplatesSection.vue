@@ -3,6 +3,7 @@ import UiDemo from '../../components/UiDemo.vue'
 import { useUiDemoProjects } from '../../composables/useUiDemoResource'
 
 const { resource } = useUiDemoProjects()
+const pageSearch = ref('Anna')
 const detail = ref(resource.toForm({ name: 'New project', owner: 'Anna Smith' }))
 const actionLabels = {
   save: 'Save',
@@ -100,6 +101,54 @@ const actionLabels = {
         />
       </template>
     </AppListTemplate>
+  </UiDemo>
+  <UiDemo
+    title="Page list"
+    code='template-variant="page" #subheader v-model:search'
+    description="In page mode #subheader (counters, a summary) sits between the header and the controls. v-model:search lets the parent preset or read the search text, e.g. from the URL: this one starts filtered."
+    bare
+  >
+    <AppCard
+      padding="none"
+      class="h-96 overflow-hidden"
+    >
+      <AppListTemplate
+        v-model:search="pageSearch"
+        title="Projects"
+        search-placeholder="Search"
+        empty-text="No projects found"
+        :resource="resource"
+        template-variant="page"
+        sticky="controls"
+        hide-create-button
+        :infinite-scroll="false"
+      >
+        <template #subheader>
+          <div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>Search from the parent: «{{ pageSearch || '—' }}»</span>
+            <AppButton
+              size="sm"
+              variant="outline"
+              label="Preset «Mark»"
+              @click="pageSearch = 'Mark'"
+            />
+            <AppButton
+              size="sm"
+              variant="ghost"
+              label="Clear"
+              @click="pageSearch = ''"
+            />
+          </div>
+        </template>
+        <AppColumn
+          field="name"
+          header="Name"
+        /><AppColumn
+          field="owner"
+          header="Owner"
+        />
+      </AppListTemplate>
+    </AppCard>
   </UiDemo>
   <UiDemo
     title="Detail template"
