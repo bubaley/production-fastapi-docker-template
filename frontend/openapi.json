@@ -1,7 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "fastapi-nuxt-template",
+    "title": "FastAPI + Nuxt Template",
+    "description": "REST API of the product.",
     "version": "0.0.0-dev"
   },
   "paths": {

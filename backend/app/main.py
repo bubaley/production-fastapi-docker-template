@@ -13,6 +13,7 @@ from app.core.exceptions import register_exceptions_handlers
 from app.core.health import health_router, warm_up_database
 from app.core.logging import setup_logging
 from app.core.openapi import ERROR_RESPONSES, generate_operation_id, install_openapi, split_put_patch_routes
+from app.core.product import PRODUCT_DESCRIPTION, PRODUCT_NAME
 from app.core.redis import close_redis
 from app.core.request_id import REQUEST_ID_HEADER, RequestIdMiddleware
 from app.core.services.websocket_service import start_websocket_fanout, stop_websocket_fanout
@@ -47,7 +48,8 @@ class App(FastAPI):
 
 
 app = App(
-    title='fastapi-nuxt-template',
+    title=PRODUCT_NAME,
+    description=PRODUCT_DESCRIPTION,
     version=settings.app_version,
     lifespan=lifespan,
     telemetry=telemetry_config(),
