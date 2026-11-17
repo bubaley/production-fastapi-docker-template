@@ -1,0 +1,94 @@
+# Optional Dokploy stack: a "Docker Compose" service from this repository, compose path `./compose.dokploy.yaml`.
+# Same services as compose.yaml, but the app image comes from Docker Hub (`publish` in ci.yaml), no host
+# ports are published and `app` joins Dokploy's Traefik network. Dokploy writes the service's Environment tab to
+# `.env` next to this file; set APP_IMAGE there, e.g. <dockerhub-user>/fastapi-nuxt-template:latest.
+# Domain: Dokploy → Domains, service `app`, container port 8080, HTTPS on. Guide: docs/deployment.md#docker-hub-and-dokploy.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 10
+  start_period: 30s
+  start_interval: 2s
+
+services:
+  app:
+    image: ${APP_IMAGE:?set APP_IMAGE to the Docker Hub image, see docs/deployment.md}
+    pull_policy: always
+    restart: unless-stopped
+    init: false # s6-overlay is PID 1
+    stop_grace_period: 40s
+    expose:
+      - "8080"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DEBUG: "False"
+      COOKIE_SECURE: "True"
+      LOG_FORMAT: json
+      SQL_HOST: db
+      SQL_PORT: "5432"
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      BROKER_REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - default
+      - dokploy-network
+    logging: *logging
+
+  db:
+    image: postgres:18.7-alpine
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    shm_size: 256m
+    environment:
+      POSTGRES_DB: ${SQL_DATABASE:-postgres}
+      POSTGRES_USER: ${SQL_USER:-postgres}
+      POSTGRES_PASSWORD: ${SQL_PASSWORD:?set SQL_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+    logging: *logging
+
+  redis:
+    image: redis:8.10.3-alpine
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 20s
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    # AOF persistence; a password is required only when REDIS_PASSWORD is set.
+    command:
+      - sh
+      - -c
+      - exec redis-server --appendonly yes --appendfsync everysec $${REDIS_PASSWORD:+--requirepass "$$REDIS_PASSWORD"}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      <<: *healthcheck
+      test:
+        - CMD-SHELL
+        - '[ -z "$$REDIS_PASSWORD" ] || export REDISCLI_AUTH="$$REDIS_PASSWORD"; redis-cli ping | grep -q PONG'
+    logging: *logging
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  postgres_data:
+  redis_data:

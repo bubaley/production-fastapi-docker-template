@@ -213,9 +213,6 @@ tramp
 # Linux
 *~
 
-# Docker
-.dockerignore
-
 # Local data
 data/
 

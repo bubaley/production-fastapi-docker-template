@@ -5,11 +5,12 @@ Turn a fresh copy of the template into a new product.
     python scripts/bootstrap/init.py my-product --title "Мой продукт" [--force] [--template-commit SHA]
 
 - renames the project: COMPOSE_PROJECT_NAME / SQL_DATABASE / OTEL_SERVICE_NAME in .env.example, package names
-  (backend/pyproject.toml + uv.lock, frontend/package.json), API title (main.py, openapi.json), product name
-  (app.config.ts, README), image names (Makefile, compose.yaml, ci.yaml, Dockerfile, docs/deployment.md)
+  (backend/pyproject.toml + uv.lock, frontend/package.json), product name (backend/app/core/product.py
+  and openapi.json, frontend/app/app.config.ts, README), image names (Makefile, compose.yaml, ci.yaml, Dockerfile, docs/deployment.md), the
+  Docker Hub repository (ci.yaml, rollback.yaml, compose.dokploy.yaml, docs/deployment.md)
 - writes .env from .env.example with a fresh SECRET_KEY and ENCRYPTION_KEY (an existing .env keeps its values;
   only the example placeholders are replaced)
-- first run only: versions back to 0.1.0, empty CHANGELOG.md, docs/product.md reset to the product skeleton,
+- first run only: version.json back to 0.1.0, empty CHANGELOG.md, docs/product.md reset to the product skeleton,
   .template-version records the template version and commit this product starts from
 
 Idempotent: a second run with the same arguments changes nothing. Refuses a dirty git tree unless --force.
@@ -142,8 +143,8 @@ def rename(editor: Editor, old: str, new: str, title: str) -> None:
     editor.sub('backend/pyproject.toml', r'^name = "[^"]*"$', f'name = "{new}"', count=1)
     editor.sub('backend/uv.lock', rf'^(\[\[package\]\]\n)name = "{image}"$', rf'\1name = "{new}"', count=1)
     editor.sub('frontend/package.json', r'^  "name": "[^"]*",$', f'  "name": "{new}",', count=1)
-    editor.sub('backend/app/main.py', r"^    title='[^']*',$", f"    title='{new}',", count=1)
-    editor.sub('frontend/openapi.json', r'^    "title": "[^"]*",$', f'    "title": "{new}",', count=1)
+    editor.sub('backend/app/core/product.py', r"^PRODUCT_NAME = '[^']*'$", f"PRODUCT_NAME = '{title}'", count=1)
+    editor.sub('frontend/openapi.json', r'^    "title": "[^"]*",$', f'    "title": "{title}",', count=1)
     editor.sub('frontend/app/app.config.ts', r"^  name: '[^']*',$", f"  name: '{title}',", count=1)
     editor.sub('README.md', r'^# .*$', f'# {title}', count=1)
     editor.sub('Makefile', r'^IMAGE \?= .*$', f'IMAGE ?= {new}:local', count=1)
@@ -152,30 +153,24 @@ def rename(editor: Editor, old: str, new: str, title: str) -> None:
     editor.sub('.github/workflows/ci.yaml', r'^(  CI_IMAGE: ).*$', rf'\g<1>{new}:ci', count=1)
     editor.sub('Dockerfile', r'(org\.opencontainers\.image\.title=")[^"]*(")', rf'\g<1>{new}\g<2>', count=1)
     editor.sub('docs/deployment.md', r'^(\| `IMAGE_NAME` \| publish \| `)[^`]*(` \|)$', rf'\g<1>{new}\g<2>', count=1)
+    for workflow in ('.github/workflows/ci.yaml', '.github/workflows/rollback.yaml'):
+        editor.sub(workflow, r'^( +DOCKERHUB_REPOSITORY: ).*$', rf'\g<1>{new}', count=1)
     if old != new:
         for relative in ('docs/deployment.md', 'README.md'):
             source = editor.read(relative)
             if source is not None:
                 editor.write(relative, re.sub(rf'(?<![\w.-]){image}:local\b', f'{new}:local', source))
+        # Docker Hub references: `<user>/<name>:<tag>` and `<user>/<name>` in code spans.
+        for relative in ('compose.dokploy.yaml', 'docs/deployment.md'):
+            source = editor.read(relative)
+            if source is not None:
+                editor.write(relative, re.sub(rf'(?<=/){image}(?=[:`])', new, source))
 
 
-def reset_versions(editor: Editor, old: str, new: str) -> None:
+def reset_versions(editor: Editor) -> None:
+    # The release version lives only in version.json (and the v* tags). backend/pyproject.toml and
+    # frontend/package.json keep a fixed 0.0.0 so a release never touches the image build context.
     editor.write('version.json', json.dumps({'version': INITIAL_VERSION}, indent=2) + '\n')
-    editor.sub('backend/pyproject.toml', r'^version = "[^"]*"$', f'version = "{INITIAL_VERSION}"', count=1)
-    editor.sub(
-        'backend/uv.lock',
-        rf'^(\[\[package\]\]\nname = "(?:{re.escape(old)}|{re.escape(new)})"\n)version = "[^"]*"$',
-        rf'\g<1>version = "{INITIAL_VERSION}"',
-        count=1,
-    )
-    package = editor.read('frontend/package.json') or ''
-    if re.search(r'^  "version": ', package, re.MULTILINE):
-        editor.sub('frontend/package.json', r'^  "version": "[^"]*",$', f'  "version": "{INITIAL_VERSION}",', count=1)
-    else:
-        # The release job keeps `version` right after `name` (Oxfmt's package.json order).
-        editor.sub(
-            'frontend/package.json', r'^(  "name": "[^"]*",)$', rf'\1\n  "version": "{INITIAL_VERSION}",', count=1
-        )
     editor.write('CHANGELOG.md', CHANGELOG)
 
 
@@ -233,7 +228,7 @@ def init(root: Path, name: str, title: str, *, force: bool = False, template_com
             'version': version,
             'commit': template_commit or git(root, 'rev-parse', 'HEAD'),
         }
-        reset_versions(editor, old, name)
+        reset_versions(editor)
         skeleton = Template(SKELETON.read_text(encoding='utf-8')).substitute(title=title)
         editor.write('docs/product.md', skeleton)
         editor.write(TEMPLATE_VERSION_FILE, write_template_version(root, template_values))
@@ -280,7 +275,7 @@ def main(argv: list[str] | None = None) -> int:
         '  1. Review and commit: git add -A && git commit -m "chore: initialize from template"\n'
         '  2. make install\n'
         '  3. docker compose up -d db redis\n'
-        '  4. make m                       # apply migrations (run it yourself; agents ask first)\n'
+        '  4. make m                       # apply migrations\n'
         '  5. make createsuperuser\n'
         '  6. make run-backend / make run-frontend (two terminals)\n'
         '  7. Describe the product in docs/product.md (purpose, personas, scenarios, non-goals)'

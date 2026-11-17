@@ -1,4 +1,5 @@
-# Weekly dependency updates, minor/patch grouped per ecosystem.
+# Grouped minor/patch updates: uv and npm weekly, GitHub Actions and images monthly. Each ecosystem waits a few
+# days after a release (cooldown) so broken releases are usually yanked before a PR opens.
 # Commit prefixes feed the release rules in cliff.toml: chore(deps) and build(deps) release a patch,
 # ci(deps) (GitHub Actions) does not.
 version: 2
@@ -9,6 +10,9 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
     commit-message:
       prefix: chore
       include: scope
@@ -21,6 +25,16 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
+    ignore:
+      # TypeScript 7 (native compiler) is not supported by vue-tsc yet.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # 3.3.12-3.3.14 regress template type checking (vuejs/language-tools#6322, #6341); try the next release.
+      - dependency-name: vue-tsc
+        versions: [">= 3.3.12, < 3.3.15"]
     commit-message:
       prefix: chore
       include: scope
@@ -31,8 +45,9 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: ci
       include: scope
@@ -40,11 +55,19 @@ updates:
       actions-minor-patch:
         update-types: [minor, patch]
 
+  # Dockerfile base images. A new Python minor (3.16) or Node major changes the runtime: bump those by hand
+  # together with .python-version / .nvmrc. Keep the uv image in step with UV_VERSION (ci.yaml) and uv-pre-commit.
   - package-ecosystem: docker
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: python
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: node
+        update-types: [version-update:semver-major]
     commit-message:
       prefix: build
       include: scope
@@ -52,11 +75,18 @@ updates:
       docker-minor-patch:
         update-types: [minor, patch]
 
+  # PostgreSQL and Redis in compose files: a major version needs a data migration, so only minor/patch.
   - package-ecosystem: docker-compose
     directory: /
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: postgres
+        update-types: [version-update:semver-major]
+      - dependency-name: redis
+        update-types: [version-update:semver-major]
     commit-message:
       prefix: build
       include: scope
