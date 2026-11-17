@@ -69,9 +69,21 @@ class OwnedDataProvider:
 
     @classmethod
     def _parse_request(cls, request: Request) -> OwnedData:
-        data = {}
+        data: dict[str, str] = {}
         for key in OwnedData.model_fields:
             value = request.headers.get(f'{key.replace("_", "-")}')
             if value:
-                data[key] = value
+                data[key] = _header_text(value)
         return OwnedData.model_validate(data)
+
+
+def _header_text(value: str) -> str:
+    """
+    Header values arrive Latin-1 decoded. Browsers can send a non-ASCII organization key (e.g. Cyrillic) only as raw
+    UTF-8 bytes (`toHeaderValue` in the frontend API client), so a value that is valid UTF-8 is read as UTF-8; anything
+    else is kept as received.
+    """
+    try:
+        return value.encode('latin-1').decode('utf-8')
+    except UnicodeError:
+        return value

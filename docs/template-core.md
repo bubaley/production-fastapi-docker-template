@@ -18,7 +18,7 @@ Behavior only; how it is built: [architecture.md](architecture.md), [backend-con
 
 - A signed-in user works inside **one organization at a time**, chosen without a separate screen: the one remembered for this user while it is still available, else the first membership. The sidebar organization switcher is the only place to change it; it also offers «Создать организацию» and «Управление организациями».
 - A user with **no organization** sees the app with the «Новая организация» modal over it: it cannot be dismissed, only completed or left with «Выйти». Organization-free routes (the profile) stay reachable without it.
-- Creating an organization makes the creator a member. `name` is editable; `key` is the tenancy id (header `Organization-Key`) and fixed after creation.
+- Creating an organization makes the creator a member. `name` is editable; `key` is the tenancy id (header `Organization-Key`; `Organization-Id` with the UUID works too) and fixed after creation. A key is any text, Cyrillic included, without edge whitespace or control characters.
 - **Настройки → Организации**: list with search by name, a fixed exact-key filter and an addable "key contains" condition; detail with members. Members are added to the organization being viewed (not the active one) and can only be added or removed.
 - There are **no organization roles** — only membership and the global `is_superuser` flag.
 

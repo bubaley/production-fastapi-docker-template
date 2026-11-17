@@ -181,3 +181,19 @@ async def test_service_rejects_membership_update_by_outsider(db, user_factory):
     with pytest.raises(AppException) as error:
         await OrganizationService.update_member(membership, actor)
     assert error.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_utf8_organization_key_header_resolves(api_client, user_factory):
+    """Browsers send a non-ASCII (e.g. Cyrillic) key as raw UTF-8 bytes; it selects the organization."""
+    actor = await user_factory()
+    organization = await Organization.create(name='Сеть', key='Сеть Кафе')
+    await OrganizationUser.create(organization=organization, user=actor)
+    token = (await AuthService.start_session(actor)).access.token
+
+    async def members(key: str) -> int:
+        headers = [(b'Authorization', f'Bearer {token}'.encode()), (b'Organization-Key', key.encode('utf-8'))]
+        return (await api_client.get('/api/v1/organization-users', headers=headers)).status_code
+
+    assert await members('Сеть Кафе') == 200
+    assert await members('сеть Кафе') == 400

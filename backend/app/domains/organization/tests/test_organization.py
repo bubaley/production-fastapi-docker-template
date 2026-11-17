@@ -31,3 +31,13 @@ async def test_organization_key_must_be_unique(db):
 
     with pytest.raises(IntegrityError):
         await Organization.create(name='Other', key='acme')
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('key', [' acme', 'acme ', 'ac\nme', '', 'k' * 129])
+async def test_organization_key_must_travel_in_a_header(api_client, user_factory, auth_headers, key):
+    """Edge whitespace is trimmed in transit and control characters cannot be sent, so such a key never resolves."""
+    headers = await auth_headers(await user_factory())
+    response = await api_client.post('/api/v1/organizations', headers=headers, json={'name': 'Acme', 'key': key})
+    assert response.status_code == 422
+    assert not await Organization.filter(name='Acme').exists()
