@@ -6,6 +6,8 @@ from tortoise.expressions import Q, Subquery
 from app.core.models import BaseModel
 from app.core.scope import Scope
 
+ORGANIZATION_KEY_MAX_LENGTH = 128
+
 
 def _memberships_of_user_organizations(user_id: UUID) -> Q:
     # A subquery instead of 'organization__org_users__user_id': Tortoise mis-aliases that self-join.
@@ -33,7 +35,7 @@ class OrganizationUser(BaseModel):
 
 class Organization(BaseModel):
     name = fields.CharField(max_length=128)
-    key = fields.CharField(max_length=128, unique=True, db_index=True)
+    key = fields.CharField(max_length=ORGANIZATION_KEY_MAX_LENGTH, unique=True, db_index=True)
 
     tenant_scope = Scope(user='org_users__user_id')
 

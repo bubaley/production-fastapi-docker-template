@@ -88,6 +88,14 @@ export type ApiClientOptions = {
   fetch?: typeof fetch
 }
 
+/**
+ * `fetch` accepts only ISO-8859-1 header values. A non-ASCII value (a Cyrillic `Organization-Key`) is sent as its
+ * UTF-8 bytes, one character per byte; the backend reads such values back as UTF-8.
+ */
+export const toHeaderValue = (value: string): string =>
+  // oxlint-disable-next-line no-control-regex
+  /^[\x00-\x7f]*$/.test(value) ? value : String.fromCharCode(...new TextEncoder().encode(value))
+
 export const createApiClient = (options: ApiClientOptions): ApiClient => {
   const baseFetch = options.fetch ?? ((...args: Parameters<typeof fetch>) => globalThis.fetch(...args))
   const client = createClient(createConfig({ baseUrl: options.baseUrl, credentials: 'same-origin' }))
@@ -104,7 +112,7 @@ export const createApiClient = (options: ApiClientOptions): ApiClient => {
   }
   client.interceptors.request.use((request) => {
     for (const [name, value] of Object.entries(options.headers?.() ?? {})) {
-      if (value) request.headers.set(name, value)
+      if (value) request.headers.set(name, toHeaderValue(value))
     }
     return request
   })

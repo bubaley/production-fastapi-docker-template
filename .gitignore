@@ -214,7 +214,7 @@ tramp
 *~
 
 # Local data
-data/
+/data/
 
 # Cloud deployment
 .vercel

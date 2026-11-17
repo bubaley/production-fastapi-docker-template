@@ -148,6 +148,8 @@ tenant_scope = Scope(
 )
 ```
 
+The active organization comes from `Organization-Key` or, alternatively, `Organization-Id` (its UUID); sending both → 400. Either one resolves only among the user's memberships, superusers included (`OwnedDataProvider`, `app/shared/services/owned_data_provider.py`); an unknown or foreign value → 400 `Invalid organization_key or organization_id`. A key may be any text up to the column length without edge whitespace or control characters (validated on create, so it survives a header). Browsers cannot put non-ASCII text in a `fetch` header, so the frontend client sends such a key as its UTF-8 bytes (`toHeaderValue` in `shared/api/client.ts`) and the backend reads a header value that is valid UTF-8 as UTF-8.
+
 The user rule always applies, so a forged or stale `Organization-Key` cannot widen access. Superuser bypass lives on the viewset (`if user.is_superuser: return Model.all()`, else `await super().get_queryset()`), not in the scope.
 
 `organization` is assigned from `AuthState` on **create only** (`process_state_to_model` in `BaseGenericViewSet.before_save`); an update never moves a row to another organization.
@@ -339,6 +341,18 @@ The broker is `RedisStreamBroker` (acknowledged after execution) with a result b
 4. Test with `await (await my_task.kiq(...)).wait_result()`.
 
 Example: `app/domains/organization/tasks.py` (`notify_organization_members`) and its test.
+
+**Scheduled tasks.** Declare the schedule on the task itself; the scheduler (`app.core.broker:scheduler`, `make rt` locally, the `taskiq-scheduler` service in the image) reads task labels (`LabelScheduleSource`) on start and sends the task to the worker on time:
+
+```python
+@broker.task(task_name='<domain>.cleanup', schedule=[{'cron': '0 3 * * *', 'schedule_id': '<domain>.cleanup'}])
+async def cleanup() -> None: ...
+```
+
+- `cron` is evaluated in UTC (`cron_offset` shifts it, e.g. `'Europe/Moscow'`); `interval` (seconds) and `time` (one-off) work too; `args` / `kwargs` are passed to the task. A stable `schedule_id` keeps logs readable.
+- Schedules are read when the scheduler starts: restart it after changing them. Run one scheduler per deployment (`TASKIQ_SCHEDULER=false` on other replicas), or the task runs once per scheduler.
+- Schedules created at runtime go to `redis_schedule_source` (`ListRedisScheduleSource`) from the same module.
+- Test the task body by calling the task (see above); `app/core/tests/test_scheduler.py` checks that labels reach the scheduler.
 
 ---
 

@@ -107,7 +107,7 @@ One workflow, [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml):
 pull_request / push to main
   changes ──┬─ backend     (if backend/**, Makefile, .python-version: PostgreSQL 18 + Redis services, make check-backend)
             ├─ frontend    (if frontend/**, .nvmrc: make check-frontend)
-            ├─ pre-commit  (always: yaml, eol, whitespace, large files, pyupgrade, bandit, uv lock, pyproject-fmt;
+            ├─ pre-commit  (always, make check-hygiene: yaml, eol, whitespace, large files, pyupgrade, bandit, uv lock, pyproject-fmt;
             │               gitleaks over the new commits)
             └─ image       (if any code or infra changed: buildx + GHA cache, nuxt build, compose smoke test, Trivy)
                  └─ gate   (always; the only required check; path-skipped jobs are allowed)
@@ -149,7 +149,7 @@ On every push to `main` that passes the gate, the `release` job:
 
 The release commit carries `[skip ci]`, so it does not start another pipeline. Version files are never edited by hand.
 
-`publish` checks out the tag, builds the image once from the CI build cache and pushes it to every configured registry: Yandex Container Registry as `cr.yandex/<YC_REGISTRY_ID>/<IMAGE_NAME>` and/or [Docker Hub](#docker-hub-and-dokploy) (`DOCKERHUB_USERNAME`). Tags: `X.Y.Z`, `X.Y`, `sha-<short>` and `latest`. SBOM and provenance attestations are attached by default. If a registry rejects attestation manifests, set `ATTESTATIONS=ghcr`: the images are pushed without them and an attested copy goes to `ghcr.io/<owner>/<repo>:X.Y.Z` (`ATTESTATIONS=off` disables both). The job summary shows the digest and tags.
+`publish` checks out the tag, builds the image once from the CI build cache and pushes it to every configured registry: Yandex Container Registry as `cr.yandex/<YC_REGISTRY_ID>/<IMAGE_NAME>` and/or [Docker Hub](#docker-hub-and-dokploy) (`DOCKERHUB_USERNAME`). Tags: `X.Y.Z`, `X.Y`, `sha-<short>` and `latest`. Attestations are decided per registry: Yandex CR does not accept attestation manifests (the push fails with `Cannot read manifest data`), so it always gets a plain image; Docker Hub gets SBOM and provenance attestations by default. `ATTESTATIONS` applies to Docker Hub only: `registry` (default), `ghcr` (plain images, an attested copy goes to `ghcr.io/<owner>/<repo>:X.Y.Z`) or `off`. With both registries the job pushes Yandex CR first and Docker Hub second from the same build (a cache hit), so the two digests differ when Docker Hub carries attestations; `deploy` and [Rollback](#rollback) use the Yandex CR digest when it is configured, else the Docker Hub one. The job summary shows each registry's digest and the tags.
 
 *Run workflow* on **CI** with `republish` set to a tag (`v1.4.2`) skips the checks and the release and runs only `publish` for that tag, e.g. after configuring a new registry. Republishing a tag that is not the newest moves neither `latest` nor `X.Y` and does not deploy (use [Rollback](#rollback)).
 
@@ -170,7 +170,7 @@ Repository **variables** (Settings → Secrets and variables → Actions → Var
 | `YC_REGISTRY_ID` | publish | `crp1a2b3c4d5e6f7g8h9` |
 | `IMAGE_NAME` | publish | `my-app` |
 | `YC_SA_ID` | publish, keyless (optional) | service account id for [workload identity federation](https://yandex.cloud/en/docs/iam/tutorials/wlif-github-integration) |
-| `ATTESTATIONS` | publish (optional) | `registry` (default), `ghcr` or `off` |
+| `ATTESTATIONS` | publish (optional) | Docker Hub only: `registry` (default), `ghcr` or `off`. Yandex CR always gets images without attestations (it rejects them) |
 | `RELEASE_APP_CLIENT_ID` | release past branch protection | GitHub App client id |
 | `DEPLOY_ENABLED` | deploy, rollback | `true` |
 | `DEPLOY_PATH` | deploy (optional) | `/opt/app` (default) |

@@ -70,15 +70,21 @@ class EntityResolver[BaseModelT: BaseModel]:
                     model_key_data.setdefault(value, []).append(entity)
         return self
 
-    def __get_entity(self, data: EntityResolverGetData, extra_filter: Callable[[BaseModelT], bool] | None = None):
+    def __get_entity(
+        self, data: EntityResolverGetData, extra_filter: Callable[[BaseModelT], bool] | None = None
+    ) -> BaseModelT | None:
         values = self._keys_entities.get(data['key'], {}).get(data['value'], [])
         if extra_filter:
             values = [v for v in values if extra_filter(v)]
         return values[0] if values else None
 
-    def get(self, data: ResolverGetDataType, extra_filter: Callable[[BaseModelT], bool] | None = None):
+    def get(
+        self, data: ResolverGetDataType, extra_filter: Callable[[BaseModelT], bool] | None = None
+    ) -> BaseModelT | None:
+        """The entity found by the first candidate that resolves; candidates without a match are skipped."""
         _data = data if isinstance(data, list) else [data]
-        return next((self.__get_entity(v, extra_filter) for v in _data), None)
+        entities = (self.__get_entity(v, extra_filter) for v in _data)
+        return next((entity for entity in entities if entity is not None), None)
 
     def validate_and_get(self, data: ResolverGetDataType, extra_filter: Callable[[BaseModelT], bool] | None = None):
         _data = data if isinstance(data, list) else [data]

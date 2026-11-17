@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vite-plus/test'
-import { ApiError, createApiClient, createAuthFetch, isApiError } from '../app/shared/api/client'
+import { ApiError, createApiClient, createAuthFetch, isApiError, toHeaderValue } from '../app/shared/api/client'
 import { organizationsCreate, organizationsList } from '../app/shared/api/generated'
 
 const json = (status: number, body: unknown = {}) =>
@@ -124,5 +124,16 @@ describe('generated client wiring', () => {
     })
     await organizationsList({ client, throwOnError: true })
     expect(paths).toEqual(['GET /api/v1/organizations', 'POST /api/v1/auth/refresh', 'GET /api/v1/organizations'])
+  })
+})
+
+describe('request headers', () => {
+  it('sends a non-ASCII organization key as UTF-8 bytes', async () => {
+    const fetch = vi.fn(async (_request: Request) => json(200, { data: [], meta: {} }))
+    const client = createApiClient({ baseUrl: url(''), fetch, headers: () => ({ 'Organization-Key': 'Сеть Кафе' }) })
+    await organizationsList({ client, throwOnError: true })
+    const sent = fetch.mock.calls[0]![0].headers.get('Organization-Key')!
+    expect(new TextDecoder().decode(Uint8Array.from(sent, (char) => char.charCodeAt(0)))).toBe('Сеть Кафе')
+    expect(toHeaderValue('acme')).toBe('acme')
   })
 })

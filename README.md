@@ -108,7 +108,8 @@ Other useful commands: `make mm` (create migrations), `make help`.
 | `make rt` | Run Taskiq scheduler + worker |
 | `make lint` | Fix and format: `ruff check --fix` + `ruff format`; `pnpm fmt` + `pnpm lint:fix` |
 | `make fmt` | Format only (ruff format, Oxfmt) |
-| `make check` | Everything CI checks, read-only: `check-backend` + `check-frontend` |
+| `make check` | Everything CI checks: `check-hygiene` + `check-backend` + `check-frontend` |
+| `make check-hygiene` | The pre-commit hooks of the CI «Repository hygiene» job, same version and `SKIP` list: YAML, end of file, trailing whitespace, merge conflicts, large files, pyupgrade, bandit, `uv lock --locked`, pyproject-fmt (tracked files; needs network on the first run). Fixers rewrite the files they fail on |
 | `make check-backend` | `ruff check`, `ruff format --check`, `ty check`, pytest (`PYTEST_ARGS`, default `--keepdb`; `PYTEST_ARGS=--sqlite` without Postgres), tooling tests (`scripts/tests`: scaffolder, init, hooks) |
 | `make check-frontend` | `pnpm check` (format check, Oxlint + ESLint for Vue templates, typecheck, Vitest, architecture guard); `BUILD=1` adds `nuxt build` (CI builds it in the image instead) |
 | `make openapi` | Write the OpenAPI schema to `frontend/openapi.json` (no database needed); commit it with API changes |

@@ -1,5 +1,6 @@
 from taskiq import AsyncBroker, InMemoryBroker, TaskiqScheduler
 from taskiq.events import TaskiqEvents
+from taskiq.schedule_sources import LabelScheduleSource
 from taskiq_redis import ListRedisScheduleSource, RedisAsyncResultBackend, RedisStreamBroker
 from tortoise import Tortoise
 
@@ -22,7 +23,8 @@ def _build_broker() -> AsyncBroker:
 
 broker = _build_broker()
 redis_schedule_source = ListRedisScheduleSource(settings.broker_redis_url)
-scheduler = TaskiqScheduler(broker=broker, sources=[redis_schedule_source])
+# Labels: schedules declared on tasks (`@broker.task(schedule=[{'cron': ...}])`); Redis: schedules added at runtime.
+scheduler = TaskiqScheduler(broker=broker, sources=[LabelScheduleSource(broker), redis_schedule_source])
 
 
 @broker.on_event(TaskiqEvents.WORKER_STARTUP)
