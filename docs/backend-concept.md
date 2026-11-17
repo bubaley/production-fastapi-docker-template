@@ -148,6 +148,8 @@ tenant_scope = Scope(
 )
 ```
 
+The active organization comes from `Organization-Key` or, alternatively, `Organization-Id` (its UUID); sending both → 400. Either one resolves only among the user's memberships, superusers included (`OwnedDataProvider`, `app/shared/services/owned_data_provider.py`); an unknown or foreign value → 400 `Invalid organization_key or organization_id`. A key may be any text up to the column length without edge whitespace or control characters (validated on create, so it survives a header). Browsers cannot put non-ASCII text in a `fetch` header, so the frontend client sends such a key as its UTF-8 bytes (`toHeaderValue` in `shared/api/client.ts`) and the backend reads a header value that is valid UTF-8 as UTF-8.
+
 The user rule always applies, so a forged or stale `Organization-Key` cannot widen access. Superuser bypass lives on the viewset (`if user.is_superuser: return Model.all()`, else `await super().get_queryset()`), not in the scope.
 
 `organization` is assigned from `AuthState` on **create only** (`process_state_to_model` in `BaseGenericViewSet.before_save`); an update never moves a row to another organization.
