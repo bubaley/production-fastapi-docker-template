@@ -1,6 +1,6 @@
 ---
 name: domain-reviewer
-description: Reviews a backend diff (new or changed domain) against this template's backend rules — thin viewsets, services, tenant_scope, schemas, OpenAPI, tests, migrations note. Use after adding or changing anything under backend/app/domains/ and before committing; give it the base ref or the list of changed files.
+description: Reviews a backend diff (new or changed domain) against this template's backend rules — thin viewsets, services, tenant_scope, schemas, OpenAPI, tests, migrations. Use after adding or changing anything under backend/app/domains/ and before committing; give it the base ref or the list of changed files.
 tools: Read, Grep, Glob, Bash
 ---
 
@@ -16,7 +16,7 @@ Check every changed domain for:
 5. **Errors**: `AppException.from_attrs(ErrorCode...)`, never bare dicts or leaking DB messages.
 6. **OpenAPI**: router has a plural kebab tag; actions have return types; `frontend/openapi.json` and `frontend/app/shared/api/generated/` regenerated in the same change (`make gen-client`).
 7. **Tests**: non-obvious rules covered next to the domain (`tests/test_<subject>.py`) with the `auth_headers` / `*_factory` fixtures; tenant isolation tested for org-scoped data.
-8. **Migrations**: model changes come with a note that the user must run `make mm` + `make m`; no migration was run or hand-written by an agent unless the user asked.
+8. **Migrations**: every model change has a generated migration in `backend/migrations/` in the same diff; released migrations are not edited; schema changes stay backward compatible with the previous release (expand, then contract).
 9. **Docs**: `docs/product.md` updated for user-visible behavior; concept docs if a pattern changed.
 
 Run `cd backend && uv run ruff check . && uv run pytest app/domains/<name> --sqlite -q -p no:logging` for the touched domains.
