@@ -342,6 +342,18 @@ The broker is `RedisStreamBroker` (acknowledged after execution) with a result b
 
 Example: `app/domains/organization/tasks.py` (`notify_organization_members`) and its test.
 
+**Scheduled tasks.** Declare the schedule on the task itself; the scheduler (`app.core.broker:scheduler`, `make rt` locally, the `taskiq-scheduler` service in the image) reads task labels (`LabelScheduleSource`) on start and sends the task to the worker on time:
+
+```python
+@broker.task(task_name='<domain>.cleanup', schedule=[{'cron': '0 3 * * *', 'schedule_id': '<domain>.cleanup'}])
+async def cleanup() -> None: ...
+```
+
+- `cron` is evaluated in UTC (`cron_offset` shifts it, e.g. `'Europe/Moscow'`); `interval` (seconds) and `time` (one-off) work too; `args` / `kwargs` are passed to the task. A stable `schedule_id` keeps logs readable.
+- Schedules are read when the scheduler starts: restart it after changing them. Run one scheduler per deployment (`TASKIQ_SCHEDULER=false` on other replicas), or the task runs once per scheduler.
+- Schedules created at runtime go to `redis_schedule_source` (`ListRedisScheduleSource`) from the same module.
+- Test the task body by calling the task (see above); `app/core/tests/test_scheduler.py` checks that labels reach the scheduler.
+
 ---
 
 ## File storage (S3)
