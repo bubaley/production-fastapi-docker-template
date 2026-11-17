@@ -7,18 +7,26 @@ from conftest import ROOT, load_script
 
 init_script = load_script('scripts/bootstrap/init.py')
 
+# `make init` rewrites the files these tests copy, so they only hold in the template itself.
+pytestmark = pytest.mark.skipif(
+    'name = "fastapi-nuxt-template"' not in (ROOT / 'backend/pyproject.toml').read_text(),
+    reason='product already initialized from the template',
+)
+
 # Every file `make init` reads or rewrites.
 SURFACE = (
     '.env.example',
     '.github/workflows/ci.yaml',
+    '.github/workflows/rollback.yaml',
     '.template-version',
     'CHANGELOG.md',
     'Dockerfile',
     'Makefile',
     'README.md',
-    'backend/app/main.py',
+    'backend/app/core/product.py',
     'backend/pyproject.toml',
     'backend/uv.lock',
+    'compose.dokploy.yaml',
     'compose.yaml',
     'docs/deployment.md',
     'docs/product.md',
@@ -67,15 +75,15 @@ def test_first_run_renames_resets_and_writes_env(repo):
     read = lambda relative: (repo / relative).read_text()
     assert 'COMPOSE_PROJECT_NAME=field-service\n' in read('.env.example')
     assert 'SQL_DATABASE=field-service-db\n' in read('.env.example')
-    assert 'name = "field-service"\nversion = "0.1.0"\n' in read('backend/pyproject.toml')
-    assert '[[package]]\nname = "field-service"\nversion = "0.1.0"\nsource = { virtual = "." }' in read(
+    # Only version.json carries the release version; the package versions stay 0.0.0.
+    assert 'name = "field-service"\nversion = "0.0.0"\n' in read('backend/pyproject.toml')
+    assert '[[package]]\nname = "field-service"\nversion = "0.0.0"\nsource = { virtual = "." }' in read(
         'backend/uv.lock'
     )
     package = json.loads(read('frontend/package.json'))
-    assert list(package)[:2] == ['name', 'version']
-    assert package['name'] == 'field-service' and package['version'] == '0.1.0'
-    assert "title='field-service'," in read('backend/app/main.py')
-    assert json.loads(read('frontend/openapi.json'))['info']['title'] == 'field-service'
+    assert package['name'] == 'field-service' and package['version'] == '0.0.0'
+    assert "PRODUCT_NAME = 'Выездной сервис'" in read('backend/app/core/product.py')
+    assert json.loads(read('frontend/openapi.json'))['info']['title'] == 'Выездной сервис'
     assert "name: 'Выездной сервис'," in read('frontend/app/app.config.ts')
     assert read('README.md').startswith('# Выездной сервис\n')
     assert 'IMAGE ?= field-service:local' in read('Makefile')
@@ -84,7 +92,19 @@ def test_first_run_renames_resets_and_writes_env(repo):
     assert 'CI_IMAGE: field-service:ci' in read('.github/workflows/ci.yaml')
     assert 'org.opencontainers.image.title="field-service"' in read('Dockerfile')
     assert '| `IMAGE_NAME` | publish | `field-service` |' in read('docs/deployment.md')
-    assert 'fastapi-nuxt-template' not in read('docs/deployment.md') + read('README.md') + read('Makefile')
+    assert 'DOCKERHUB_REPOSITORY: field-service\n' in read('.github/workflows/ci.yaml')
+    assert 'DOCKERHUB_REPOSITORY: field-service\n' in read('.github/workflows/rollback.yaml')
+    assert '<dockerhub-user>/field-service:latest' in read('compose.dokploy.yaml')
+    assert '<DOCKERHUB_USERNAME>/field-service`' in read('docs/deployment.md')
+    renamed = (
+        'docs/deployment.md',
+        'README.md',
+        'Makefile',
+        'compose.dokploy.yaml',
+        '.github/workflows/ci.yaml',
+        '.github/workflows/rollback.yaml',
+    )
+    assert 'fastapi-nuxt-template' not in ''.join(map(read, renamed))
     assert json.loads(read('version.json')) == {'version': '0.1.0'}
     assert read('CHANGELOG.md') == init_script.CHANGELOG
     product = read('docs/product.md')
@@ -130,6 +150,8 @@ def test_rename_after_init_keeps_versions_and_template_record(repo):
     assert init_script.read_template_version(repo) == recorded
     assert 'name = "service-desk"' in (repo / 'backend/pyproject.toml').read_text()
     assert 'IMAGE ?= service-desk:local' in (repo / 'Makefile').read_text()
+    assert '<dockerhub-user>/service-desk:latest' in (repo / 'compose.dokploy.yaml').read_text()
+    assert 'DOCKERHUB_REPOSITORY: service-desk\n' in (repo / '.github/workflows/ci.yaml').read_text()
 
 
 def test_refuses_a_dirty_tree_unless_forced(repo):

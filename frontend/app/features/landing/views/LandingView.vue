@@ -28,8 +28,7 @@
 <script setup lang="ts">
 import AppLogo from '~/shared/components/layout/header/AppLogo.vue'
 
-const { name } = useAppConfig()
-const description = 'Публичная страница шаблона. Замените этот текст описанием вашего продукта.'
+const { name, description } = useAppConfig()
 
 // Rendered on the server with the visitor's cookie: a signed-in visitor gets the link into the app.
 const { isSignedIn } = useSession()

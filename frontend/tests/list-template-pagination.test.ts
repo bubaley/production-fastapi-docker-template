@@ -58,7 +58,7 @@ const createList = (resource: unknown, props = {}, slots = {}) => {
 const lastQuery = (list: ReturnType<typeof vi.fn>) => (list.mock.calls.at(-1)![0] as { query: object }).query
 
 describe('list template on a resource', () => {
-  it('keeps search outside the scrolling body and queries the search param from page 1', async () => {
+  it('puts search in the page controls region and queries the search param from page 1', async () => {
     const list = vi.fn(async ({ query = {} }: { query?: Record<string, unknown> }) =>
       query.name ? { data: { data: [{ id: '500' }], meta: { page: 1, has_next: false } } } : page(query),
     )
@@ -68,9 +68,10 @@ describe('list template on a resource', () => {
       { filters: '<div data-test="filters">Фильтры</div>' },
     )
     await flushPromises()
-    expect(wrapper.get('main').find('input').exists()).toBe(false)
+    // The search lives in the page's controls region (it scrolls with the page unless `sticky` pins it), not in the list.
+    expect(wrapper.get('[data-slot=page-controls]').find('input').exists()).toBe(true)
     expect(wrapper.find('[data-test="filters"]').exists()).toBe(true)
-    expect(wrapper.findComponent({ name: 'AppList' }).classes()).toContain('-mx-3')
+    expect(wrapper.findComponent({ name: 'AppList' }).classes()).toContain('-mx-(--page-gutter-x)')
     await wrapper.get('input').setValue('500')
     await flushPromises()
     expect(lastQuery(list)).toEqual({ name: '500', page: 1, page_size: 50 })

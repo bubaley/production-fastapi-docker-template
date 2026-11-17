@@ -1,13 +1,13 @@
 <template>
   <AppListTemplate
     title="Пользователи"
-    description="Учетные записи пользователей"
+    description="Учётные записи пользователей"
     detail-route-name="settings-users-id"
     :resource="userResource"
   >
     <AppColumn
       field="email"
-      header="Email"
+      header="Электронная почта"
     />
     <AppColumn
       field="first_name"
@@ -17,16 +17,17 @@
       field="last_name"
       header="Фамилия"
     />
-    <AppColumn
-      field="is_superuser"
-      header="Суперпользователь"
-    >
+    <AppColumn header="Роль">
       <template #body="{ data }">
-        <AppCheckbox
-          v-model="data.is_superuser"
-          readonly
-          binary
+        <AppBadge
+          v-if="data.is_superuser"
+          label="Суперпользователь"
         />
+        <span
+          v-else
+          class="text-muted-foreground"
+          >Пользователь</span
+        >
       </template>
     </AppColumn>
   </AppListTemplate>

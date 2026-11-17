@@ -7,7 +7,7 @@
       <AppListToolbar
         v-if="!hideToolbar && (showSearch || $slots['search-actions'] || $slots.filters)"
         v-model:search="search"
-        class="sticky top-0 z-10 bg-background"
+        :class="infiniteScroll && scrollHeight && 'sticky top-0 z-10 bg-background'"
         :show-search="showSearch"
         :search-loading="searchLoading"
         :search-placeholder="searchPlaceholder"
@@ -86,12 +86,14 @@
             v-if="loading"
             fluid
           />
-          <p
+          <AppEmptyState
             v-else
-            class="py-6 text-sm text-muted-foreground"
-          >
-            {{ error || emptyText }}
-          </p>
+            variant="quiet"
+            class="py-8"
+            :title="error || emptyText"
+            :icon="error ? CircleAlert : Inbox"
+            :tone="error ? 'destructive' : 'muted'"
+          />
         </slot>
       </div>
     </div>
@@ -117,7 +119,9 @@
 </template>
 
 <script setup generic="T" lang="ts">
+import { CircleAlert, Inbox } from '@lucide/vue'
 import AppListToolbar from './AppListToolbar.vue'
+import AppEmptyState from './AppEmptyState.vue'
 import AppPagination from '../template/AppPagination.vue'
 
 export interface ItemClickEvent<T> {
@@ -152,7 +156,7 @@ export type AppListProps<T> = {
 
 const props = withDefaults(defineProps<AppListProps<T>>(), {
   mode: 'table',
-  emptyText: 'Данные отсутствуют',
+  emptyText: 'Здесь пока пусто',
   infiniteScroll: false,
   hasNextPage: false,
   loading: false,

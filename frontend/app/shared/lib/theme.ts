@@ -6,7 +6,8 @@ export type ThemeMode = (typeof THEME_MODES)[number]
 export const PALETTES = ['neutral', 'blue', 'violet', 'green', 'orange'] as const
 export type Palette = (typeof PALETTES)[number]
 
-export const DEFAULT_PALETTE: Palette = 'violet'
+// Plain gray by default; a product sets its brand palette here.
+export const DEFAULT_PALETTE: Palette = 'neutral'
 export const PALETTE_COOKIE = 'palette'
 export const COLOR_MODE_COOKIE = 'colorScheme'
 

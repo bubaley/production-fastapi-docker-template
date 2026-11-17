@@ -27,7 +27,12 @@ jobs:
       group: deploy-production
       cancel-in-progress: false
     env:
-      IMAGE: cr.yandex/${{ vars.YC_REGISTRY_ID }}/${{ vars.IMAGE_NAME }}
+      # The registry the deploy job in ci.yaml pulls from: Yandex CR, or Docker Hub when that is the only one.
+      YC_IMAGE: ${{ vars.YC_REGISTRY_ID != '' && vars.IMAGE_NAME != '' && format('cr.yandex/{0}/{1}', vars.YC_REGISTRY_ID, vars.IMAGE_NAME) || '' }}
+      DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+      DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
+      # Same default as DOCKERHUB_REPOSITORY in ci.yaml; `make init` renames it.
+      DOCKERHUB_REPOSITORY: fastapi-nuxt-template
     steps:
       - name: Check the tag
         id: tag
@@ -51,25 +56,42 @@ jobs:
           git fetch --quiet --depth=1 origin "refs/tags/v${VERSION}:refs/tags/v${VERSION}"
           git show "v${VERSION}:compose.yaml" > "$RUNNER_TEMP/compose.yaml"
       - name: Log in to Yandex Container Registry
+        if: env.YC_IMAGE != ''
         uses: yc-actions/yc-cr-login@ee42362bcacb854964afa3a3180ca8ae6dd388f8 # v3.0.2
         with:
           yc-sa-json-credentials: ${{ secrets.YC_KEY_JSON }}
           yc-sa-id: ${{ vars.YC_SA_ID }}
+      - name: Log in to Docker Hub
+        if: env.YC_IMAGE == '' && env.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Resolve the image digest
         id: digest
         env:
           VERSION: ${{ steps.tag.outputs.version }}
         run: |
-          digest=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" --format '{{json .Manifest}}' | jq -r .digest)
+          image="$YC_IMAGE"
+          if [ -z "$image" ] && [ -n "$DOCKERHUB_USERNAME" ]; then
+            image="${DOCKERHUB_IMAGE:-$DOCKERHUB_REPOSITORY}"
+            case "$image" in */*) ;; *) image="${DOCKERHUB_USERNAME}/${image}" ;; esac
+          fi
+          if [ -z "$image" ]; then
+            echo "::error::no registry configured (YC_REGISTRY_ID + IMAGE_NAME, or DOCKERHUB_USERNAME)"
+            exit 1
+          fi
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          digest=$(docker buildx imagetools inspect "${image}:${VERSION}" --format '{{json .Manifest}}' | jq -r .digest)
           if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-            echo "::error::could not resolve ${IMAGE}:${VERSION}"
+            echo "::error::could not resolve ${image}:${VERSION}"
             exit 1
           fi
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
       - name: Deploy by digest
         uses: ./.github/actions/deploy
         with:
-          image: ${{ env.IMAGE }}@${{ steps.digest.outputs.digest }}
+          image: ${{ steps.digest.outputs.image }}@${{ steps.digest.outputs.digest }}
           compose-file: ${{ runner.temp }}/compose.yaml
           host: ${{ secrets.DEPLOY_HOST }}
           user: ${{ secrets.DEPLOY_USER }}

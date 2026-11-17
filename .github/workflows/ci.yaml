@@ -1,5 +1,5 @@
 # One pipeline: changes -> backend / frontend / pre-commit / image -> gate,
-# then on push to main: release -> publish -> deploy. See docs/deployment.md.
+# then on push to main: release -> publish (Yandex CR and/or Docker Hub) -> deploy. See docs/deployment.md.
 name: CI
 
 on:
@@ -7,6 +7,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      republish:
+        description: Release tag to build and push to the registries again, e.g. v1.4.2 (no checks, no release). Empty runs the whole pipeline
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -17,32 +22,66 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
-  UV_VERSION: "0.13.5" # keep in sync with UV_IMAGE in Dockerfile
+  UV_VERSION: "0.13.9" # keep in sync with the uv image in Dockerfile and uv-pre-commit in .pre-commit-config.yaml
   GIT_CLIFF_VERSION: "2.14.2"
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1 # keep in sync with the gitleaks rev in .pre-commit-config.yaml
   CI_IMAGE: fastapi-nuxt-template:ci
+  # Docker Hub repository when vars.DOCKERHUB_IMAGE is empty; `make init` renames it.
+  DOCKERHUB_REPOSITORY: fastapi-nuxt-template
+  # One BuildKit cache for every image build; only runs on main write it, pull requests read it.
+  BUILD_CACHE: type=gha,scope=app-image
+  # No .dockerbuild record artifact per build (the job summary stays).
+  DOCKER_BUILD_RECORD_UPLOAD: "false"
 
 jobs:
   changes:
     name: Detect changes
+    if: ${{ !inputs.republish }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
     outputs:
-      # Pushes to main and manual runs check everything; pull requests only what they touch.
-      all: ${{ github.event_name != 'pull_request' }}
+      all: ${{ steps.base.outputs.all }}
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       infra: ${{ steps.filter.outputs.infra }}
-      docs: ${{ steps.filter.outputs.docs }}
+      deps: ${{ steps.filter.outputs.deps }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Pushes compare with the last release tag: history and tags must be local.
+          fetch-depth: ${{ github.event_name == 'push' && '0' || '1' }}
+          fetch-tags: ${{ github.event_name == 'push' }}
+      # Pull requests: what the PR touches (paths-filter asks the API). Pushes to main: everything since the last
+      # release tag, so every released change was checked on main and a docs-only push skips the heavy jobs.
+      # Manual runs and a repository without releases: everything.
+      - name: Comparison base
+        id: base
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          all=false
+          sha=""
+          if [ "$EVENT" = push ]; then
+            tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || true)
+            if [ -n "$tag" ]; then
+              sha=$(git rev-list -n 1 "$tag")
+              echo "Changes since ${tag} (${sha::7})"
+            else
+              all=true
+            fi
+          elif [ "$EVENT" != pull_request ]; then
+            all=true
+          fi
+          echo "all=${all}" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
+          base: ${{ steps.base.outputs.sha }}
           filters: |
             backend:
               - 'backend/**'
@@ -67,9 +106,12 @@ jobs:
               - 'docker/**'
               - 'compose.yaml'
               - '.github/workflows/ci.yaml'
-            docs:
-              - 'docs/**'
-              - '**/*.md'
+            # Pull requests scan the image with Trivy only when these change.
+            deps:
+              - 'Dockerfile'
+              - 'docker/**'
+              - 'backend/uv.lock'
+              - 'frontend/pnpm-lock.yaml'
 
   backend:
     name: Backend checks
@@ -78,8 +120,9 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     services:
+      # Same versions as compose.yaml (Dependabot does not update workflow service images).
       postgres:
-        image: postgres:18.6-alpine
+        image: postgres:18.7-alpine
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -90,7 +133,7 @@ jobs:
           --health-cmd "pg_isready -U postgres -d postgres"
           --health-interval 5s --health-timeout 5s --health-retries 20
       redis:
-        image: redis:8.10.2-alpine
+        image: redis:8.10.3-alpine
         ports:
           - 6379:6379
         options: >-
@@ -111,7 +154,7 @@ jobs:
         with:
           persist-credentials: false
       # Python comes from .python-version (uv downloads it if the runner lacks it).
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
@@ -132,7 +175,7 @@ jobs:
         with:
           persist-credentials: false
       # pnpm version from packageManager in frontend/package.json.
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           package_json_file: frontend/package.json
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -142,8 +185,9 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Install dependencies
         run: pnpm --dir frontend install --frozen-lockfile
-      - name: Format, lint, types, tests, architecture, build
-        run: make check-frontend BUILD=1
+      # The production build (nuxt build) runs once, inside the image job.
+      - name: Format, lint, types, tests, architecture
+        run: make check-frontend
 
   pre-commit:
     name: Repository hygiene
@@ -153,19 +197,37 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0 # gitleaks scans the commits of the push or pull request
           persist-credentials: false
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
-      # ruff and ty already run in the backend job.
+      # ruff and ty already run in the backend job; gitleaks (staged files only) runs as the next step instead.
       - name: pre-commit (yaml, eol, large files, pyupgrade, bandit, uv lock, pyproject)
         env:
-          SKIP: ruff-check,ruff-format,ty
+          SKIP: ruff-check,ruff-format,ty,gitleaks
         run: uvx --python 3.15 pre-commit@4.7.0 run --all-files --show-diff-on-failure
+      # The CLI image needs no license (gitleaks-action does for organization repositories).
+      - name: Secret scan of new commits (gitleaks)
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+            pull_request) range="${PR_BASE}..${PR_HEAD}" ;;
+            push) if [[ "$BEFORE" =~ ^0+$ ]]; then range="-1"; else range="${BEFORE}..${GITHUB_SHA}"; fi ;;
+            *) range="" ;; # manual run: full history
+          esac
+          echo "Scanning: ${range:-full history}"
+          docker run --rm -v "${PWD}:/repo" --entrypoint sh "$GITLEAKS_IMAGE" -c \
+            'git config --global --add safe.directory /repo && gitleaks git /repo --redact --no-banner --verbose --log-opts="$1"' \
+            _ "$range"
 
   image:
     name: Image build and smoke test
@@ -185,6 +247,9 @@ jobs:
           echo "version=$(jq -r .version version.json)" >> "$GITHUB_OUTPUT"
           echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          cleanup: false # the runner is discarded anyway
+      # Exporting the cache (mode=max) takes about a minute, so pull requests only read it.
       - name: Build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -196,8 +261,8 @@ jobs:
             APP_VERSION=${{ steps.meta.outputs.version }}
             GIT_SHA=${{ github.sha }}
             BUILD_DATE=${{ steps.meta.outputs.created }}
-          cache-from: type=gha,scope=app-image
-          cache-to: type=gha,mode=max,scope=app-image
+          cache-from: ${{ env.BUILD_CACHE }}
+          cache-to: ${{ github.ref == 'refs/heads/main' && format('{0},mode=max,ignore-error=true', env.BUILD_CACHE) || '' }}
       - name: Smoke test (compose.yaml with PostgreSQL and Redis)
         env:
           APP_IMAGE: ${{ env.CI_IMAGE }}
@@ -234,7 +299,9 @@ jobs:
       - name: Stop smoke stack
         if: always()
         run: docker compose -f compose.yaml -p smoke down -v
+      # Every image on main; pull requests only when the base images or lockfiles change.
       - name: Vulnerability scan (fail on fixable CRITICAL)
+        if: github.event_name != 'pull_request' || needs.changes.outputs.deps == 'true'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.CI_IMAGE }}
@@ -245,7 +312,7 @@ jobs:
 
   gate:
     name: CI gate
-    if: always()
+    if: ${{ always() && !inputs.republish }}
     needs: [changes, backend, frontend, pre-commit, image]
     runs-on: ubuntu-26.04
     timeout-minutes: 5
@@ -269,8 +336,6 @@ jobs:
     outputs:
       released: ${{ steps.push.outputs.released }}
       tag: ${{ steps.version.outputs.tag }}
-      version: ${{ steps.version.outputs.version }}
-      sha: ${{ steps.push.outputs.sha }}
     steps:
       # A GitHub App token can push past branch protection (add the app to the bypass list);
       # without it the job falls back to GITHUB_TOKEN, which works only on an unprotected main.
@@ -298,7 +363,7 @@ jobs:
           else
             echo "proceed=true" >> "$GITHUB_OUTPUT"
           fi
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         if: steps.guard.outputs.proceed == 'true'
         with:
           version: ${{ env.UV_VERSION }}
@@ -319,7 +384,9 @@ jobs:
             echo "tag=${next}"
             echo "version=${next#v}"
           } >> "$GITHUB_OUTPUT"
-      - name: Update version files and changelog
+      # Only version.json and CHANGELOG.md: neither is in the Docker build context, so the release commit keeps
+      # every image layer cached. The image gets the version through APP_VERSION.
+      - name: Update version.json and changelog
         if: steps.version.outputs.bump == 'true'
         env:
           TAG: ${{ steps.version.outputs.tag }}
@@ -327,10 +394,6 @@ jobs:
         run: |
           jq --arg v "$VERSION" '.version = $v' version.json > "$RUNNER_TEMP/version.json"
           mv "$RUNNER_TEMP/version.json" version.json
-          # Same key order as Oxfmt's package.json sorting: version right after name.
-          jq --arg v "$VERSION" '{name} + {version: $v} + del(.name, .version)' frontend/package.json > "$RUNNER_TEMP/package.json"
-          mv "$RUNNER_TEMP/package.json" frontend/package.json
-          uv version "$VERSION" --project backend --no-sync
           uvx --from "git-cliff==${GIT_CLIFF_VERSION}" git-cliff --tag "$TAG" --output CHANGELOG.md
           # git-cliff ends the file with a blank line; end-of-file-fixer expects exactly one newline.
           perl -0pi -e 's/\n+\z/\n/' CHANGELOG.md
@@ -344,7 +407,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add version.json frontend/package.json backend/pyproject.toml backend/uv.lock CHANGELOG.md
+          git add version.json CHANGELOG.md
           git commit -m "chore(release): ${TAG} [skip ci]"
           git tag -a "$TAG" -m "Release ${TAG}"
           if ! git push --atomic origin HEAD:refs/heads/main "refs/tags/${TAG}"; then
@@ -358,7 +421,6 @@ jobs:
             exit 1
           fi
           echo "released=true" >> "$GITHUB_OUTPUT"
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: GitHub Release
         if: steps.push.outputs.released == 'true'
         env:
@@ -366,11 +428,15 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: gh release create "$TAG" --title "$TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --verify-tag
 
+  # One build of the release tag, pushed to every configured registry: Yandex CR (vars.YC_REGISTRY_ID and
+  # vars.IMAGE_NAME) and/or Docker Hub (vars.DOCKERHUB_USERNAME). Off until one of them is configured.
   publish:
     name: Publish image
     needs: release
-    # Off until the registry is configured (repository variables YC_REGISTRY_ID and IMAGE_NAME).
-    if: needs.release.outputs.released == 'true' && vars.YC_REGISTRY_ID != '' && vars.IMAGE_NAME != ''
+    if: >-
+      !cancelled() &&
+      (needs.release.outputs.released == 'true' || (github.event_name == 'workflow_dispatch' && inputs.republish != '')) &&
+      ((vars.YC_REGISTRY_ID != '' && vars.IMAGE_NAME != '') || vars.DOCKERHUB_USERNAME != '')
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
@@ -378,52 +444,117 @@ jobs:
       id-token: write # Yandex Cloud workload identity federation (vars.YC_SA_ID)
       packages: write # optional attestation copy in GHCR (vars.ATTESTATIONS == 'ghcr')
     outputs:
-      image: ${{ steps.ref.outputs.image }}
+      tag: ${{ steps.release.outputs.tag }}
+      latest: ${{ steps.ref.outputs.latest }}
+      image: ${{ steps.ref.outputs.deploy-image }}
       digest: ${{ steps.build.outputs.digest }}
     env:
-      IMAGE: cr.yandex/${{ vars.YC_REGISTRY_ID }}/${{ vars.IMAGE_NAME }}
-      TAG: ${{ needs.release.outputs.tag }}
-      VERSION: ${{ needs.release.outputs.version }}
-      RELEASE_SHA: ${{ needs.release.outputs.sha }}
-      # registry: SBOM + provenance attached in Yandex CR; ghcr: plain image in Yandex CR, attested copy in GHCR; off: none.
+      YC_IMAGE: ${{ vars.YC_REGISTRY_ID != '' && vars.IMAGE_NAME != '' && format('cr.yandex/{0}/{1}', vars.YC_REGISTRY_ID, vars.IMAGE_NAME) || '' }}
+      DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+      DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
+      REQUESTED_TAG: ${{ inputs.republish }}
+      RELEASE_TAG: ${{ needs.release.outputs.tag }}
+      # registry: SBOM + provenance attached in the registries; ghcr: plain images, attested copy in GHCR; off: none.
       ATTESTATIONS: ${{ vars.ATTESTATIONS || 'registry' }}
     steps:
+      - name: Release tag
+        id: release
+        run: |
+          tag="${REQUESTED_TAG:-$RELEASE_TAG}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'${tag}' is not a release tag like v1.4.2"
+            exit 1
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+      # Full history and tags: the newest tag decides whether `latest` moves.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release.outputs.tag }}
+          ref: refs/tags/${{ steps.release.outputs.tag }}
+          fetch-depth: 0
+          fetch-tags: true
           persist-credentials: false
-      - name: Image references
-        id: ref
-        run: |
-          {
-            echo "image=${IMAGE}"
-            echo "short=${RELEASE_SHA::7}"
-            echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "ghcr=ghcr.io/${GITHUB_REPOSITORY,,}"
-            if [ "$ATTESTATIONS" = registry ]; then echo "attest=true"; else echo "attest=false"; fi
-          } >> "$GITHUB_OUTPUT"
       # Key file (secrets.YC_KEY_JSON) or keyless OIDC federation (vars.YC_SA_ID).
       - name: Log in to Yandex Container Registry
+        if: env.YC_IMAGE != ''
         uses: yc-actions/yc-cr-login@ee42362bcacb854964afa3a3180ca8ae6dd388f8 # v3.0.2
         with:
           yc-sa-json-credentials: ${{ secrets.YC_KEY_JSON }}
           yc-sa-id: ${{ vars.YC_SA_ID }}
+      - name: Log in to Docker Hub
+        if: env.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Image references
+        id: ref
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          version="${TAG#v}"
+          newest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
+          # Republishing an older release must not move `latest` (or X.Y) back, nor redeploy it.
+          if [ "$TAG" = "$newest" ]; then latest=true; else latest=false; fi
+
+          images=()
+          [ -n "$YC_IMAGE" ] && images+=("$YC_IMAGE")
+          dockerhub=""
+          if [ -n "$DOCKERHUB_USERNAME" ]; then
+            dockerhub="${DOCKERHUB_IMAGE:-$DOCKERHUB_REPOSITORY}"
+            # A bare repository name gets the Docker Hub namespace of the account.
+            case "$dockerhub" in */*) ;; *) dockerhub="${DOCKERHUB_USERNAME}/${dockerhub}" ;; esac
+            # A new release never overwrites a version Docker Hub already has; a manual republish does.
+            if [ -z "$REQUESTED_TAG" ] && docker buildx imagetools inspect "${dockerhub}:${version}" > /dev/null 2>&1; then
+              echo "::notice title=Docker Hub skipped::${dockerhub}:${version} is already published."
+              dockerhub=""
+            else
+              images+=("$dockerhub")
+            fi
+          fi
+          if [ "${#images[@]}" -eq 0 ]; then
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo "proceed=true"
+            echo "version=${version}"
+            echo "latest=${latest}"
+            echo "sha=$(git rev-parse HEAD)"
+            echo "short=$(git rev-parse --short=7 HEAD)"
+            echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "dockerhub=${dockerhub}"
+            # The deploy job pulls by digest from Yandex CR, or from Docker Hub when that is the only registry.
+            echo "deploy-image=${images[0]}"
+            echo "ghcr=ghcr.io/${GITHUB_REPOSITORY,,}"
+            if [ "$ATTESTATIONS" = registry ]; then echo "attest=true"; else echo "attest=false"; fi
+            echo "images<<EOF"
+            printf '%s\n' "${images[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        if: steps.ref.outputs.proceed == 'true'
+        with:
+          cleanup: false
       - name: Tags and labels
         id: meta
+        if: steps.ref.outputs.proceed == 'true'
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ${{ env.IMAGE }}
+          images: ${{ steps.ref.outputs.images }}
           tags: |
-            type=semver,pattern={{version}},value=${{ env.TAG }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+            type=semver,pattern={{version}},value=${{ steps.release.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.release.outputs.tag }},enable=${{ steps.ref.outputs.latest == 'true' }}
             type=raw,value=sha-${{ steps.ref.outputs.short }}
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ steps.ref.outputs.latest == 'true' }}
           labels: |
-            org.opencontainers.image.version=${{ env.VERSION }}
-            org.opencontainers.image.revision=${{ env.RELEASE_SHA }}
+            org.opencontainers.image.version=${{ steps.ref.outputs.version }}
+            org.opencontainers.image.revision=${{ steps.ref.outputs.sha }}
+      # The release commit only changes version.json and CHANGELOG.md, so this build reuses the layers the image
+      # job cached on main; it does not write the cache again.
       - name: Build and push
         id: build
+        if: steps.ref.outputs.proceed == 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
@@ -432,53 +563,72 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            APP_VERSION=${{ env.VERSION }}
-            GIT_SHA=${{ env.RELEASE_SHA }}
+            APP_VERSION=${{ steps.ref.outputs.version }}
+            GIT_SHA=${{ steps.ref.outputs.sha }}
             BUILD_DATE=${{ steps.ref.outputs.created }}
           provenance: ${{ steps.ref.outputs.attest == 'true' && 'mode=max' || 'false' }}
           sbom: ${{ steps.ref.outputs.attest == 'true' }}
-          cache-from: type=gha,scope=app-image
-          cache-to: type=gha,mode=max,scope=app-image
+          cache-from: ${{ env.BUILD_CACHE }}
       - name: Log in to GHCR
-        if: env.ATTESTATIONS == 'ghcr'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        if: steps.ref.outputs.proceed == 'true' && env.ATTESTATIONS == 'ghcr'
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
       - name: Push attested copy to GHCR
-        if: env.ATTESTATIONS == 'ghcr'
+        if: steps.ref.outputs.proceed == 'true' && env.ATTESTATIONS == 'ghcr'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/amd64
           push: true
-          tags: ${{ steps.ref.outputs.ghcr }}:${{ env.VERSION }}
+          tags: ${{ steps.ref.outputs.ghcr }}:${{ steps.ref.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            APP_VERSION=${{ env.VERSION }}
-            GIT_SHA=${{ env.RELEASE_SHA }}
+            APP_VERSION=${{ steps.ref.outputs.version }}
+            GIT_SHA=${{ steps.ref.outputs.sha }}
             BUILD_DATE=${{ steps.ref.outputs.created }}
           provenance: mode=max
           sbom: true
-          cache-from: type=gha,scope=app-image
-      - name: Summary
+          cache-from: ${{ env.BUILD_CACHE }}
+      # Dokploy pulls `latest` (or a pinned version) from Docker Hub: redeploy only when `latest` moved.
+      - name: Redeploy in Dokploy
+        if: steps.ref.outputs.dockerhub != '' && steps.ref.outputs.latest == 'true'
         env:
+          WEBHOOK: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "DOKPLOY_DEPLOY_WEBHOOK is not set; redeploy in Dokploy by hand or with its autodeploy."
+          else
+            curl -fsS -X POST "$WEBHOOK" -o /dev/null
+          fi
+      - name: Summary
+        if: steps.ref.outputs.proceed == 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
           DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGES: ${{ steps.ref.outputs.images }}
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           {
             echo "### Image ${TAG}"
             echo
-            echo "\`${IMAGE}@${DIGEST}\`"
+            echo "Digest \`${DIGEST}\`. Attestations: ${ATTESTATIONS}."
             echo
-            echo "Tags: ${VERSION}, ${VERSION%.*}, sha-${RELEASE_SHA::7}, latest. Attestations: ${ATTESTATIONS}."
+            echo '```'
+            echo "$TAGS"
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     name: Deploy
-    needs: [release, publish]
-    # Off until the server is configured (repository variable DEPLOY_ENABLED=true).
-    if: needs.publish.result == 'success' && vars.DEPLOY_ENABLED == 'true'
+    needs: publish
+    # Off until the server is configured (repository variable DEPLOY_ENABLED=true). Only the newest release;
+    # use rollback.yaml to deploy an older one.
+    if: >-
+      !cancelled() && needs.publish.result == 'success' && needs.publish.outputs.digest != '' &&
+      needs.publish.outputs.latest == 'true' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     environment: production
@@ -488,7 +638,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.release.outputs.tag }}
+          ref: refs/tags/${{ needs.publish.outputs.tag }}
           persist-credentials: false
       - name: Deploy by digest
         uses: ./.github/actions/deploy

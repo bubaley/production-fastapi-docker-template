@@ -4,6 +4,14 @@
     :width="width"
     :title="title"
     :description="hideSubtitle ? undefined : description || subtitle"
+    :close-label="closeLabel"
+    :closeable="closeable"
+    :content-class="contentClass"
+    :body-class="bodyClass"
+    :hide-title="hideTitle"
+    :prevent-outside-close="preventOutsideClose"
+    :escape-disabled="escapeDisabled"
+    :autofocus="autofocus"
     v-bind="$attrs"
   >
     <slot />
@@ -12,15 +20,10 @@
         v-if="$slots.actions"
         name="actions"
       />
-      <div
+      <AppTemplateActions
         v-else
-        class="flex gap-3"
-      >
-        <AppTemplateActions
-          :actions="actions"
-          full-width
-        />
-      </div>
+        :actions="actions"
+      />
     </template>
   </AppModal>
 </template>
@@ -49,6 +52,9 @@ const props = withDefaults(defineProps<AppConfirmModalProps>(), {
   title: 'Подтверждение действия',
   subtitle: 'Вы уверены, что хотите выполнить это действие?',
   hideSubtitle: false,
+  // AppModal's own defaults: Vue would cast these absent booleans to false.
+  closeable: true,
+  autofocus: true,
 })
 
 const confirmLoading = ref(false)
@@ -58,14 +64,12 @@ const actions = computed<AppTemplateAction[]>(() => {
   const declineAction: AppTemplateAction = {
     variant: 'secondary',
     ...props.declineProps,
-    fluid: true,
     label: props.declineText,
     loading: declineLoading.value,
     action: _handleDecline,
   }
   const confirmAction: AppTemplateAction = {
     ...props.confirmProps,
-    fluid: true,
     label: props.confirmText,
     loading: confirmLoading.value,
     action: _handleConfirm,

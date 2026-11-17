@@ -1,6 +1,8 @@
 <script setup lang="ts" generic="T">
-import { Comment, Fragment, Text, defineComponent, h, useSlots, type VNode, type PropType } from 'vue'
+import { Comment, Fragment, Text, camelize, defineComponent, h, useSlots, type VNode, type PropType } from 'vue'
+import { CircleAlert, Inbox } from '@lucide/vue'
 import type { AppColumnProps } from './AppColumn.vue'
+import AppEmptyState from './AppEmptyState.vue'
 
 export type AppTableVariant = 'default' | 'outline'
 export type AppTableColumn = AppColumnProps & { key?: string; label?: string; cellClass?: string }
@@ -18,7 +20,7 @@ const props = withDefaults(
     emptyText?: string
     scrollHeight?: string
   }>(),
-  { variant: 'default', clickable: false, emptyText: 'Данные отсутствуют' },
+  { variant: 'default', clickable: false, emptyText: 'Здесь пока пусто' },
 )
 const emit = defineEmits<{ rowClick: [event: { data: T; index: number; originalEvent: Event }] }>()
 const slots = useSlots()
@@ -43,7 +45,13 @@ const getColumns = () =>
       const type = node.type as { name?: string; __name?: string }
       return (type.name ?? type.__name) === 'AppColumn'
     })
-    .map((node) => ({ props: (node.props ?? {}) as AppColumnProps, children: node.children }))
+    // Template props arrive as written (`body-class`); camelize them to match AppColumnProps.
+    .map((node) => ({
+      props: Object.fromEntries(
+        Object.entries(node.props ?? {}).map(([key, value]) => [camelize(key), value]),
+      ) as AppColumnProps,
+      children: node.children,
+    }))
 const CellContent = defineComponent({
   props: {
     cellColumn: { type: Object as PropType<ReturnType<typeof getColumns>[number]>, required: true },
@@ -144,7 +152,7 @@ const activate = (item: T, index: number, event: Event) => {
         <tr v-if="!items.length">
           <td
             :colspan="Math.max(1, getColumns().length)"
-            class="h-28 px-3 text-center text-muted-foreground"
+            class="h-28 px-3 py-6 text-center text-muted-foreground"
           >
             <slot
               name="empty"
@@ -153,12 +161,13 @@ const activate = (item: T, index: number, event: Event) => {
               <AppLoadingIndicator
                 v-if="loading"
                 :label="loadingText"
-              /><span
+              /><AppEmptyState
                 v-else
-                :role="error ? 'alert' : undefined"
-                :class="error && 'text-destructive'"
-                >{{ error || emptyText }}</span
-              >
+                variant="quiet"
+                :title="error || emptyText"
+                :icon="error ? CircleAlert : Inbox"
+                :tone="error ? 'destructive' : 'muted'"
+              />
             </slot>
           </td>
         </tr>

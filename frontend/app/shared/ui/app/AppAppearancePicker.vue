@@ -106,7 +106,9 @@ watch(
 <template>
   <AppMenu
     v-model:open="open"
+    mode="popover"
     :disabled="disabled"
+    :aria-label="triggerLabel"
     align="start"
     content-class="p-0"
   >

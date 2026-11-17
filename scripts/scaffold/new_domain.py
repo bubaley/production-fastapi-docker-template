@@ -5,7 +5,7 @@ Scaffold a backend domain + frontend feature that mirror the canonical `organiza
     python scripts/scaffold/new_domain.py project --title "Проекты" [--item-title "Проект"] [--plural projects]
 
 Creates an organization-scoped CRUD entity with a `name` field: backend models/schemas/filters/views/tests,
-frontend resource descriptor, list/detail views, settings pages and a settings drawer entry. It never
+frontend resource descriptor, list/detail views, settings pages and a settings sidebar entry. It never
 overwrites a file and runs no migrations. Standard library only (string.Template).
 """
 
@@ -65,7 +65,7 @@ def python_import(module: str, names: list[str]) -> str:
 class Names:
     name: str  # snake singular: invoice_line
     plural: str  # snake plural: invoice_lines
-    title: str  # list title and drawer label (Russian)
+    title: str  # list title and sidebar label (Russian)
     item_title: str  # detail title (Russian)
 
     @property
@@ -144,18 +144,26 @@ def navigation_entry(ctx: dict[str, str], icon: str = DEFAULT_ICON) -> str:
     return f"  {{ to: {{ name: '{ctx['route']}' }}, label: '{ctx['title']}', icon: {icon} }},\n"
 
 
+# The frontend formatter wraps longer imports one name per line.
+IMPORT_LINE_LENGTH = 120
+
+
 def add_navigation(source: str, ctx: dict[str, str], icon: str = DEFAULT_ICON) -> str:
-    """Insert the drawer entry above the marker and add the icon to the `@lucide/vue` import."""
+    """Insert the sidebar entry above the marker and add the icon to the `@lucide/vue` import."""
     if f"name: '{ctx['route']}'" in source:
         raise ScaffoldError(f'{NAVIGATION} already has an entry for {ctx["route"]}')
     if NAVIGATION_MARKER not in source:
         raise ScaffoldError(f'{NAVIGATION} has no marker line {NAVIGATION_MARKER.strip()!r}')
     source = source.replace(NAVIGATION_MARKER, navigation_entry(ctx, icon) + NAVIGATION_MARKER)
-    match = re.search(r"^import \{ ([^}]*) \} from '@lucide/vue'$", source, flags=re.MULTILINE)
+    # One line, or wrapped by the formatter (one icon per line, trailing comma).
+    match = re.search(r"^import \{([^}]*)\} from '@lucide/vue'$", source, flags=re.MULTILINE)
     if match is None:
         return f"import {{ {icon} }} from '@lucide/vue'\n" + source
     icons = sorted({part.strip() for part in match.group(1).split(',') if part.strip()} | {icon})
-    return source.replace(match.group(0), f"import {{ {', '.join(icons)} }} from '@lucide/vue'")
+    line = f"import {{ {', '.join(icons)} }} from '@lucide/vue'"
+    if len(line) > IMPORT_LINE_LENGTH:
+        line = 'import {\n' + ''.join(f'  {name},\n' for name in icons) + "} from '@lucide/vue'"
+    return source.replace(match.group(0), line)
 
 
 def scaffold(names: Names, root: Path = ROOT) -> list[Path]:
@@ -191,17 +199,14 @@ def next_steps(names: Names, navigation_updated: bool) -> str:
     navigation = (
         f'Navigation: entry added to {NAVIGATION} (icon {DEFAULT_ICON}; pick a fitting Lucide icon).'
         if navigation_updated
-        else f'Navigation: add to the settings drawer:\n     {navigation_entry(ctx).strip()}'
+        else f'Navigation: add to the settings sidebar:\n     {navigation_entry(ctx).strip()}'
     )
     steps = [
         (
             f'Fill the real fields: backend/app/domains/{names.name}/ models.py, schemas.py, filters.py, then '
             f'the frontend resource ({ctx["camel"]}.ts) and views.'
         ),
-        (
-            'Migration: the new table needs `make mm` then `make m`. Agents never run them: ask the user. '
-            'Until then test with `--sqlite`.'
-        ),
+        ('Migration: `make mm` generates it, `make m` applies it; commit the file with the domain.'),
         '`make gen-client`: regenerates frontend/openapi.json and the typed client the resource imports.',
         f'`cd backend && uv run pytest app/domains/{names.name} --sqlite`, then `make lint` and `make check`.',
         navigation,
@@ -213,7 +218,7 @@ def next_steps(names: Names, navigation_updated: bool) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('name', help='singular snake_case name, e.g. project or invoice_line')
-    parser.add_argument('--title', help='Russian list title and drawer label, e.g. "Проекты"')
+    parser.add_argument('--title', help='Russian list title and sidebar label, e.g. "Проекты"')
     parser.add_argument('--item-title', help='Russian detail title, e.g. "Проект" (default: --title)')
     parser.add_argument('--plural', help='snake_case plural when the default (+s/+es/-y→ies) is wrong')
     parser.add_argument('--root', type=Path, default=ROOT, help=argparse.SUPPRESS)

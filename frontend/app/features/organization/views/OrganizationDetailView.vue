@@ -17,7 +17,6 @@
       <OrganizationMembersList
         v-if="item.id"
         :organization-id="item.id"
-        class="mt-6 mb-0!"
       />
     </template>
   </AppDetailTemplate>

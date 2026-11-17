@@ -5,6 +5,7 @@ import type { AppListProps } from '../../app/AppList.vue'
 import type { AppDetailActionsProps } from '../AppDetailActions.vue'
 import type { ActionDisplayMode } from './template-ui-tokens'
 import type { AppSectionProps } from '../../app/AppSection.vue'
+import type { AppPageShellProps } from '../../app/AppPage.vue'
 import type { ListQuery, Resource, ResourceForm, ResourceItem } from '~/shared/api/resource'
 
 export type AppTemplateAction = AppButtonProps & {
@@ -24,19 +25,21 @@ export type AppDetailTemplateActionsProps<F extends ResourceForm> = Omit<
   hideHeaderActions?: boolean
 }
 
-export type AppDetailTemplateProps<T extends ResourceItem, F extends ResourceForm> = AppSectionProps & {
-  resource: Resource<T, F, any, any>
-  /** Form state owned by the caller (modal mode); without it the template loads the record from the route. */
-  item?: F | null
-  detailRouteParam?: string
-  buildNewItem?: () => F
-  listRouteName?: string
-  fluid?: boolean
-  hideBackButton?: boolean
-  hideHeader?: boolean
-  mode?: 'page' | 'inline'
-  actionsProps?: AppDetailTemplateActionsProps<F>
-}
+export type AppDetailTemplateProps<T extends ResourceItem, F extends ResourceForm> = AppSectionProps &
+  AppPageShellProps & {
+    resource: Resource<T, F, any, any>
+    /** Form state owned by the caller (modal mode); without it the template loads the record from the route. */
+    item?: F | null
+    detailRouteParam?: string
+    buildNewItem?: () => F
+    listRouteName?: string
+    /** Page mode: full width instead of the `maxWidth` column (`md` by default). */
+    fluid?: boolean
+    hideBackButton?: boolean
+    hideHeader?: boolean
+    mode?: 'page' | 'inline'
+    actionsProps?: AppDetailTemplateActionsProps<F>
+  }
 
 /** Where list rows come from: an API resource (Pinia Colada infinite query) or local `items`. */
 export type AppListDataProps<T extends ResourceItem, F extends ResourceForm = ResourceForm> = {
@@ -57,19 +60,26 @@ export type AppListDataProps<T extends ResourceItem, F extends ResourceForm = Re
   itemValue?: string | ((v: T) => string)
 }
 
-export type AppListTemplateBaseProps<F> = AppSectionProps & {
-  filterSpec?: ViewFilterSpec
-  fixedFields?: ViewFixedField[]
-  availableFilters?: string[]
-  tableBleed?: boolean
-  createLabel?: string
-  hideCreateButton?: boolean
-  hideHeader?: boolean
-  detailMode?: 'modal' | 'route'
-  detailRouteName?: string
-  detailRouteParam?: string
-  buildNewItem?: () => F
-}
+export type AppListTemplateBaseProps<F> = AppSectionProps &
+  AppPageShellProps & {
+    filterSpec?: ViewFilterSpec
+    fixedFields?: ViewFixedField[]
+    availableFilters?: string[]
+    /**
+     * Page table mode: `true` (default) puts the table against the page edges (row lines and hover run edge to edge, the
+     * first column stays under the title); `false` keeps it inside the page gutter.
+     */
+    tableBleed?: boolean
+    createLabel?: string
+    hideCreateButton?: boolean
+    hideHeader?: boolean
+    detailMode?: 'modal' | 'route'
+    /** With `detailMode: 'route'`: the create button opens the `#detail-modal` form instead of the `new` route. */
+    createInModal?: boolean
+    detailRouteName?: string
+    detailRouteParam?: string
+    buildNewItem?: () => F
+  }
 
 export type AppListTemplateDataManagedProps = 'items' | 'loading' | 'searchLoading' | 'hasNextPage'
 

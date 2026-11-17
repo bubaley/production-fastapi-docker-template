@@ -16,7 +16,7 @@ What the app does: [template-core.md](template-core.md) (inherited by every prod
 - Cross-cutting infrastructure (auth kernel, S3, base viewset) → `backend/app/core/` or `frontend/app/shared/`.
 - Pages are thin: they only mount a feature view. Layouts own navigation.
 
-Canonical examples: `backend/app/domains/organization/`, `frontend/app/features/organization/`. Live UI primitives: `/ui` (public static catalogue). The catalogue uses local sample data and does not expose organization resources.
+Canonical examples: `backend/app/domains/organization/`, `frontend/app/features/organization/`. Live UI primitives: `/ui` (public static catalogue, one route per section: `/ui/<section>`). The catalogue uses local sample data and does not expose organization resources.
 
 `AppPageView` combines `AppPage` and `PageHeader` for one page heading and a bounded scrolling body. The fixed regions are header, subheader before the divider, controls after the divider, and footer; HomeView demonstrates them. `AppSection` groups content structurally; use `AppCard` for a visible surface. App controls share one set of control sizes (`shared/ui/app/types/control.ts`) and semantic light/dark tokens. Feature data goes through resource descriptors over the generated client.
 
@@ -28,11 +28,11 @@ Same change, all of this (skip a row only if it does not apply):
 |---|---|
 | Backend | Domain files (`models`, `schemas`, `filters`, `views` exporting `routers`) — `make new-domain name=<snake_name>` scaffolds them with the frontend feature; models and routers are auto-discovered. Declare **`tenant_scope`** on every model. Views stay thin — workflows in a **service** (instances in, not ids). See [backend-concept.md](backend-concept.md#services-vs-viewsets-vs-utils) |
 | Tests | Non-trivial rules get pytest next to the domain (`domains/<name>/tests/`). See [backend-concept.md](backend-concept.md#tests). Canonical: `domains/organization/tests/test_organization.py` |
-| Frontend | `make gen-client` (schema + generated client committed), feature resource descriptor, views on `AppListTemplate` / `AppDetailTemplate`, thin page, drawer item if needed. User-facing copy in **Russian** |
+| Frontend | `make gen-client` (schema + generated client committed), feature resource descriptor, views on `AppListTemplate` / `AppDetailTemplate`, thin page, sidebar item if needed. User-facing copy in **Russian** |
 | Realtime | Org events go through **`OrganizationWebSocketService`**, not a new websocket stack |
 | Docs | [product.md](product.md) if the user can see or do something new ([template-core.md](template-core.md) for inherited capabilities in the template repo). Concept docs if the pattern itself changed |
 | Checks | `make lint` applied, `make check` is green |
-| Migration | Tell the user `make mm` / `make m` is needed. Do not run it unless they ask (the hook blocks it; `ALLOW_MIGRATIONS=1` after an explicit yes) |
+| Migration | `make mm` generated the migration, `make m` applied it, the file is committed with the change |
 
 ---
 
@@ -55,6 +55,7 @@ Owns process-wide wiring. Do not put organization/user business rules here.
 | Path | Why it exists |
 |---|---|
 | `settings.py` | Env-backed config |
+| `product.py` | Product identity (`PRODUCT_NAME`, `PRODUCT_DESCRIPTION`): the only place the backend names the product; `make init` writes it |
 | `database.py` | Tortoise ORM setup; `MODELS` comes from `discovery.py` |
 | `discovery.py` | Finds domains: `domains/*/models.py` → `MODELS`, `domains/*/views.py` `routers` → `/api/v1` (kernel domains first, then alphabetical; import errors fail loudly) |
 | `auth.py` | Credential resolution (cookie → `Token` → `Bearer`), current user / org (`AuthState`) |
@@ -132,12 +133,12 @@ frontend/
 frontend/app/
   features/               # One folder per business module (mirrors a backend domain)
   pages/                  # Nuxt routes — thin wrappers over feature views
-  layouts/                # Shell + drawer navigation (default, settings, setup, auth)
-  navigation/             # Drawer entries as data (settings.ts)
+  layouts/                # Shell + sidebar navigation (default, settings, setup, auth, ui)
+  navigation/             # Sidebar entries as data (settings.ts, ui.ts)
   shared/                 # API layer, UI kit, composables, utils
   middleware/             # Session and organization guards (page meta `auth`, `organization`)
   plugins/                # `$api`: the generated client per app instance
-  app.config.ts           # Product name (header, public page, meta tags)
+  app.config.ts           # Product identity: name + description (logo, sidebar, public page, tab title, meta)
 ```
 
 ### `features/<name>/`
@@ -152,7 +153,7 @@ frontend/app/
 **Related UI lives together.** A standalone widget is a single file. A cluster of tightly coupled pieces gets a folder; composables that exist only for that cluster go in the same folder (not in the feature-wide `composables/`):
 
 ```
-components/OrganizationPicker.vue          # one widget
+components/OrganizationSwitcher.vue        # one widget
 
 components/member-list/                    # one concern, several files
   OrganizationMembersList.vue
@@ -169,10 +170,11 @@ Same idea already exists in the UI kit: `shared/ui/app/date-picker/` (components
 | Path | Why it exists |
 |---|---|
 | `pages/**/*.vue` | Route only. Import a feature view; no business logic, no API calls. `definePageMeta({ auth: false })` marks a public page |
-| `layouts/*.vue` | Chrome and **drawer items**. Nuxt route names come from the file path: `settings/organizations/[id].vue` → `settings-organizations-id` |
-| `navigation/settings.ts` | Settings drawer entries as data (`settingsNavigation`); `make new-domain` appends to it |
+| `layouts/*.vue` | Fill the `AppLayout` shell: **sidebar items** and feature widgets (organization switcher). Nuxt route names come from the file path: `settings/organizations/[id].vue` → `settings-organizations-id` |
+| `navigation/settings.ts` | Settings sidebar entries and their groups as data (`settingsNavigation`, `settingsSections`); `make new-domain` appends to it |
+| `navigation/ui.ts` | Sidebar of the `/ui` catalogue, built from `features/ui/catalog.ts` |
 
-Rendering is hybrid (`routeRules` in `nuxt.config.ts`): app routes (`/home/**`, `/settings/**`, `/auth`, `/ui`) render in the browser; public pages (`/`) render on the server with SEO meta. See [frontend-concept.md](frontend-concept.md#rendering).
+Rendering is hybrid (`routeRules` in `nuxt.config.ts`): app routes (`/home/**`, `/settings/**`, `/auth`, `/ui/**`) render in the browser; public pages (`/`) render on the server with SEO meta. See [frontend-concept.md](frontend-concept.md#rendering).
 
 ### `shared/`
 
@@ -187,7 +189,7 @@ Rendering is hybrid (`routeRules` in `nuxt.config.ts`): app routes (`/home/**`, 
 | `composables/` | App-wide composables (`useSession`, `useActionState`, `useToast`, `useWebSocketService`) |
 | `utils/` | Small frontend helpers |
 | `lib/` | Class-name composition (`cn`) for shadcn primitives; explicitly tracked despite Python `lib/` ignore rules |
-| `components/` | App chrome that is not a generic primitive (layout header, drawer) |
+| `components/` | App chrome that is not a generic primitive (`layout/AppLayout` shell, `layout/sidebar/`, header pieces) |
 | `stores/` | Rare app-level stores (`useSetupStore`: the selected organization) |
 
 Auth lives in FastAPI: it sets and rotates HttpOnly cookies, the frontend never holds a token. The browser reaches the API on its own origin; during SSR Nitro calls `NUXT_API_INTERNAL_URL` with the request's cookie (GET only). There is no Nitro API proxy.
@@ -225,9 +227,10 @@ docker/rootfs/            # Copied to / in the image
   usr/local/bin/healthcheck
 compose.yaml              # Production stack: app + PostgreSQL + Redis
 compose.override.yaml     # Local development only: db/redis ports on 127.0.0.1, app build
+compose.dokploy.yaml      # Optional Dokploy stack: app image from Docker Hub, no host ports
 cliff.toml                # Release rules: next version and CHANGELOG.md from conventional commits
-version.json              # Current release version (written by the release job, with pyproject/package.json)
-.github/workflows/        # ci.yaml (checks → release → publish → deploy), rollback, pr-title, security
+version.json              # Current release version (written by the release job; package versions stay 0.0.0)
+.github/workflows/        # ci.yaml (checks → release → publish to Yandex CR and/or Docker Hub → deploy), rollback, pr-title, security (weekly)
 .github/actions/deploy/   # Pluggable deploy step (SSH + docker compose by digest)
 ```
 
@@ -253,7 +256,7 @@ AGENTS.md, CLAUDE.md      # Agent index: Codex reads AGENTS.md, CLAUDE.md includ
 .claude/
   skills/<name>           # Relative symlinks -> ../../.agents/skills/<name> (Claude Code discovery path)
   settings.json           # Claude Code hooks (committed); personal overrides in settings.local.json (ignored)
-  hooks/                  # block_migrations.py (PreToolUse Bash), format_file.py (PostToolUse Edit|Write)
+  hooks/                  # format_file.py (PostToolUse Edit|Write)
 scripts/
   scaffold/               # make new-domain: new_domain.py + templates/*.tmpl (string.Template)
   bootstrap/              # make init: init.py + product.md.tmpl
@@ -265,9 +268,8 @@ scripts/
 | Piece | Behavior |
 |---|---|
 | Domain discovery | `backend/app/core/discovery.py`: no registration step for models or routers ([backend-concept.md](backend-concept.md#registration)) |
-| `make new-domain` | Scaffolds backend domain + frontend feature + drawer entry; never overwrites, never migrates ([backend-concept.md](backend-concept.md#scaffolding)) |
+| `make new-domain` | Scaffolds backend domain + frontend feature + settings sidebar entry; never overwrites, never migrates ([backend-concept.md](backend-concept.md#scaffolding)) |
 | `make init` | Turns a template copy into a product ([README.md](../README.md#start-a-new-product)) |
-| Migration hook (Claude Code) | Blocks `make m/mm/migrate/make-migrations` and `tortoise migrate/makemigrations/upgrade/downgrade` with a message to ask the user. `ALLOW_MIGRATIONS=1 <command>` passes, only after the user explicitly asked |
 | Format hook (Claude Code) | Formats only the edited file: Ruff for `backend/**/*.py`, `vp fmt` for `frontend/**`; no-op elsewhere; reports formatter problems as a note and never fails the edit |
 | Skills | Short checklists that link to these docs; they do not copy rules. One copy in `.agents/skills/` ([Agent Skills](https://agentskills.io/specification) format: `name` = folder name, `description`, no tool-specific fields), read natively by Codex; Claude Code reads `.claude/skills/`, where each skill is a relative symlink to it. `new-domain` ends with a backend self-review; `design-system` covers new shadcn primitives and the browser review. Checking (`make check`) and releasing (commit types) are always-on rules in `AGENTS.md`, not skills |
 | Forks | [template-ownership.md](template-ownership.md), `.template-version`, the `sync-template` skill |

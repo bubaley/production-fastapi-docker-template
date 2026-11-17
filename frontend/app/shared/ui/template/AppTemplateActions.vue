@@ -1,21 +1,26 @@
 <template>
   <div
-    class="flex items-center gap-2"
-    :class="{ 'w-full *:flex-1': fullWidth }"
+    :class="
+      inModalFooter
+        ? 'flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end'
+        : ['flex items-center gap-2', { 'w-full *:flex-1': fullWidth }]
+    "
   >
     <AppButton
       v-for="(action, index) in visibleActions"
       :key="index"
       v-bind="getButtonProps(action, index)"
-      :class="action.class"
+      :class="inModalFooter ? ['w-full sm:w-auto', action.class] : action.class"
       @click="executeAction(action, index)"
     />
   </div>
 </template>
 
 <script setup lang="ts">
+import { inject } from 'vue'
 import type { AppTemplateAction } from './types/template-types'
 import type { AppButtonSize } from '../app/types/control'
+import { IN_MODAL_FOOTER } from '../app/modalFooter'
 
 export type AppTemplateActionsProps = {
   actions?: AppTemplateAction[]
@@ -28,6 +33,8 @@ const props = withDefaults(defineProps<AppTemplateActionsProps>(), {
   fullWidth: false,
 })
 
+// In a modal footer the one dialog layout (stacked on phones, right-aligned from `sm`) wins over `fullWidth`/`fluid`.
+const inModalFooter = inject(IN_MODAL_FOOTER, false)
 const actionsLoading = ref<number[]>([])
 const toast = useToast()
 
@@ -51,7 +58,7 @@ const getButtonProps = (action: AppTemplateAction, index: number) => {
     icon: mode === 'label' ? undefined : action.icon,
     size: action.size || props.size,
     loading: action.loading || actionsLoading.value.includes(index),
-    fluid: props.fullWidth || action.fluid,
+    fluid: inModalFooter ? false : props.fullWidth || action.fluid,
   }
 }
 

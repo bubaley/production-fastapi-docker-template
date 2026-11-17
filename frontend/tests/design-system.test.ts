@@ -40,8 +40,12 @@ describe('AppButton', () => {
   it('maps variant and size to token-based classes', () => {
     const classes = render({ label: 'Save', size: 'sm', variant: 'outline' }).get('button').classes()
     expect(classes).toEqual(expect.arrayContaining(['h-control-sm', 'px-3', 'text-control-sm', 'border-input']))
-    expect(render({ label: 'Save' }).get('button').classes()).toEqual(
-      expect.arrayContaining(['h-control-md', 'bg-primary', 'text-primary-foreground']),
+    // `default` is the neutral high-contrast fill; only `primary` takes the palette accent.
+    const defaultClasses = render({ label: 'Save' }).get('button').classes()
+    expect(defaultClasses).toEqual(expect.arrayContaining(['h-control-md', 'bg-contrast', 'text-contrast-foreground']))
+    expect(defaultClasses).not.toContain('bg-primary')
+    expect(render({ label: 'Publish', variant: 'primary' }).get('button').classes()).toEqual(
+      expect.arrayContaining(['bg-primary', 'text-primary-foreground']),
     )
     expect(render({ label: 'Delete', variant: 'destructive' }).get('button').classes()).toContain('bg-destructive')
   })
@@ -83,6 +87,11 @@ describe('useTheme', () => {
     theme.palette.value = 'green'
     expect(cookie.value).toBe('green')
     expect(useTheme().palette.value).toBe('green')
+  })
+  it('defaults to the neutral palette', () => {
+    expect(DEFAULT_PALETTE).toBe('neutral')
+    setup(null)
+    expect(useTheme().palette.value).toBe('neutral')
   })
   it('falls back to the default palette for unknown values', () => {
     const { cookie } = setup('pink')

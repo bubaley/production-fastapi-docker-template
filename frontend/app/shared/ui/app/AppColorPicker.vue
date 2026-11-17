@@ -64,7 +64,9 @@ function choose(value: unknown) {
     >
       <template #append>
         <AppMenu
+          mode="popover"
           :disabled="disabled"
+          aria-label="Выбор цвета"
           content-class="p-0"
         >
           <template #trigger>
@@ -118,7 +120,9 @@ function choose(value: unknown) {
           >
         </button>
         <AppMenu
+          mode="popover"
           :disabled="disabled"
+          aria-label="Выбор цвета"
           content-class="p-0"
         >
           <template #trigger>

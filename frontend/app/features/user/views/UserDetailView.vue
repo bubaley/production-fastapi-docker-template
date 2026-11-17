@@ -6,7 +6,8 @@
     <template #default="{ item, isCreating }">
       <AppInput
         v-model="item.email"
-        label="Email"
+        label="Электронная почта"
+        type="email"
       />
       <AppInput
         v-model="item.first_name"
@@ -22,19 +23,12 @@
         type="password"
         label="Пароль"
       />
-      <div class="flex items-center gap-2">
-        <AppCheckbox
-          v-model="item.is_superuser"
-          binary
-          input-id="user-su"
-        />
-        <label for="user-su">Суперпользователь</label>
-      </div>
-      <div class="-mt-1.5">
-        <UserChangePasswordButton
-          v-if="item.id"
-          :user-id="item.id"
-        />
+      <AppCheckbox
+        v-model="item.is_superuser"
+        label="Суперпользователь"
+      />
+      <div v-if="item.id">
+        <UserChangePasswordButton :user-id="item.id" />
       </div>
       <UserTokensSection
         v-if="item.id"

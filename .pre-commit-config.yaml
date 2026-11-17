@@ -22,7 +22,7 @@ repos:
       - id: pyupgrade
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.2
+    rev: v0.17.5
     hooks:
       - id: ruff-check
         args: ["--fix"]
@@ -35,17 +35,23 @@ repos:
         args: ["--config", "backend/pyproject.toml"]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.13.5
+    rev: 0.13.9
     hooks:
       - id: uv-lock
         files: backend/pyproject.toml
         args: ["--locked", "--project", "backend"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.30.3
+    rev: v2.31.0
     hooks:
       - id: pyproject-fmt
         args: ["--keep-full-version", "--indent", "4"]
+
+  # Staged changes only; CI scans the commits of each push and pull request with the same version (ci.yaml).
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
 
   - repo: local
     hooks:

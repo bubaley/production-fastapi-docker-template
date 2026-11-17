@@ -8,13 +8,14 @@
       #actions
     >
       <slot name="actions" />
+      <!-- A page's create action is the neutral `default` button in its header; a nested section gets a quiet one. -->
       <AppButton
         v-if="!hideCreateButton && !$slots.actions"
-        variant="default"
+        :variant="templateVariant === 'page' ? 'default' : 'outline'"
+        :size="templateVariant === 'page' ? 'md' : 'sm'"
+        :label="createLabel || 'Создать'"
         @click="handleCreateClick"
-      >
-        {{ createLabel || 'Создать' }}
-      </AppButton>
+      />
     </template>
 
     <template
@@ -27,7 +28,6 @@
         :filter-spec="filterSpec"
         :fixed-fields="fixedFields"
         :available-filters="availableFilters"
-        class="py-2"
         :show-search="showSearch"
         :search-loading="listData.loading.value"
         :search-placeholder="searchPlaceholder"
@@ -50,7 +50,7 @@
     <AppList
       v-bind="listBind"
       v-model:search="listData.search.value"
-      :class="templateVariant === 'page' && mode === 'table' && tableBleed && '-mx-3 md:-mx-4'"
+      :class="templateVariant === 'page' && mode === 'table' && tableBleed && PAGE_TABLE_BLEED_CLASS"
       @item-click="onItemClick"
       @load-more="handleLoadMore"
       @update:selection="$emit('update:selection', $event)"
@@ -105,7 +105,7 @@
   <AppModal
     v-model="detailModal"
     :close-label="detailModalProps?.closeLabel"
-    :title="detailModalProps?.title || (selectedItem?.id ? 'Обновление' : 'Создание')"
+    :title="detailModalProps?.title || (selectedItem?.id ? 'Изменение' : 'Новая запись')"
     :width="detailModalProps?.width || '30rem'"
     :class="detailModalProps?.class"
   >
@@ -141,6 +141,7 @@ import type { ResourceForm, ResourceItem } from '~/shared/api/resource'
 import { useResourceItem } from '~/shared/api/useResource'
 import AppListToolbar from '../app/AppListToolbar.vue'
 import AppPageView from '../app/AppPageView.vue'
+import { PAGE_TABLE_BLEED_CLASS } from '../app/pageContainer'
 import AppSection from '../app/AppSection.vue'
 import type { AppListTemplateProps } from './types/template-types'
 import type { AppListProps, ItemClickEvent } from '../app/AppList.vue'
@@ -208,7 +209,8 @@ watch(detailModal, (open) => {
 
 const detailModalActionsProps = computed(() => ({
   hideHeaderActions: true,
-  disableRouterAutoResolving: props.detailMode === 'modal',
+  showCancelButton: true,
+  disableRouterAutoResolving: props.detailMode === 'modal' || Boolean(props.createInModal),
   ...props.detailModalProps?.actionsProps,
 }))
 
@@ -260,7 +262,8 @@ const handleDetailAction = (event: AppDetailActionsDeleteResult<F>) => {
 }
 
 const _openItem = (item: T | null) => {
-  if (props.detailMode === 'modal') {
+  // `createInModal`: rows open their route page, a new record is still created in the `#detail-modal` form.
+  if (props.detailMode === 'modal' || (!item && props.createInModal)) {
     if (!props.resource) return
     selectedItem.value = item
       ? props.resource.toForm(deepClone(item))

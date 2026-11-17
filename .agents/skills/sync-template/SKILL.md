@@ -28,8 +28,8 @@ git fetch --no-tags template main '+refs/tags/v*:refs/template-tags/v*'
 
 **5. Regenerate and verify.**
 - Manifests changed → `cd backend && uv lock`, `pnpm --dir frontend install`.
-- `make gen-client`, `make lint`, `make check` (`PYTEST_ARGS=--sqlite` while a kernel migration is pending).
-- Models changed → tell the user to run `make mm` then `make m` (do not run them).
+- `make gen-client`, `make lint`, `make check`.
+- Models changed → `make mm`, then `make m`; commit the new migration.
 - UI kit changed → `design-system` skill visual review of `/ui` and product screens.
 
 **6. Record.** Rewrite `.template-version`: `version=` from `git show TARGET:version.json`, `commit=$(git rev-parse TARGET)`, keep `repository`. Commit: `chore(template): sync to v<version> (<sha7>)`; use `feat(template)`/`fix(template)` instead when the sync brings user-visible changes, so the release job bumps.

@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vite-plus'
+import { defineConfig, type PluginOption } from 'vite-plus'
 
 // Vite+ tool config (`vp fmt`, `vp lint`, `vp test`). Nuxt ignores this file: its Vite builder runs with
 // `configFile: false`, so app build settings live in nuxt.config.ts.
@@ -15,7 +15,9 @@ const ignorePatterns = [
 ]
 
 export default defineConfig({
-  plugins: [vue()],
+  // @vitejs/plugin-vue is typed against `vite`, vite-plus against its bundled core: comparing the two Plugin types
+  // structurally exceeds TypeScript's stack depth (TS2321, a "Debug Failure" crash in vue-tsc on TS 6).
+  plugins: [vue() as PluginOption],
   // Tests run the browser side of Nuxt's compile-time flags.
   define: { 'import.meta.client': 'true', 'import.meta.server': 'false' },
   resolve: { alias: { '~': fileURLToPath(new URL('./app', import.meta.url)) } },

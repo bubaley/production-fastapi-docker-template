@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { useOverlayStack } from './useOverlayStack'
 import { computed, ref, watch } from 'vue'
 import { CalendarDays } from '@lucide/vue'
-import { Popover, PopoverContent, PopoverTrigger } from '~/shared/ui/shadcn/popover'
+import AppMenu from './AppMenu.vue'
 import AppButton from './AppButton.vue'
 import AppField from './AppField.vue'
 import PickerPanel from './date-picker/PickerPanel.vue'
@@ -74,7 +73,6 @@ watch(
   },
   { flush: 'sync' },
 )
-const { contentStyle: overlayStyle } = useOverlayStack(open)
 defineSlots<{ trigger(props: DatePickerTriggerBindings): unknown }>()
 const valueLabel = computed(() =>
   (effectiveMode.value === 'range' ? [range.value.start, range.value.end] : [model.value])
@@ -144,11 +142,18 @@ const width = computed(
         :described-by="field.describedBy"
         :style="{ maxWidth: `${width}px` }"
       />
-      <Popover
+      <AppMenu
         v-else
         v-model:open="open"
+        mode="popover"
+        align="start"
+        :side-offset="6"
+        :collision-padding="12"
+        :aria-label="label || (locale === 'en' ? 'Choose date' : 'Выбор даты')"
+        content-class="max-h-[min(90dvh,var(--reka-popover-content-available-height))] max-w-[calc(100vw-24px)] overflow-y-auto border-0 bg-transparent p-0"
+        :content-style="{ width: `${width}px` }"
       >
-        <PopoverTrigger as-child>
+        <template #trigger>
           <slot
             name="trigger"
             v-bind="{
@@ -167,7 +172,7 @@ const width = computed(
               :aria-required="required || undefined"
               :aria-invalid="!!error || undefined"
               :aria-describedby="field.describedBy"
-              class="w-full justify-start font-normal"
+              class="w-full justify-start font-normal hover:border-border-strong focus-visible:border-border-strong focus-visible:ring-0 focus-visible:ring-offset-0"
               :aria-label="label || (locale === 'en' ? 'Choose date' : 'Выбрать дату')"
             >
               <span
@@ -177,27 +182,18 @@ const width = computed(
               >
             </AppButton>
           </slot>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          :aria-label="label || (locale === 'en' ? 'Choose date' : 'Выбор даты')"
-          :side-offset="6"
-          :collision-padding="12"
-          class="max-h-[min(90dvh,var(--reka-popover-content-available-height))] w-auto max-w-[calc(100vw-24px)] overflow-y-auto rounded-xl border-0 bg-transparent p-0 shadow-xl"
-          :style="{ width: `${width}px`, ...overlayStyle }"
-        >
-          <PickerPanel
-            v-bind="props"
-            :id="`${field.id}-input`"
-            ref="panel"
-            v-model="model"
-            v-model:range="range"
-            :mode="effectiveMode"
-            :described-by="field.describedBy"
-            @apply="open = false"
-          />
-        </PopoverContent>
-      </Popover>
+        </template>
+        <PickerPanel
+          v-bind="props"
+          :id="`${field.id}-input`"
+          ref="panel"
+          v-model="model"
+          v-model:range="range"
+          :mode="effectiveMode"
+          :described-by="field.describedBy"
+          @apply="open = false"
+        />
+      </AppMenu>
     </template>
   </AppField>
 </template>

@@ -18,7 +18,7 @@ describe('nested overlay layers', () => {
         setup: () => () =>
           h(
             AppDrawer,
-            { modelValue: true, overlay: true, title: 'Панель', 'data-drawer': '' },
+            { modelValue: true, title: 'Панель', 'data-drawer': '' },
             {
               default: () => h(AppModal, { modelValue: open.value, title: 'Настройки' }, { default: () => h('input') }),
             },

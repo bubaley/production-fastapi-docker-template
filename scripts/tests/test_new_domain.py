@@ -85,6 +85,27 @@ def test_generates_the_canonical_files(project_root, name):
     assert navigation.index('settings-users') < navigation.index(f'settings-{ctx["plural_kebab"]}')
 
 
+NAV_TAIL = '\nexport const nav = [\n' + new_domain.NAVIGATION_MARKER + ']\n'
+
+
+def test_navigation_import_wrapped_by_the_formatter():
+    """A multi-line `@lucide/vue` import is merged, not duplicated."""
+    source = "import {\n  Building,\n  User,\n} from '@lucide/vue'\n" + NAV_TAIL
+    result = new_domain.add_navigation(source, _names('invoice').context)
+    assert result.count("from '@lucide/vue'") == 1
+    assert "import { Building, Folder, User } from '@lucide/vue'" in result
+
+
+def test_navigation_wraps_a_long_import():
+    icons = [f'Icon{index:02d}' for index in range(12)]
+    source = f"import {{ {', '.join(icons)} }} from '@lucide/vue'\n" + NAV_TAIL
+    result = new_domain.add_navigation(source, _names('invoice').context)
+    lucide_import = result[: result.index("} from '@lucide/vue'")]
+    assert lucide_import.startswith('import {\n')
+    assert '  Folder,\n' in lucide_import and '  Icon11,\n' in lucide_import
+    assert all(len(line) <= new_domain.IMPORT_LINE_LENGTH for line in result.splitlines())
+
+
 def test_refuses_to_overwrite(project_root):
     names = _names('invoice')
     page = project_root / 'frontend/app/pages/settings/invoices/index.vue'

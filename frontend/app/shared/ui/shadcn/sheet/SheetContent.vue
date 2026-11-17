@@ -42,7 +42,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       data-slot="sheet-content"
       :class="
         cn(
-          'fixed z-overlay flex flex-col gap-4 bg-background shadow-lg transition ease-in-out outline-none data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-200',
+          'fixed z-overlay flex flex-col gap-4 bg-background shadow-overlay transition ease-in-out outline-none data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-200',
           side === 'right' &&
             'inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm',
           side === 'left' &&

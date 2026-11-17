@@ -6,8 +6,7 @@ defineEmits<{ remove: [] }>()
 <template>
   <span
     class="relative z-10 inline-flex max-w-full items-center gap-1 rounded-sm border border-border bg-secondary py-0.5 pr-1 pl-2 text-xs"
-    ><span class="min-w-0 truncate"
-      ><slot>{{ label }}</slot></span
+    ><span class="min-w-0 truncate"><slot>{{ label }}</slot></span
     ><button
       type="button"
       class="pointer-events-auto grid size-5 shrink-0 place-items-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none"

@@ -1,12 +1,24 @@
 <script setup lang="ts">
 import PageHeader from '../template/PageHeader.vue'
+import type { AppPageShellProps } from './AppPage.vue'
 import type { AppSectionProps } from './AppSection.vue'
 
-export type AppPageViewProps = AppSectionProps & { contentClass?: string }
-withDefaults(defineProps<AppPageViewProps>(), { contentClass: 'p-3 md:p-4' })
+export type AppPageViewProps = AppSectionProps & AppPageShellProps & { contentClass?: string }
+withDefaults(defineProps<AppPageViewProps>(), {
+  contentClass: undefined,
+  maxWidth: undefined,
+  align: 'center',
+  sticky: 'none',
+})
 </script>
 <template>
-  <AppPage :content-class="contentClass">
+  <AppPage
+    :content-class="contentClass"
+    :divided="divided"
+    :max-width="maxWidth"
+    :align="align"
+    :sticky="sticky"
+  >
     <template
       v-if="
         title ||

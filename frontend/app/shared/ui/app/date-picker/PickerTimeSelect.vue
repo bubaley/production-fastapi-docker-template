@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import { Popover, PopoverContent, PopoverTrigger } from '~/shared/ui/shadcn/popover'
 import AppButton from '../AppButton.vue'
 import AppInput from '../AppInput.vue'
+import AppMenu from '../AppMenu.vue'
 import { maskClockInput } from './format'
-import { useOverlayStack } from '../useOverlayStack'
 const props = withDefaults(
   defineProps<{ modelValue: string | null; label: string; disabled?: boolean; locale?: 'ru' | 'en'; step?: number }>(),
   { locale: 'ru', step: 15 },
@@ -15,7 +14,6 @@ const draft = ref('')
 const dirty = ref(false)
 const invalid = ref(false)
 const input = ref<InstanceType<typeof AppInput>>()
-const { contentStyle } = useOverlayStack(open)
 const format = (value: string) => (value.length === 5 ? `${value}:00` : value)
 const times = computed(() => {
   const step = Number.isFinite(props.step) ? Math.max(1, Math.min(720, Math.round(props.step))) : 15
@@ -64,8 +62,16 @@ function edit(value: string | null) {
 defineExpose({ commit })
 </script>
 <template>
-  <Popover v-model:open="open">
-    <PopoverTrigger as-child>
+  <AppMenu
+    v-model:open="open"
+    mode="popover"
+    align="end"
+    :side-offset="6"
+    :aria-label="label"
+    content-class="w-44 overflow-hidden"
+    @open-auto-focus="focusTime"
+  >
+    <template #trigger>
       <AppButton
         variant="ghost"
         size="sm"
@@ -76,51 +82,42 @@ defineExpose({ commit })
       >
         {{ modelValue ? format(modelValue) : '00:00:00' }}
       </AppButton>
-    </PopoverTrigger>
-    <PopoverContent
-      align="end"
-      :side-offset="6"
-      :style="contentStyle"
-      class="w-44 overflow-hidden rounded-lg border-border-strong bg-background p-1.5 text-foreground shadow-overlay"
+    </template>
+    <AppInput
+      ref="input"
+      :model-value="draft"
+      size="sm"
+      placeholder="00:00:00"
       :aria-label="label"
-      @open-auto-focus="focusTime"
-    >
-      <AppInput
-        ref="input"
-        :model-value="draft"
+      :aria-invalid="invalid"
+      inputmode="numeric"
+      autocomplete="off"
+      :disabled="disabled"
+      class="mb-1.5 [&_input]:focus-visible:border-input [&_input]:focus-visible:ring-0"
+      maxlength="8"
+      @update:model-value="edit"
+      @keydown.enter.prevent="commit() && (open = false)"
+    />
+    <div class="max-h-48 overflow-y-auto overscroll-contain">
+      <AppButton
+        variant="ghost"
         size="sm"
-        placeholder="00:00:00"
-        :aria-label="label"
-        :aria-invalid="invalid"
-        inputmode="numeric"
-        autocomplete="off"
-        :disabled="disabled"
-        class="mb-1.5 [&_input]:focus-visible:border-input [&_input]:focus-visible:ring-0"
-        maxlength="8"
-        @update:model-value="edit"
-        @keydown.enter.prevent="commit() && (open = false)"
-      />
-      <div class="max-h-48 overflow-y-auto overscroll-contain">
-        <AppButton
-          variant="ghost"
-          size="sm"
-          class="w-full justify-start font-normal text-muted-foreground"
-          @click="select(null)"
-        >
-          {{ locale === 'en' ? 'No time' : 'Без времени' }}
-        </AppButton>
-        <AppButton
-          v-for="value in times"
-          :key="value"
-          variant="ghost"
-          size="sm"
-          class="w-full justify-start font-normal tabular-nums"
-          :class="modelValue && format(modelValue) === value && 'bg-accent'"
-          @click="select(value)"
-        >
-          {{ value }}
-        </AppButton>
-      </div>
-    </PopoverContent>
-  </Popover>
+        class="w-full justify-start font-normal text-muted-foreground"
+        @click="select(null)"
+      >
+        {{ locale === 'en' ? 'No time' : 'Без времени' }}
+      </AppButton>
+      <AppButton
+        v-for="value in times"
+        :key="value"
+        variant="ghost"
+        size="sm"
+        class="w-full justify-start font-normal tabular-nums"
+        :class="modelValue && format(modelValue) === value && 'bg-accent'"
+        @click="select(value)"
+      >
+        {{ value }}
+      </AppButton>
+    </div>
+  </AppMenu>
 </template>

@@ -8,4 +8,4 @@ exclude = ["migrations", ".venv"]
 include = ["app/**/models.py"]
 
 [overrides.rules]
-invalid-attribute-override = "ignore"
+incompatible-attribute-override = "ignore"
