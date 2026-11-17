@@ -276,8 +276,8 @@ def main(argv: list[str] | None = None) -> int:
         '  2. make install\n'
         '  3. docker compose up -d db redis\n'
         '  4. make m                       # apply migrations\n'
-        '  5. make createsuperuser\n'
-        '  6. make run-backend / make run-frontend (two terminals)\n'
+        '  5. make run-backend / make run-frontend (two terminals)\n'
+        '  6. Open the app and create the administrator in «Первый запуск» (or: make createsuperuser)\n'
         '  7. Describe the product in docs/product.md (purpose, personas, scenarios, non-goals)'
     )
     return 0

@@ -8,7 +8,7 @@ import { organizationResource } from '~/features/organization/resources/organiza
  * A user with no organization at all lands on `home`, where the shell asks to create one.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
-  if (import.meta.server || to.meta.auth === false || to.meta.auth === 'guest') return
+  if (import.meta.server || to.meta.auth === false || to.meta.auth === 'guest' || to.meta.auth === 'setup') return
   const setupStore = useSetupStore()
   if (!setupStore.state.restored) {
     const session = await ensureSession()

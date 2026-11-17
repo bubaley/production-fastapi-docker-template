@@ -31,7 +31,9 @@ class AuthState(BaseModel):
         return self.organization.id if self.organization else None
 
 
-PUBLIC_PATHS = frozenset({'/api/v1/auth/login', '/api/v1/auth/refresh', '/api/v1/auth/logout'})
+PUBLIC_PATHS = frozenset(
+    {'/api/v1/auth/login', '/api/v1/auth/refresh', '/api/v1/auth/logout', '/api/v1/setup', '/api/v1/setup/status'}
+)
 
 
 def is_public_route(request: Request) -> bool:

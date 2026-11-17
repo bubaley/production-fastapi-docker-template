@@ -254,6 +254,15 @@ FastAPI owns auth. Lifecycle lives in `AuthService` (`domains/auth/services/auth
 
 `POST /users/{id}/change-password` returns fresh cookies when users change their own password.
 
+### First-run setup (`/api/v1/setup`)
+
+| Endpoint | Auth | Request | Response |
+|---|---|---|---|
+| `GET /setup/status` | public | — | 200 `{needs_setup, token_required}`: `needs_setup` while the database has no users |
+| `POST /setup` | public | `SetupRequest` `{email, first_name, last_name, password, organization?: {name, key}, setup_token?}` | 200 `SessionSchema` and both cookies, like login. 409 `CONFLICT` once any user exists, 403 `FORBIDDEN` for a wrong `setup_token` while `SETUP_TOKEN` is set, 429 after `LOGIN_RATE_LIMIT_ATTEMPTS` failures per client IP |
+
+`SetupService` (`domains/auth/services/setup_service.py`) creates the superuser (and the organization with its membership) in one transaction under `pg_advisory_xact_lock`, re-checking that no user exists inside it, so concurrent requests produce exactly one user. "Complete" is cached per process: the last user cannot delete themselves, so the table is empty again only on a wiped database. The API logs a warning at startup while setup is open. `manage.py create_superuser` stays as the shell path.
+
 ### Cookies
 
 | Cookie | Path | Lifetime | Attributes |

@@ -85,6 +85,7 @@ The container reads the same settings as local development (`.env.example`). Pro
 | `DB_WAIT_TIMEOUT` | `60` | Seconds `migrate` waits for PostgreSQL |
 | `API_MAX_BODY_SIZE` | `25MB` | Caddy request body limit for `/api/v1/*` |
 | `NUXT_API_INTERNAL_URL` | `http://127.0.0.1:8000` | FastAPI as seen from the Nuxt server during SSR (set by the `frontend` service). Browsers never use it: they call `/api/v1` and `/ws` on the public origin through Caddy |
+| `SETUP_TOKEN` | empty | While the database has no users, the first-run setup (`/setup`) is open to anyone who reaches the site; set this (e.g. `openssl rand -hex 16`) and the setup also asks for it. Meaningless once the first user exists |
 | `APP_VERSION`, `GIT_SHA` | baked in | Set by the build; do not override |
 
 `compose.yaml` forces `DEBUG=False`, `COOKIE_SECURE=True` and the in-network database/Redis addresses for the app.
@@ -200,7 +201,7 @@ Without a registry (`YC_REGISTRY_ID`/`IMAGE_NAME` or `DOCKERHUB_USERNAME`) the p
 2. Let the server pull from Yandex CR: attach a service account with `container-registry.images.puller` to the VM and configure the [Docker credential helper](https://yandex.cloud/en/docs/container-registry/operations/authentication), or `docker login cr.yandex` once with a pull-only key. The pipeline never copies its push credentials to the server.
 3. Create `DEPLOY_PATH` with a `.env` built from `.env.example`: real `SECRET_KEY`, `ENCRYPTION_KEY`, `PASSWORD_PEPPER`, `SQL_PASSWORD`, `REDIS_PASSWORD` and `COMPOSE_PROJECT_NAME`. The first deploy adds `APP_IMAGE` and `compose.yaml`.
 4. Terminate TLS in front of `APP_ENTRY_PORT` (host Caddy/nginx or a cloud load balancer) and set HSTS there.
-5. Create the first user: `docker compose exec -w /app/backend app python -m manage create_superuser`.
+5. First user: open the site and complete «Первый запуск» (`/setup`); it is open only while there are no users, and the API logs a warning at startup until then. Set `SETUP_TOKEN` in `.env` if the site is reachable by others before you finish. Shell alternative: `docker compose exec -w /app/backend app python -m manage create_superuser`.
 
 ---
 
@@ -225,6 +226,6 @@ Tags: `X.Y.Z`, `X.Y`, `sha-<short>` and `latest`, with the same build arguments 
 2. *Environment* (Dokploy writes it to `.env` next to the compose file): `APP_IMAGE` (`<DOCKERHUB_USERNAME>/fastapi-nuxt-template:latest`, or a version tag to pin), `SECRET_KEY` (≥ 64 chars), `ENCRYPTION_KEY` (exactly 32 chars), `PASSWORD_PEPPER`, `SQL_PASSWORD`, `REDIS_PASSWORD` (URL-safe), plus any other setting from `.env.example` the product needs (`AWS_*`, `BACKEND_WORKERS`, `TASKIQ_WORKERS`). Never change `SECRET_KEY`, `ENCRYPTION_KEY` or `PASSWORD_PEPPER` after the first deploy.
 3. *Domains*: the host, service `app`, container port **8080**, HTTPS (Let's Encrypt). Set HSTS in Traefik if needed.
 4. Deploy. Migrations run when the container starts; `app` is healthy once the image `HEALTHCHECK` passes.
-5. First user: *Terminal* of the `app` container → `cd /app/backend && python -m manage create_superuser`.
+5. First user: open the domain and complete «Первый запуск» (`/setup`; add `SETUP_TOKEN` to the environment to protect it), or *Terminal* of the `app` container → `cd /app/backend && python -m manage create_superuser`.
 
 Back up the `postgres_data` volume (Dokploy volume backups or a scheduled `pg_dump`). Rollback: set `APP_IMAGE` to the previous version tag and redeploy; migrations are not reversed.

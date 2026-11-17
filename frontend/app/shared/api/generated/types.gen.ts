@@ -284,6 +284,51 @@ export type SessionSchema = {
 }
 
 /**
+ * SetupRequest
+ *
+ * The first user (created as a superuser) and, optionally, the first organization they become a member of.
+ */
+export type SetupRequest = {
+  /**
+   * Email
+   */
+  email: string
+  /**
+   * First Name
+   */
+  first_name: string
+  /**
+   * Last Name
+   */
+  last_name: string
+  /**
+   * Password
+   */
+  password: string
+  organization?: OrganizationCreateSchema | null
+  /**
+   * Setup Token
+   */
+  setup_token?: string | null
+}
+
+/**
+ * SetupStatusSchema
+ *
+ * First-run state: `needs_setup` while the database has no users; then setup is closed for good.
+ */
+export type SetupStatusSchema = {
+  /**
+   * Needs Setup
+   */
+  needs_setup: boolean
+  /**
+   * Token Required
+   */
+  token_required: boolean
+}
+
+/**
  * UserChangePasswordSchema
  */
 export type UserChangePasswordSchema = {
@@ -781,6 +826,112 @@ export type AuthRefreshResponses = {
 }
 
 export type AuthRefreshResponse = AuthRefreshResponses[keyof AuthRefreshResponses]
+
+export type SetupStatusData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/api/v1/setup/status'
+}
+
+export type SetupStatusErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SetupStatusError = SetupStatusErrors[keyof SetupStatusErrors]
+
+export type SetupStatusResponses = {
+  /**
+   * Successful Response
+   */
+  200: SetupStatusSchema
+}
+
+export type SetupStatusResponse = SetupStatusResponses[keyof SetupStatusResponses]
+
+export type SetupCompleteData = {
+  body: SetupRequest
+  path?: never
+  query?: never
+  url: '/api/v1/setup'
+}
+
+export type SetupCompleteErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse
+  /**
+   * Not Found
+   */
+  404: ErrorResponse
+  /**
+   * Conflict
+   */
+  409: ErrorResponse
+  /**
+   * Unprocessable Content
+   */
+  422: ErrorResponse
+  /**
+   * Too Many Requests
+   */
+  429: ErrorResponse
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse
+}
+
+export type SetupCompleteError = SetupCompleteErrors[keyof SetupCompleteErrors]
+
+export type SetupCompleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: SessionSchema
+}
+
+export type SetupCompleteResponse = SetupCompleteResponses[keyof SetupCompleteResponses]
 
 export type UsersListData = {
   body?: never

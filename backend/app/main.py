@@ -19,6 +19,7 @@ from app.core.request_id import REQUEST_ID_HEADER, RequestIdMiddleware
 from app.core.services.websocket_service import start_websocket_fanout, stop_websocket_fanout
 from app.core.settings import settings
 from app.core.telemetry import telemetry_config
+from app.domains.auth.services.setup_service import SetupService
 from app.domains.organization.services.organization_websocket_service import OrganizationWebSocketService
 
 setup_logging()
@@ -35,6 +36,7 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning('Task broker unavailable at startup ({}); /ready reports Redis', e)
         await warm_up_database()
+        await SetupService.warn_if_open()
         await start_websocket_fanout()
         stack.push_async_callback(stop_websocket_fanout)
         logger.info('Application started: version {} ({})', settings.app_version, settings.git_sha or 'no sha')

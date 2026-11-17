@@ -62,9 +62,13 @@ class Settings(BaseSettings):
     # API tokens (`Authorization: Token ...`): minimum interval between `last_used_at` writes
     api_token_touch_interval_seconds: int = 60
 
-    # login rate limit per client IP + email
+    # login rate limit per client IP + email; first-run setup uses the same limits per client IP
     login_rate_limit_attempts: int = 10
     login_rate_limit_window_seconds: int = 15 * 60
+
+    # First-run setup (`POST /api/v1/setup`) is open only while the database has no users. When set, the request
+    # must also carry this token, so nobody else can claim a fresh deployment before its owner.
+    setup_token: str = ''
 
     # cookie settings
     cookie_secure: bool = False

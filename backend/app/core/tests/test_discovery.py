@@ -11,7 +11,7 @@ from app.core.discovery import (
     discover_routers,
     domain_names,
 )
-from app.domains.auth.views import auth_router
+from app.domains.auth.views import auth_router, setup_router
 from app.domains.organization.views import organization_users_router, organizations_router
 from app.domains.user.views import user_tokens_router, users_router
 from app.main import app
@@ -59,8 +59,9 @@ def test_registered_models_are_every_domain_models_module():
 
 
 def test_domain_routers_are_discovered_in_a_stable_order():
-    assert discover_routers()[:5] == [
+    assert discover_routers()[:6] == [
         auth_router,
+        setup_router,
         users_router,
         user_tokens_router,
         organizations_router,
@@ -68,7 +69,13 @@ def test_domain_routers_are_discovered_in_a_stable_order():
     ]
     app.openapi_schema = None
     paths = set(app.openapi()['paths'])
-    assert {'/api/v1/auth/login', '/api/v1/users', '/api/v1/user-tokens', '/api/v1/organizations'} <= paths
+    assert {
+        '/api/v1/auth/login',
+        '/api/v1/setup',
+        '/api/v1/users',
+        '/api/v1/user-tokens',
+        '/api/v1/organizations',
+    } <= paths
 
 
 def test_single_router_export_and_models_without_views(fake_domains):

@@ -33,7 +33,8 @@ export default defineNuxtPlugin({
       nuxtApp.runWithContext(() => {
         useQueryCache().setQueryData([...SESSION_KEY], null)
         const route = router.currentRoute.value
-        if (navigating || route.meta.auth === false || route.meta.auth === 'guest') return
+        if (navigating || route.meta.auth === false || route.meta.auth === 'guest' || route.meta.auth === 'setup')
+          return
         void navigateTo({ name: 'auth', query: { redirect: route.fullPath } })
       })
 

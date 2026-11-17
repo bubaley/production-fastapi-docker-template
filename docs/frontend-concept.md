@@ -98,6 +98,7 @@ Page meta drives the global middleware (`app/middleware/`):
 | (none) | App route: `auth.global.ts` requires a session (else `/auth?redirect=<path>`), `setup.global.ts` selects the organization from the session and requires one (else `/home`, where the `default` layout opens the required `OrganizationCreateModal`) |
 | `auth: false` | Public page: no session needed, rendered on the server (`/`, `/ui/**`) |
 | `auth: 'guest'` | Signed-out only (`/auth`); a signed-in user goes to `redirect` or `/home` |
+| `auth: 'setup'` | First-run setup (`/setup`, `features/setup/`): only while the deployment has no users; otherwise `/auth`, or `/home` when signed in. While it is open, signed-out visits to app routes and `/auth` land here (`needsFirstRunSetup`) |
 | `organization: false` | App route that works without an organization (`/settings/profile`) |
 
 `useSetupStore().restore()` never asks: it picks the organization stored for the same user, else the first membership; a stored id from another account is ignored. A superuser's stored non-member organization is loaded with `organizationsRetrieve`. `null` after restore means the user has no organization: `layouts/default.vue` shows `OrganizationCreateModal required` (no close button, Esc and outside clicks ignored, «Выйти» in the footer); creating selects the new organization. Switching happens only in `OrganizationSwitcher`.

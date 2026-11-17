@@ -110,3 +110,9 @@ login_rate_limiter = RateLimiter(
     limit=lambda: settings.login_rate_limit_attempts,
     window_seconds=lambda: settings.login_rate_limit_window_seconds,
 )
+
+setup_rate_limiter = RateLimiter(
+    'setup',
+    limit=lambda: settings.login_rate_limit_attempts,
+    window_seconds=lambda: settings.login_rate_limit_window_seconds,
+)

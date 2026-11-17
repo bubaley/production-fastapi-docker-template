@@ -18,7 +18,7 @@ First matching row wins (top to bottom).
 | `frontend/app/features/home/**`, `frontend/app/pages/home/index.vue` | product | Not touched (demo screens a product replaces) |
 | `backend/app/domains/{auth,user,organization}/**` | template | Taken from the template |
 | `frontend/app/features/{auth,organization,setup,ui,user}/**` | template | Taken from the template |
-| `frontend/app/pages/{auth,ui,settings}.vue`, `frontend/app/pages/ui/**`, `frontend/app/pages/settings/{index,profile}.vue`, `frontend/app/pages/settings/{organizations,users}/**`, `frontend/app/pages/home.vue` | template | Taken from the template |
+| `frontend/app/pages/{auth,setup,ui,settings}.vue`, `frontend/app/pages/ui/**`, `frontend/app/pages/settings/{index,profile}.vue`, `frontend/app/pages/settings/{organizations,users}/**`, `frontend/app/pages/home.vue` | template | Taken from the template |
 | `frontend/app/features/landing/**`, `frontend/app/pages/index.vue` | shared | 3-way merge; the product's copy and meta win |
 | `backend/app/domains/**`, `frontend/app/features/**`, `frontend/app/pages/**` | product | Not touched (product domains, features and pages) |
 | `frontend/app/navigation/**`, `frontend/app/layouts/**` | shared | 3-way merge; product entries stay |

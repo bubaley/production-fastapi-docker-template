@@ -28,10 +28,11 @@ git add -A && git commit -m "chore: initialize from template"
 make install                                          # uv sync + pnpm install
 docker compose up -d db redis                         # PostgreSQL + Redis on 127.0.0.1
 make m                                                # apply migrations
-make createsuperuser                                  # first user
 make run-backend                                      # terminal 1 → http://localhost:9000/docs
-make run-frontend                                     # terminal 2 → http://localhost:9001
+make run-frontend                                     # terminal 2 → http://localhost:9001 → «Первый запуск»
 ```
+
+With no users yet the app opens the first-run setup (`/setup`): create the administrator (a superuser) and optionally the first organization there. `make createsuperuser` does the same from the shell.
 
 `make init` (`scripts/bootstrap/init.py`) renames the project everywhere it is greppable (compose project, database, package names, API title, UI name, image names, Docker Hub repository), writes `.env` from `.env.example` with a fresh `SECRET_KEY` and `ENCRYPTION_KEY`, resets `version.json`/`CHANGELOG.md` and package versions to 0.1.0, replaces [docs/product.md](docs/product.md) with the product skeleton and records the template version in `.template-version`. It refuses a dirty tree (`force=1` overrides) and is safe to run again. If the copy kept the template's `v*` tags, delete them before the first push (it tells you how).
 
@@ -66,7 +67,7 @@ make m                       # apply migrations
 
 Ports come from `.env` (`BACKEND_PORT`, `FRONTEND_PORT`); the defaults in `.env.example`, the Makefile and `nuxt.config.ts` are **9000** (API) and **9001** (Nuxt), and the backend CORS default allows the Nuxt origin. The browser always calls the API on the Nuxt origin: in development `nuxt dev` proxies `/api/v1/**` and `/ws/**` to the backend (`NUXT_API_INTERNAL_URL`, default `http://localhost:$BACKEND_PORT`), so the HttpOnly session cookies work as in production. The Makefile reads only the keys it needs from `.env` and works without the file.
 
-Public registration is off. Create the first user:
+Public registration is off. The first user comes from the first-run setup: while the database has no users, opening the app leads to `/setup` («Первый запуск»), which creates a superuser and signs them in. Shell alternative:
 
 ```bash
 make createsuperuser
@@ -100,7 +101,7 @@ Other useful commands: `make mm` (create migrations), `make help`.
 | `make init name=<kebab-name> [title="…"]` | Turn a fresh template copy into a new product (see [Start a new product](#start-a-new-product)) |
 | `make new-domain name=<snake_name> [title="…"] [item_title="…"]` | Scaffold a backend domain + frontend feature (see [Adding a domain](#adding-a-domain)) |
 | `make install` | Install backend + frontend dependencies |
-| `make createsuperuser` | Create the first user (interactive) |
+| `make createsuperuser` | Create a superuser from the shell (interactive); the app's first-run setup (`/setup`) does the same for the first user |
 | `make mm` | Create migrations (tortoise makemigrations) |
 | `make m` | Apply migrations |
 | `make rb` | Run backend (uvicorn, reload) |

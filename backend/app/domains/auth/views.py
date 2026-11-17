@@ -5,14 +5,23 @@ from fastapi_ronin.permissions import IsAuthenticated
 from app.core.exceptions import AppException
 from app.core.schemas import ErrorCode
 from app.core.viewsets import BaseGenericViewSet
-from app.domains.auth.schemas import LoginRequest, MeSchema, SessionExpirySchema, SessionSchema
+from app.domains.auth.schemas import (
+    LoginRequest,
+    MeSchema,
+    SessionExpirySchema,
+    SessionSchema,
+    SetupRequest,
+    SetupStatusSchema,
+)
 from app.domains.auth.services.auth_service import AuthService
+from app.domains.auth.services.setup_service import SetupService
 from app.domains.auth.transport import clear_auth_cookies, read_access_token, read_refresh_token, set_auth_cookies
 from app.domains.user.models import User
 from app.domains.user.schemas import UserReadSchema
 
 auth_router = APIRouter(prefix='/auth', tags=['auth'])
-routers = (auth_router,)
+setup_router = APIRouter(prefix='/setup', tags=['setup'])
+routers = (auth_router, setup_router)
 
 
 def _client_ip(request: Request) -> str:
@@ -68,3 +77,23 @@ class AuthViewSet(BaseGenericViewSet):
     async def me(self) -> MeSchema:
         """The current user and their organizations."""
         return await MeSchema.for_user(self.user)
+
+
+# FIRST-RUN SETUP (public: listed in PUBLIC_PATHS)
+
+
+@setup_router.get('/status')
+async def status() -> SetupStatusSchema:
+    """Whether the first-run setup is open (no users yet) and whether it needs the server's SETUP_TOKEN."""
+    return SetupStatusSchema(needs_setup=await SetupService.needs_setup(), token_required=SetupService.token_required())
+
+
+@setup_router.post('')
+async def complete(request: Request, response: Response, data: SetupRequest) -> SessionSchema:
+    """
+    Create the first user as a superuser (and optionally the first organization) and sign them in, like login.
+    Only while there are no users: afterwards 409. With SETUP_TOKEN set, a wrong `setup_token` gets 403.
+    """
+    session = await SetupService.complete(data, client_ip=_client_ip(request))
+    set_auth_cookies(response, session.tokens)
+    return await SessionSchema.build(session.user, session.tokens)

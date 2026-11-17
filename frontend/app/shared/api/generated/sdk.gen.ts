@@ -54,6 +54,12 @@ import type {
   OrganizationUsersUpdateData,
   OrganizationUsersUpdateErrors,
   OrganizationUsersUpdateResponses,
+  SetupCompleteData,
+  SetupCompleteErrors,
+  SetupCompleteResponses,
+  SetupStatusData,
+  SetupStatusErrors,
+  SetupStatusResponses,
   UsersChangePasswordData,
   UsersChangePasswordErrors,
   UsersChangePasswordResponses,
@@ -198,6 +204,37 @@ export const authRefresh = <ThrowOnError extends boolean = false>(
   (options?.client ?? client).post<AuthRefreshResponses, AuthRefreshErrors, ThrowOnError>({
     url: '/api/v1/auth/refresh',
     ...options,
+  })
+
+/**
+ * Status
+ *
+ * Whether the first-run setup is open (no users yet) and whether it needs the server's SETUP_TOKEN.
+ */
+export const setupStatus = <ThrowOnError extends boolean = false>(
+  options?: Options<SetupStatusData, ThrowOnError>,
+): RequestResult<SetupStatusResponses, SetupStatusErrors, ThrowOnError> =>
+  (options?.client ?? client).get<SetupStatusResponses, SetupStatusErrors, ThrowOnError>({
+    url: '/api/v1/setup/status',
+    ...options,
+  })
+
+/**
+ * Complete
+ *
+ * Create the first user as a superuser (and optionally the first organization) and sign them in, like login.
+ * Only while there are no users: afterwards 409. With SETUP_TOKEN set, a wrong `setup_token` gets 403.
+ */
+export const setupComplete = <ThrowOnError extends boolean = false>(
+  options: Options<SetupCompleteData, ThrowOnError>,
+): RequestResult<SetupCompleteResponses, SetupCompleteErrors, ThrowOnError> =>
+  (options.client ?? client).post<SetupCompleteResponses, SetupCompleteErrors, ThrowOnError>({
+    url: '/api/v1/setup',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   })
 
 /**

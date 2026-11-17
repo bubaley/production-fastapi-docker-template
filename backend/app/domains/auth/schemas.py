@@ -2,10 +2,11 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.core.fields.email_field import LoginEmail
+from app.core.fields.email_field import LoginEmail, NormalizedEmail
+from app.core.fields.password_field import NewPassword
 from app.domains.auth.services.token_service import TokenPair
 from app.domains.organization.models import Organization
-from app.domains.organization.schemas import OrganizationReadSchema
+from app.domains.organization.schemas import OrganizationCreateSchema, OrganizationReadSchema
 from app.domains.user.models import User
 from app.domains.user.schemas import UserReadSchema
 
@@ -50,3 +51,22 @@ class SessionSchema(MeSchema, SessionExpirySchema):
     async def build(cls, user: User, pair: TokenPair) -> SessionSchema:
         me = await MeSchema.for_user(user)
         return cls(user=me.user, organizations=me.organizations, **SessionExpirySchema.from_pair(pair).model_dump())
+
+
+class SetupStatusSchema(BaseModel):
+    """First-run state: `needs_setup` while the database has no users; then setup is closed for good."""
+
+    needs_setup: bool
+    # `POST /setup` needs `setup_token` (the server's SETUP_TOKEN); only meaningful while `needs_setup`.
+    token_required: bool
+
+
+class SetupRequest(BaseModel):
+    """The first user (created as a superuser) and, optionally, the first organization they become a member of."""
+
+    email: NormalizedEmail
+    first_name: str = Field(min_length=1, max_length=128)
+    last_name: str = Field(min_length=1, max_length=128)
+    password: NewPassword
+    organization: OrganizationCreateSchema | None = None
+    setup_token: str | None = Field(None, max_length=256)
