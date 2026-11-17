@@ -203,11 +203,10 @@ jobs:
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      # `make check-hygiene` holds the pre-commit version and SKIP list, so `make check` runs the same hooks locally:
       # ruff and ty already run in the backend job; gitleaks (staged files only) runs as the next step instead.
       - name: pre-commit (yaml, eol, large files, pyupgrade, bandit, uv lock, pyproject)
-        env:
-          SKIP: ruff-check,ruff-format,ty,gitleaks
-        run: uvx --python 3.15 pre-commit@4.7.0 run --all-files --show-diff-on-failure
+        run: make check-hygiene
       # The CLI image needs no license (gitleaks-action does for organization repositories).
       - name: Secret scan of new commits (gitleaks)
         env:

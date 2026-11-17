@@ -107,7 +107,7 @@ One workflow, [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml):
 pull_request / push to main
   changes ──┬─ backend     (if backend/**, Makefile, .python-version: PostgreSQL 18 + Redis services, make check-backend)
             ├─ frontend    (if frontend/**, .nvmrc: make check-frontend)
-            ├─ pre-commit  (always: yaml, eol, whitespace, large files, pyupgrade, bandit, uv lock, pyproject-fmt;
+            ├─ pre-commit  (always, make check-hygiene: yaml, eol, whitespace, large files, pyupgrade, bandit, uv lock, pyproject-fmt;
             │               gitleaks over the new commits)
             └─ image       (if any code or infra changed: buildx + GHA cache, nuxt build, compose smoke test, Trivy)
                  └─ gate   (always; the only required check; path-skipped jobs are allowed)

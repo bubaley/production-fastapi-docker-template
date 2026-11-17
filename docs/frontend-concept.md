@@ -383,7 +383,7 @@ Vite+ (`vite-plus`, pinned) runs formatting, linting and tests; Nuxt still owns 
 | `pnpm gen:api` / `pnpm gen:api:check` | Regenerate the API client from `openapi.json` / fail when the committed one is stale (see [Data layer](#data-layer)) |
 | `pnpm check` | `fmt:check` + `lint` + `typecheck` + `test` + `gen:api:check` + `check:architecture` + `check:unused` — what CI runs |
 
-From the repository root: `make lint` fixes and formats backend and frontend, `make check` runs every CI check without changing files (`make check-frontend BUILD=1` adds `nuxt build`).
+From the repository root: `make lint` fixes and formats backend and frontend, `make check` runs every CI check (only the pre-commit hygiene fixers may rewrite files; `make check-frontend BUILD=1` adds `nuxt build`).
 
 **Config.** `frontend/vite.config.ts` holds the `fmt`, `lint` and `test` blocks and is read only by `vp`. Nuxt runs Vite with `configFile: false`, so this file never affects the app; `nuxt dev` prints a one-line `NUXT_B5004` warning about it, which is expected. App build settings belong in `nuxt.config.ts`.
 

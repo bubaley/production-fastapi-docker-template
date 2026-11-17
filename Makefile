@@ -116,9 +116,9 @@ docker-stop: ## stop the docker-run stack and delete its volumes
 
 # ----------- QUALITY ----------- #
 
-.PHONY: init new-domain createsuperuser openapi gen-client check check-backend check-frontend lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
+.PHONY: init new-domain createsuperuser openapi gen-client check check-backend check-frontend check-hygiene lint lint-backend lint-frontend fmt test test-backend help docker-build docker-run docker-stop
 
-check: check-backend check-frontend ## run every CI check without changing files
+check: check-hygiene check-backend check-frontend ## run every CI check (hygiene fixers may rewrite files)
 
 # Repository tooling outside backend/ that runs on the backend's Python: scaffolder, bootstrap, Claude Code hooks.
 TOOLING := ../scripts ../.claude/hooks
@@ -129,6 +129,15 @@ check-backend: ## ruff, ruff format --check, ty, pytest (PYTEST_ARGS=--sqlite wi
 	cd $(BACKEND_DIR) && $(UV) run ty check
 	cd $(BACKEND_DIR) && $(UV) run manage.py test $(PYTEST_ARGS)
 	cd $(BACKEND_DIR) && $(UV) run pytest ../scripts/tests -q -p no:cacheprovider
+
+# Also the CI "Repository hygiene" job (ci.yaml). ruff and ty run in check-backend; CI scans new commits for secrets
+# with gitleaks separately, the local gitleaks hook (`pre-commit install`) checks staged files on commit.
+# Fixers (end-of-file, whitespace, pyupgrade, pyproject-fmt) rewrite the files they fail on: review and commit them.
+PRE_COMMIT := $(UV) tool run --python 3.15 pre-commit@4.7.0
+HYGIENE_SKIP := ruff-check,ruff-format,ty,gitleaks
+
+check-hygiene: ## pre-commit hooks as CI runs them: yaml, eol, whitespace, large files, pyupgrade, bandit, uv lock, pyproject-fmt
+	SKIP=$(HYGIENE_SKIP) $(PRE_COMMIT) run --all-files --show-diff-on-failure
 
 check-frontend: ## pnpm check (fmt, lint, typecheck, test, architecture); BUILD=1 adds nuxt build
 	$(PNPM) --dir $(FRONTEND_DIR) run check

@@ -32,7 +32,7 @@ If the knowledge graph is missing or stale, index the repo with codebase-memory.
 - **Do not duplicate.** Extend existing viewsets, UI primitives, repos, and helpers before creating new ones.
 - Comments in code: English only, and only when the logic is non-obvious.
 - User-facing UI copy is **Russian**. Do not add English labels, titles, or toasts in product screens. The one exception is the `/ui` component catalogue: its section titles and sample content are English so they read alongside the prop names they demonstrate.
-- After a non-trivial change, run **`make lint`** (fixes and formats both sides), then **`make check`** (what CI runs: format check, lint, types, tests, architecture guard; read-only). Fix what `make check` reports — do not leave it red. Without local Postgres: `make check PYTEST_ARGS=--sqlite`.
+- After a non-trivial change, run **`make lint`** (fixes and formats both sides), then **`make check`** (what CI runs: pre-commit hygiene hooks incl. bandit, format check, lint, types, tests, architecture guard; only the hygiene fixers may touch files — commit what they fix). Fix what `make check` reports — do not leave it red. Without local Postgres: `make check PYTEST_ARGS=--sqlite`.
 - Complex backend behavior needs tests — see [docs/backend-concept.md](docs/backend-concept.md#tests). Canonical: `backend/app/domains/organization/tests/test_organization.py`.
 
 ## Keep docs current
