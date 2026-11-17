@@ -1,6 +1,6 @@
 ---
 name: new-domain
-description: Add a new business entity end to end (backend domain + frontend feature) in this FastAPI + Nuxt template. Use when the user asks to add a domain, model, entity, CRUD screen, resource or "a list of X" to the product, or runs /new-domain. Not for extending an existing domain.
+description: Add a new business entity end to end (backend domain + frontend feature) in this FastAPI + Nuxt template, then self-review it against the backend rules. Use when the user asks to add a domain, model, entity, CRUD screen, resource or "a list of X" to the product, or invokes new-domain (/new-domain, $new-domain). Not for extending an existing domain.
 ---
 
 # New domain
@@ -15,5 +15,13 @@ Scaffold first, then shape. Rules live in the docs; this is the order of work.
 6. **Client:** `make gen-client`, then adapt `frontend/app/features/<camelName>/resources/<camelName>.ts` (form type, `toCreate`/`toUpdate`) and the list/detail views. UI copy Russian; App* components only — [frontend-concept.md](../../../docs/frontend-concept.md) (Resource descriptor, Templates).
 7. **Navigation:** the scaffolder added an entry to `frontend/app/navigation/settings.ts` with a `Folder` icon — pick a fitting Lucide icon; set `superuserOnly` if needed. Without `section` it lands in the «Организация» group (shown only while an organization is selected); use `section: 'account'` or `'instance'` for user- or server-level screens. Main-app (non-settings) screens go to `layouts/default.vue` instead.
 8. **Docs:** add the scenario to `docs/product.md` (what the user can see and do).
-9. **Verify:** `make lint`, then the `/verify` skill (`make check`). For UI, the `design-system` skill's visual review; optionally the `domain-reviewer` and `ui-reviewer` subagents on the diff.
-10. **Commit:** `feat(<name>): …` — one feature per commit series.
+9. **Self-review the backend diff** (`git diff HEAD -- backend/`) against [backend-concept.md](../../../docs/backend-concept.md) and the canonical `backend/app/domains/organization/`; fix every miss:
+   - every model has `tenant_scope` (`Scope(user=...)`, plus `organization=` for org data) or `Unscoped(reason=...)` with a real reason; no superuser bypass inside the scope;
+   - models inherit `BaseModel`, FK + `<name>_id: UUID` annotation, plural `related_name`, `Meta.table` and `ordering`;
+   - Create / Update / Read schemas; ownership fields never in Update; `organization` from auth, not the body;
+   - viewset is thin (schema, permissions, queryset, filterset) and `views.py` exports `routers`; loading and rule checks live in the service (`validate_*`);
+   - errors via `AppException.from_attrs(ErrorCode...)`; router has a plural kebab tag, actions have return types, `openapi.json` + generated client regenerated;
+   - tests cover the non-obvious rules and tenant isolation, using the `auth_headers` / `*_factory` fixtures;
+   - every model change has its generated migration in `backend/migrations/`; released migrations are not edited; schema changes stay backward compatible with the previous release (expand, then contract).
+10. **Verify:** `make lint`, then `make check`. UI → the `design-system` skill's visual review.
+11. **Commit:** `feat(<name>): …` — one feature per commit series, the migration included.
