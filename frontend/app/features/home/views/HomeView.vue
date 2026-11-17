@@ -1,183 +1,214 @@
 <template>
+  <!-- `sticky="controls"`: the greeting and the numbers scroll away, the member search stays on top. -->
   <AppPageView
-    title="Главная"
-    description="Организации, настройки и возможности шаблона страницы"
+    :title="greeting"
+    :description="description"
+    max-width="lg"
+    sticky="controls"
   >
-    <template #title>Главная</template>
-    <template #prefix>
-      <AppIcon
-        :icon="House"
-        tone="muted"
-      />
-    </template>
     <template #actions>
       <AppTemplateActions
-        class="flex-wrap justify-end"
-        size="sm"
+        class="flex-wrap"
         :actions="actions"
       />
     </template>
+
     <template #subheader>
-      <div class="flex flex-wrap items-center justify-between gap-2 pb-3">
-        <span class="text-sm text-muted-foreground">Зона под шапкой: контекст и навигация</span>
-        <AppTextButton
-          label="Открыть организации"
-          @click="navigateTo({ name: 'settings-organizations' })"
+      <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <HomeStatCard
+          label="Организации"
+          hint="Все организации"
+          :icon="Building"
+          :count="organizationCount"
+          :to="{ name: 'settings-organizations' }"
+        />
+        <HomeStatCard
+          label="Участники"
+          hint="Пригласить"
+          :icon="Users"
+          :count="memberCount"
+          :to="organizationRoute"
+        />
+        <HomeStatCard
+          label="Токены API"
+          hint="В профиле"
+          :icon="KeyRound"
+          :count="tokenCount"
+          :to="{ name: 'settings-profile' }"
+        />
+        <HomeStatCard
+          v-if="isSuperuser"
+          label="Пользователи"
+          hint="Все учётные записи"
+          :icon="UserRound"
+          :count="userCount"
+          :to="{ name: 'settings-users' }"
+        />
+        <HomeStatCard
+          v-else
+          label="Компоненты"
+          hint="Каталог интерфейса"
+          :icon="Palette"
+          :count="{ value: catalogueSize, more: false, loading: false }"
+          :to="{ name: 'ui' }"
         />
       </div>
     </template>
+
     <template #controls>
-      <div class="flex flex-wrap items-center justify-between gap-3 py-3">
+      <div class="flex items-center gap-2">
         <AppInput
           v-model="search"
           :icon="Search"
-          placeholder="Найти возможность страницы"
-          class="w-full sm:max-w-xs"
+          placeholder="Найти участника"
+          aria-label="Найти участника"
+          clearable
+          class="min-w-0 flex-1 sm:max-w-72"
         />
-        <label class="flex items-center gap-2 text-sm"
-          ><AppSwitch
-            v-model="showExamples"
-            aria-label="Показать примеры"
-          />Показать примеры</label
-        >
+        <AppSelect
+          v-model="access"
+          :items="accessOptions"
+          emit-value
+          :clearable="false"
+          :variant="access === 'all' ? 'outline' : 'active-outline'"
+          aria-label="Доступ"
+          class="w-40 shrink-0 sm:w-48"
+        />
       </div>
     </template>
 
-    <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-10">
       <AppSection
-        title="Как устроена страница"
-        description="Шапка, обе панели и нижняя зона остаются на месте. Прокручивается только содержимое между ними."
+        title="Участники организации"
+        :description="organization ? `Люди с доступом к «${organization.name}»` : undefined"
+        title-size="md"
       >
-        <div
-          v-if="visibleFeatures.length"
-          class="grid gap-4 md:grid-cols-2"
+        <AppTable
+          :items="visibleMembers"
+          :loading="membersLoading"
+          :error="membersError ? 'Не удалось загрузить участников' : undefined"
+          :empty-text="search || access !== 'all' ? 'Никого не нашли' : 'Участников пока нет'"
+          clickable
+          @row-click="openOrganization"
         >
-          <AppCard
-            v-for="feature in visibleFeatures"
-            :key="feature.title"
-          >
-            <AppSection
-              :title="feature.title"
-              :description="feature.description"
-              title-size="md"
-            >
-              <p
-                v-if="showExamples"
-                class="text-sm text-muted-foreground"
-              >
-                {{ feature.example }}
-              </p>
-            </AppSection>
-          </AppCard>
-        </div>
-        <p
-          v-else
-          class="py-6 text-sm text-muted-foreground"
-        >
-          Ничего не найдено
-        </p>
+          <AppColumn header="Участник">
+            <template #body="{ data }">
+              <span class="flex min-w-0 items-center gap-2.5">
+                <AppAvatar
+                  :name="userDisplayName(data.user)"
+                  size="small"
+                  variant="soft"
+                />
+                <span class="truncate">{{ userDisplayName(data.user) || '—' }}</span>
+              </span>
+            </template>
+          </AppColumn>
+          <AppColumn
+            header="Электронная почта"
+            header-class="max-sm:hidden"
+            body-class="text-muted-foreground max-sm:hidden"
+            :format="(row) => row.user?.email || '—'"
+          />
+          <AppColumn header="Доступ">
+            <template #body="{ data }">
+              <AppBadge
+                :label="data.user?.is_superuser ? 'Суперпользователь' : 'Пользователь'"
+                :tone="data.user?.is_superuser ? 'info' : 'neutral'"
+              />
+            </template>
+          </AppColumn>
+        </AppTable>
       </AppSection>
-      <AppSection
-        v-if="showExamples"
-        title="Проверка прокрутки"
-        description="Прокрутите примеры вниз: действия в шапке, поиск и нижняя панель останутся доступными."
-      >
-        <AppCard
-          v-for="index in 8"
-          :key="index"
-          variant="muted"
-        >
-          <p class="font-medium">Пример содержимого {{ index }}</p>
-          <p class="mt-2 text-sm text-muted-foreground">
-            Здесь могут находиться списки, формы, карточки и другие разделы приложения.
-          </p>
-        </AppCard>
-      </AppSection>
+
+      <div class="grid gap-10 lg:grid-cols-2">
+        <HomeTokens
+          :tokens="tokens"
+          :loading="tokensLoading"
+        />
+        <HomeLinks :is-superuser="isSuperuser" />
+      </div>
     </div>
 
-    <template #footer>
-      <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-        <span>Нижняя зона страницы · Найдено возможностей: {{ visibleFeatures.length }}</span>
-        <AppTextButton
-          label="Сбросить пример"
-          @click="resetExample"
-        />
-      </div>
-    </template>
+    <OrganizationCreateModal v-model="creating" />
   </AppPageView>
 </template>
 
 <script setup lang="ts">
-import { Building2, House, Palette, Search, Settings } from '@lucide/vue'
-const search = ref('')
-const showExamples = ref(true)
-const resetExample = () => {
-  search.value = ''
-  showExamples.value = true
-}
-const features = [
-  {
-    title: 'Шапка и заголовок',
-    description: 'Единый заголовок страницы с описанием и иконкой.',
-    example:
-      'Слоты prefix, title и title-append дополняют заголовок. Слот header заменяет шапку целиком; backAction добавляет возврат.',
-  },
-  {
-    title: 'Действия страницы',
-    description: 'Основные действия доступны справа в шапке.',
-    example: 'Слот actions содержит переходы в настройки, смену организации и каталог компонентов.',
-  },
-  {
-    title: 'Панель под шапкой',
-    description: 'Контекст и дополнительная навигация располагаются перед разделителем.',
-    example: 'Слот subheader показывает ссылку на организации. Прежнее имя subtitle тоже поддерживается.',
-  },
-  {
-    title: 'Панель под разделителем',
-    description: 'Поиск, фильтры и переключатели находятся над прокручиваемым содержимым.',
-    example: 'Слот controls содержит работающий поиск по возможностям и переключатель примеров.',
-  },
-  {
-    title: 'Основное содержимое',
-    description: 'Списки, формы и карточки прокручиваются внутри страницы.',
-    example: 'Основной слот default принимает любые разделы. contentClass позволяет настроить отступы.',
-  },
-  {
-    title: 'Нижняя зона',
-    description: 'Итоги и дополнительные действия доступны внизу страницы.',
-    example: 'Слот footer показывает число найденных возможностей и действие сброса.',
-  },
-]
-const visibleFeatures = computed(() => {
-  const term = search.value.trim().toLocaleLowerCase('ru')
-  return features.filter((feature) =>
-    `${feature.title} ${feature.description} ${feature.example}`.toLocaleLowerCase('ru').includes(term),
-  )
+import { Building, KeyRound, Palette, Plus, Search, UserPlus, UserRound, Users } from '@lucide/vue'
+import type { RouteLocationRaw } from 'vue-router'
+import OrganizationCreateModal from '~/features/organization/components/OrganizationCreateModal.vue'
+import type { OrganizationUser } from '~/features/organization/resources/organizationUser'
+import { uiCatalog } from '~/features/ui/catalog'
+import HomeLinks from '../components/HomeLinks.vue'
+import HomeStatCard from '../components/HomeStatCard.vue'
+import HomeTokens from '../components/HomeTokens.vue'
+import { useHomeOverview } from '../composables/useHomeOverview'
+
+type Access = 'all' | 'superuser' | 'regular'
+
+const {
+  user,
+  organization,
+  isSuperuser,
+  organizationCount,
+  members,
+  membersLoading,
+  membersError,
+  memberCount,
+  tokens,
+  tokensLoading,
+  tokenCount,
+  userCount,
+} = useHomeOverview()
+
+const greeting = computed<string>(() => {
+  const name = user.value?.first_name || userDisplayName(user.value)
+  return name ? `Здравствуйте, ${name}` : 'Главная'
 })
-const actions: AppTemplateAction[] = [
-  {
-    label: 'Настройки',
-    icon: Settings,
-    variant: 'secondary',
-    action: async () => {
-      await navigateTo({ name: 'settings-profile' })
-    },
-  },
-  {
-    label: 'Сменить организацию',
-    icon: Building2,
-    variant: 'outline',
-    action: async () => {
-      await navigateTo({ name: 'home-setup' })
-    },
-  },
-  {
-    label: 'Компоненты интерфейса',
-    icon: Palette,
-    variant: 'outline',
-    action: async () => {
-      await navigateTo({ name: 'ui' })
-    },
-  },
+const description = computed<string>(() =>
+  organization.value ? `Организация «${organization.value.name}»` : 'Выберите организацию, чтобы начать работу',
+)
+const organizationRoute = computed<RouteLocationRaw>(() =>
+  organization.value
+    ? { name: 'settings-organizations-id', params: { id: organization.value.id } }
+    : { name: 'settings-organizations' },
+)
+const catalogueSize = uiCatalog.reduce((total, group) => total + group.sections.length, 0)
+
+const search = ref<string>('')
+const access = ref<Access>('all')
+const accessOptions: { id: Access; name: string }[] = [
+  { id: 'all', name: 'Любой доступ' },
+  { id: 'superuser', name: 'Суперпользователи' },
+  { id: 'regular', name: 'Пользователи' },
 ]
+const visibleMembers = computed<OrganizationUser[]>(() => {
+  const term = search.value.trim().toLocaleLowerCase('ru')
+  return members.value.filter((member) => {
+    if (access.value !== 'all' && Boolean(member.user?.is_superuser) !== (access.value === 'superuser')) return false
+    const text = `${userDisplayName(member.user)} ${member.user?.email ?? ''}`.toLocaleLowerCase('ru')
+    return !term || text.includes(term)
+  })
+})
+const openOrganization = async (): Promise<void> => {
+  await navigateTo(organizationRoute.value)
+}
+
+const creating = ref<boolean>(false)
+const actions = computed<AppTemplateAction[]>(() => [
+  {
+    label: 'Пригласить участника',
+    icon: UserPlus,
+    hidden: !organization.value,
+    action: openOrganization,
+  },
+  {
+    label: 'Новая организация',
+    icon: Plus,
+    variant: 'outline',
+    action: () => {
+      creating.value = true
+    },
+  },
+])
 </script>

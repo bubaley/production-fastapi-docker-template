@@ -7,10 +7,12 @@ Open items after the 2026 modernization ([archive/roadmap-2026.md](archive/roadm
 - **fastapi-ronin PUT/PATCH workaround.** `split_put_patch_routes` in `backend/app/core/openapi.py` (called in `main.py`) splits ronin's combined PUT/PATCH route so operationIds stay unique. The fix (separate `update`/`partial_update` routes, partial PATCH body) is on ronin branch `fix/split-put-patch-operations`, not released. After upgrading ronin: delete the function and its call, run `make gen-client` (PATCH bodies become `Patched<UpdateSchema>`) and check the resource descriptors still typecheck.
 - **Oxlint type-aware rules** are off: tsgolint cannot resolve types exported from `.vue` files. Re-enable when it can.
 - `nuxt dev` prints `NUXT_B5004` for the Vite+ `vite.config.ts` — expected (Nuxt ignores the file).
+- **vue-tsc pinned to 3.3.11** (checked 2026-11-17): 3.3.12-3.3.14 report false TS2339 in the former `UiLayoutShowcase.vue` (now `/ui` sections) and `AppListTemplate.vue` (vuejs/language-tools#6322, #6341). Dependabot skips those versions; unpin when a fixed release passes `pnpm typecheck`. TypeScript stays on 6.x until vue-tsc supports TypeScript 7.
+- **`vue() as PluginOption` in `vite.config.ts`**: `@vitejs/plugin-vue` is typed against `vite`, `defineConfig` against the Vite+ core; since vite 8.3.1 comparing them overflows TypeScript (vue-tsc crashes with "Debug Failure"). Drop the cast if Vite+ and `vite` types line up again.
 
 ## CI/CD
 
-- None of the workflows has run on GitHub yet. Registry and deploy variables and secrets are listed in [deployment.md](deployment.md#setup-checklist-repository-owner).
+- None of the workflows has run on GitHub yet. Registry and deploy variables and secrets are listed in [deployment.md](deployment.md#setup-checklist-repository-owner). The optional Docker Hub publishing (`publish` in `ci.yaml`) + `compose.dokploy.yaml` path is also unverified on GitHub; Dependabot's `docker-compose` ecosystem may not pick up `compose.dokploy.yaml` (keep its image pins in step with `compose.yaml`).
 
 ## Data
 

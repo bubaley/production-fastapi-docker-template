@@ -49,7 +49,7 @@ function appearance(item: unknown): AppLabelConfig | undefined {
     :class="[
       inline && appControlSizeVar[size],
       inline
-        ? 'compound-filter flex max-w-full shrink-0 items-center overflow-hidden rounded-md border border-input bg-background [&_[data-app-select-trigger]]:rounded-none [&_button]:rounded-none [&_button]:focus-visible:ring-inset [&_input]:rounded-none [&_input]:focus-visible:ring-inset'
+        ? 'compound-filter flex max-w-full shrink-0 items-center overflow-hidden rounded-md border border-input bg-background transition-colors focus-within:border-border-strong hover:border-border-strong [&_[data-app-select-trigger]]:rounded-none [&_[data-app-select-trigger]]:border-transparent! [&_[data-app-select-trigger]:has(:focus-visible)]:bg-field-hover [&_button]:rounded-none [&_button]:focus-visible:ring-offset-0 [&_button]:focus-visible:ring-inset [&_input]:rounded-none [&_input]:border-transparent!'
         : 'grid gap-2 rounded-md border border-border p-3 sm:grid-cols-[1fr_1fr_2fr_auto] sm:items-end',
     ]"
   >

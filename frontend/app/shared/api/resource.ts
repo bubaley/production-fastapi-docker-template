@@ -96,7 +96,9 @@ export const fetchPage = async <TItem extends ResourceItem>(
   const list = resource.sdk.list ?? missing(resource, 'list')
   const { data } = await list({ client, throwOnError: true, signal, query: { ...query, page, page_size: pageSize } })
   const items = data.data ?? []
-  return { items, hasNext: items.length > 0 && Boolean(data.meta?.has_next) }
+  // `meta.total`: the exact number of matches when the endpoint counts them; null otherwise.
+  const meta = data.meta as { has_next?: boolean; total?: number | null } | undefined
+  return { items, hasNext: items.length > 0 && Boolean(meta?.has_next), total: meta?.total ?? null }
 }
 
 export const fetchItem = async <TItem extends ResourceItem>(

@@ -1,9 +1,8 @@
 <template>
-  <AppTextButton
+  <AppButton
     v-if="userId"
+    variant="outline"
     label="Сменить пароль"
-    tone="muted"
-    class="text-sm"
     @click="open"
   />
   <AppConfirmModal

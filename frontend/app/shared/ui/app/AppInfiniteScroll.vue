@@ -36,7 +36,6 @@ useAutoPagination(sentinel, {
     <AppLoadingIndicator
       v-if="loading"
       fluid
-      size="md"
       :locale="locale"
     />
     <template v-else-if="error && showError">

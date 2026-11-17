@@ -102,7 +102,7 @@ const selectedItems = useFilterSelectedItems(availableSpec, filters)
         clearable
         :size="size"
         :disabled="disabled"
-        :placeholder="searchPlaceholder || (locale === 'en' ? 'Search...' : 'Поиск...')"
+        :placeholder="searchPlaceholder || (locale === 'en' ? 'Search' : 'Поиск')"
         :aria-label="locale === 'en' ? 'Search' : 'Поиск'"
         class="w-48 shrink-0"
       >
@@ -137,11 +137,13 @@ const selectedItems = useFilterSelectedItems(availableSpec, filters)
         </slot>
       </template>
     </div>
+    <!-- Scrolling rows clip whatever leaves their box: `-mx-1 px-1 py-1` leaves room for field shadows and focus
+         rings without moving the controls (the bleed stays inside the 8px toolbar gap). -->
     <div
       :class="
         wrap
           ? 'contents'
-          : 'flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-1.5 overflow-x-auto py-1 [&::-webkit-scrollbar]:hidden'
+          : '-mx-1 flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-1.5 overflow-x-auto px-1 py-1 [&::-webkit-scrollbar]:hidden'
       "
       data-filter-dynamic
     >
@@ -159,7 +161,7 @@ const selectedItems = useFilterSelectedItems(availableSpec, filters)
         :locale="locale"
       />
     </div>
-    <div class="ml-auto flex max-w-full shrink-0 items-center gap-1.5 overflow-x-auto py-1">
+    <div class="-mx-1 ml-auto flex max-w-full shrink-0 items-center gap-1.5 overflow-x-auto px-1 py-1">
       <slot name="quick" />
       <slot name="actions" />
     </div>

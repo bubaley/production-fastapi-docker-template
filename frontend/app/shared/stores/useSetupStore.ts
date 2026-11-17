@@ -17,7 +17,7 @@ export type SetupRestoreContext = {
   userId: string
   /** The session's organizations (`GET /auth/me`). */
   organizations: SetupOrganization[]
-  /** Loads a stored organization the user is not a member of (superusers see every organization). */
+  /** Loads a stored organization that is no longer among the memberships; a failed request falls back to the first one. */
   retrieve?: (id: string) => Promise<SetupOrganization | null>
 }
 
@@ -36,7 +36,7 @@ export const useSetupStore = defineStore('setup', () => {
   const userId = ref<string | null>(null)
   let generation = 0
 
-  const persist = () => {
+  const persist = (): void => {
     if (!import.meta.client || !state.value.restored) return
     const payload: StoredSetup = { userId: userId.value, organization: state.value.organization?.id ?? null }
     localStorage.setItem(setupStorageKey, JSON.stringify(payload))
@@ -44,17 +44,18 @@ export const useSetupStore = defineStore('setup', () => {
   watch(() => state.value.organization?.id, persist)
 
   /**
-   * Picks the organization stored for this user, else the only membership. A stored id from another account is
-   * ignored, so signing in as someone else starts the organization choice again.
+   * Selects an organization without asking: the one stored for this user while it is still reachable, else the first
+   * membership. A stored id from another account is ignored. `null` means the user has no organization at all; the
+   * shell then asks to create one.
    */
-  const restore = async ({ userId: currentUserId, organizations, retrieve }: SetupRestoreContext) => {
+  const restore = async ({ userId: currentUserId, organizations, retrieve }: SetupRestoreContext): Promise<void> => {
     if (!import.meta.client) return
     const request = ++generation
     const stored = readStored()
     const storedId = stored.userId === currentUserId ? stored.organization : null
-    let organization = organizations.find((item) => item.id === storedId) ?? null
+    let organization: SetupOrganization | null = organizations.find((item) => item.id === storedId) ?? null
     if (!organization && storedId && retrieve) organization = await retrieve(storedId).catch(() => null)
-    if (!organization && !storedId && organizations.length === 1) organization = organizations[0] ?? null
+    organization ??= organizations[0] ?? null
     if (request !== generation) return
     userId.value = currentUserId
     state.value.organization = organization
@@ -63,7 +64,7 @@ export const useSetupStore = defineStore('setup', () => {
   }
 
   /** Sign-out: forget the selection, including the stored one. */
-  const reset = () => {
+  const reset = (): void => {
     generation++
     state.value.organization = null
     state.value.restored = false

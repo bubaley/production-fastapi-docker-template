@@ -9,14 +9,15 @@ Behavior only; how it is built: [architecture.md](architecture.md), [backend-con
 ## Access and session
 
 - **No public sign-up.** The first user is created from the command line (`make createsuperuser`); a superuser creates everyone else.
-- **Публичная страница** (`/`) renders on the server with title, description and `og:*` meta. It shows «Войти», or «Перейти в приложение» for a signed-in visitor. Its text belongs to the product ([product.md](product.md)).
+- **Публичная страница** (`/`) is for visitors only: it renders on the server with title, description and `og:*` meta and shows «Войти». A signed-in user who opens `/` goes straight into the app (`/home`) and never sees it. Its text belongs to the product ([product.md](product.md)); name and description come from the product identity (below).
 - **Вход** (`/auth`) — email + password. The API sets HttpOnly cookies (`access_token`, `refresh_token`); the browser never sees a token. An expired access cookie is renewed silently; a dead session returns to `/auth` and back to the requested page after sign-in.
 - Repeated failed logins from one client and email are rate-limited (429). Unknown email, wrong password and an inactive user get the same answer.
 - **Выход** clears both cookies, the chosen organization and all loaded data; signing in as someone else starts over. «Выйти на всех устройствах» ends every session of the user. Changing a password, deactivating a user or `logout-all` invalidates all of that user's tokens.
 
 ## Organizations and membership
 
-- A signed-in user works inside **one organization at a time**. **Выбор организации** (`/home/setup`) comes before the rest of the app (the profile is reachable without it). The choice is remembered per user.
+- A signed-in user works inside **one organization at a time**, chosen without a separate screen: the one remembered for this user while it is still available, else the first membership. The sidebar organization switcher is the only place to change it; it also offers «Создать организацию» and «Управление организациями».
+- A user with **no organization** sees the app with the «Новая организация» modal over it: it cannot be dismissed, only completed or left with «Выйти». Organization-free routes (the profile) stay reachable without it.
 - Creating an organization makes the creator a member. `name` is editable; `key` is the tenancy id (header `Organization-Key`) and fixed after creation.
 - **Настройки → Организации**: list with search by name, a fixed exact-key filter and an addable "key contains" condition; detail with members. Members are added to the organization being viewed (not the active one) and can only be added or removed.
 - There are **no organization roles** — only membership and the global `is_superuser` flag.
@@ -24,7 +25,7 @@ Behavior only; how it is built: [architecture.md](architecture.md), [backend-con
 ## Users and API tokens
 
 - **Настройки → Пользователи** (superuser only): directory, create and delete users, set passwords. A user is attached to an organization as a member afterwards.
-- **Профиль** (`/settings/profile`): own data, password change, own API tokens, «Выйти на всех устройствах».
+- **Профиль** (`/settings/profile`): edit own first and last name (email is read-only, a superuser changes it), password change, «Выйти» and «Выйти на всех устройствах», own API tokens.
 - **Токены**: named API tokens (`Authorization: Token …`) with optional expiry; the secret is shown once. Renaming keeps the owner; a regular user manages only their own tokens; a request authenticated by an API token cannot create tokens.
 
 ## Tenant scoping
@@ -40,6 +41,7 @@ Behavior only; how it is built: [architecture.md](architecture.md), [backend-con
 
 ## UI
 
+- **Product identity** lives in one place per side: `frontend/app/app.config.ts` (`name`, `description`: logo, sidebar, public page, browser tab title «Страница · Продукт», meta) and `backend/app/core/product.py` (`PRODUCT_NAME`, `PRODUCT_DESCRIPTION`: OpenAPI title and description). `make init` writes both names; never hardcode the product name elsewhere.
 - **Оформление** (profile menu): theme «Системная / Светлая / Тёмная» and accent palette (нейтральный, синий, фиолетовый, зелёный, оранжевый), stored in a cookie and applied before first paint.
 - **Lists** load the next page on scroll, keep shown rows, offer retry on error, keep search and filters on screen, and restart from page 1 when they change. **Detail cards** show a loading state, an error with «Повторить», and never replace an open card with a late response for another one.
 - **Каталог UI** (`/ui`, public): every App* primitive with variants, states, tones, themes and palettes on local sample data. Its copy is English on purpose (it sits next to prop names).
@@ -47,9 +49,9 @@ Behavior only; how it is built: [architecture.md](architecture.md), [backend-con
 ## Operations
 
 - One Docker image (Caddy, API, Nuxt, Taskiq worker/scheduler) that applies migrations on start, exposes `/health` and `/ready`, and exits when a service dies.
-- CI on every pull request; on `main` conventional commits decide the next version, the changelog and the release; the image is published and deployed by digest ([deployment.md](deployment.md)).
+- CI on every pull request; on `main` conventional commits decide the next version, the changelog and the release; the image is published and deployed by digest ([deployment.md](deployment.md)). Optional alternative: release images on Docker Hub and a Dokploy stack ([deployment.md](deployment.md#docker-hub-and-dokploy)).
 
 ## Agent tooling
 
 - `make init name=…` turns a template copy into a product; `make new-domain name=…` scaffolds a CRUD entity end to end; `/sync-template` pulls template changes into a fork.
-- Claude Code project settings block migration commands and format edited files; skills and review subagents live in `.claude/` ([architecture.md](architecture.md#agent-tooling)).
+- Claude Code project settings format edited files; skills and review subagents live in `.claude/` ([architecture.md](architecture.md#agent-tooling)).

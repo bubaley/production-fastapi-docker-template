@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import { computed, type HTMLAttributes } from 'vue'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/shared/ui/shadcn/dialog'
+import { computed, provide, type HTMLAttributes } from 'vue'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/shared/ui/shadcn/dialog'
+import AppModalFooter from './AppModalFooter.vue'
+import { IN_MODAL } from './modalFooter'
 import { useOverlayStack } from './useOverlayStack'
 
 export type AppModalProps = {
@@ -32,6 +27,7 @@ const props = withDefaults(defineProps<AppModalProps>(), {
 })
 
 const model = defineModel<boolean>({ default: false })
+provide(IN_MODAL, true)
 const { backdropStyle: overlayStyle, contentStyle: layerStyle, isTop } = useOverlayStack(model)
 const contentStyle = computed(() => ({ '--app-modal-width': props.width, ...layerStyle.value }))
 
@@ -60,7 +56,7 @@ const handleInteractOutside = (event: InteractOutsideEvent) => {
       :close-label="closeLabel"
       :style="contentStyle"
       :overlay-style="overlayStyle"
-      :class="['max-w-[var(--app-modal-width)] border-border', contentClass]"
+      :class="['max-w-[var(--app-modal-width)]', contentClass]"
       @interact-outside="handleInteractOutside"
       @escape-key-down="escapeDisabled && $event.preventDefault()"
       @open-auto-focus="!autofocus && $event.preventDefault()"
@@ -111,9 +107,9 @@ const handleInteractOutside = (event: InteractOutsideEvent) => {
         <slot />
       </div>
 
-      <DialogFooter v-if="$slots.footer">
+      <AppModalFooter v-if="$slots.footer">
         <slot name="footer" />
-      </DialogFooter>
+      </AppModalFooter>
     </DialogContent>
   </Dialog>
 </template>

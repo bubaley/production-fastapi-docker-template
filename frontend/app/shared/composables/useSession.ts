@@ -36,7 +36,11 @@ export const resetQueryCache = (queryCache: QueryCache, session: Session | null)
     if (!entry.active && !isSession(entry.key)) queryCache.remove(entry)
   }
   queryCache.setQueryData([...SESSION_KEY], session)
-  void queryCache.invalidateQueries({ predicate: (entry) => entry.active && !isSession(entry.key) })
+  // Signed out: mark stale without refetching (it could only answer 401). A failed refetch is already in the
+  // query's own error state, so the returned promise must not surface as an unhandled rejection.
+  queryCache
+    .invalidateQueries({ predicate: (entry) => entry.active && !isSession(entry.key) }, Boolean(session))
+    .catch(() => undefined)
 }
 
 /**

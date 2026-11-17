@@ -12,7 +12,7 @@ const global = {
 }
 
 describe('page composition', () => {
-  it('keeps both fixed panels outside the scrolling body and renders description once', () => {
+  it('scrolls the header and controls with the body by default and renders description once', () => {
     const wrapper = mount(AppPageView, {
       props: { title: 'Главная', description: 'Описание' },
       global,
@@ -20,26 +20,56 @@ describe('page composition', () => {
         prefix: '<span>Иконка</span>',
         'title-append': '<span>Метка</span>',
         actions: '<button>Действие</button>',
-        subheader: '<div>До разделителя</div>',
-        controls: '<div>После разделителя</div>',
+        subheader: '<div>Под шапкой</div>',
+        controls: '<div>Над содержимым</div>',
         default: '<div>Содержимое</div>',
         footer: '<div>Итоги</div>',
       },
     })
     expect(wrapper.findAll('h1')).toHaveLength(1)
     expect(wrapper.text().match(/Описание/g)).toHaveLength(1)
-    expect(wrapper.get('main').text()).toBe('Содержимое')
     expect(wrapper.get('footer').text()).toBe('Итоги')
     expect(wrapper.get('header').text()).toContain('Действие')
-    const regions = wrapper.get('section').element.children
-    expect(Array.from(regions).map((region) => region.textContent?.trim())).toEqual([
-      'ИконкаГлавнаяМеткаОписаниеДействие',
-      'До разделителя',
-      '',
-      'После разделителя',
-      'Содержимое',
-      'Итоги',
+    // By default (`sticky="none"`) the header and the controls scroll with the content; only the footer is fixed.
+    const regions = Array.from(wrapper.get('section').element.children)
+    expect(regions.map((region) => region.getAttribute('data-slot') ?? region.tagName.toLowerCase())).toEqual([
+      'page-body',
+      'footer',
     ])
+    const body = wrapper.get('[data-slot=page-body]')
+    expect(body.get('[data-slot=page-header]').text()).toBe('ИконкаГлавнаяМеткаОписаниеДействиеПод шапкой')
+    expect(body.get('[data-slot=page-controls]').text()).toBe('Над содержимым')
+    expect(body.get('[data-slot=page-controls]').classes()).not.toContain('sticky')
+    // No divider unless the page asks for one.
+    expect(wrapper.find('.border-b.border-border').exists()).toBe(false)
+  })
+
+  it('pins the whole header area or only the controls bar on request', () => {
+    const slots = { controls: '<div>Поиск</div>', default: '<div>Список</div>' }
+    const header = mount(AppPageView, { props: { title: 'Список', sticky: 'header' }, global, slots })
+    const [pinned, body] = Array.from(header.get('section').element.children)
+    expect(pinned?.textContent).toContain('Список')
+    expect(pinned?.textContent).toContain('Поиск')
+    expect(body?.getAttribute('data-slot')).toBe('page-body')
+    expect(body?.textContent?.trim()).toBe('Список')
+
+    const controls = mount(AppPageView, { props: { title: 'Список', sticky: 'controls' }, global, slots })
+    const bar = controls.get('[data-slot=page-body] [data-slot=page-controls]')
+    expect(bar.classes()).toEqual(expect.arrayContaining(['sticky', 'top-0', 'bg-background']))
+    expect(controls.get('[data-slot=page-body] [data-slot=page-header]').text()).toBe('Список')
+  })
+
+  it('adds the divider and limits every region to one column on request', () => {
+    const wrapper = mount(AppPageView, {
+      props: { title: 'Организация', divided: true, maxWidth: 'md', align: 'start' },
+      global,
+      slots: { controls: '<div>Поиск</div>', default: '<div>Форма</div>', footer: '<div>Итоги</div>' },
+    })
+    expect(wrapper.get('[data-slot=page-header]').classes()).toContain('border-b')
+    const columns = wrapper.findAll('.max-w-\\(--page-width-md\\)')
+    // Header, controls, body and footer share the column; `start` keeps it next to the navigation.
+    expect(columns).toHaveLength(4)
+    expect(columns.every((column) => !column.classes().includes('mx-auto'))).toBe(true)
   })
 
   it('supports custom titles, whole headers and the subtitle compatibility slot', () => {

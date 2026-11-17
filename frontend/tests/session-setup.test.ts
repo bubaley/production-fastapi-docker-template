@@ -27,16 +27,31 @@ describe('organization selection', () => {
     expect(store.state.restored).toBe(true)
   })
 
-  it('ignores a selection stored by another account', async () => {
+  it('ignores a selection stored by another account and takes the first membership', async () => {
     localStorage.setItem('setup:state', JSON.stringify({ userId: 'u1', organization: 'b' }))
     const retrieve = vi.fn()
     const store = useSetupStore()
     await store.restore({ userId: 'u2', organizations: [orgA, orgB], retrieve })
-    expect(store.state.organization).toBeNull()
+    expect(store.state.organization).toEqual(orgA)
     expect(retrieve).not.toHaveBeenCalled()
   })
 
-  it('selects the only membership and loads a stored non-member organization (superuser)', async () => {
+  it('falls back to the first membership when the stored organization is gone', async () => {
+    localStorage.setItem('setup:state', JSON.stringify({ userId: 'u1', organization: 'gone' }))
+    const store = useSetupStore()
+    await store.restore({ userId: 'u1', organizations: [orgA, orgB], retrieve: vi.fn().mockRejectedValue(new Error()) })
+    expect(store.state.organization).toEqual(orgA)
+    expect(JSON.parse(localStorage.getItem('setup:state')!)).toEqual({ userId: 'u1', organization: 'a' })
+  })
+
+  it('leaves the selection empty when the user has no organization at all', async () => {
+    const store = useSetupStore()
+    await store.restore({ userId: 'u1', organizations: [] })
+    expect(store.state.organization).toBeNull()
+    expect(store.state.restored).toBe(true)
+  })
+
+  it('selects a membership and loads a stored non-member organization (superuser)', async () => {
     const store = useSetupStore()
     await store.restore({ userId: 'u1', organizations: [orgA] })
     expect(store.state.organization).toEqual(orgA)

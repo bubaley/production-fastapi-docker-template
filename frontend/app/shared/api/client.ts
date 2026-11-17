@@ -83,6 +83,8 @@ export type ApiClientOptions = {
   /** Refresh-and-retry on 401. Browser only: during SSR a 401 means "render signed out". */
   refreshOnUnauthorized?: boolean
   onSignedOut?: () => void
+  /** Every failed request, after the refresh-and-retry: a place for app-wide reactions to specific error codes. */
+  onError?: (error: ApiError) => void
   fetch?: typeof fetch
 }
 
@@ -106,8 +108,10 @@ export const createApiClient = (options: ApiClientOptions): ApiClient => {
     }
     return request
   })
-  client.interceptors.error.use((error, response) =>
-    error instanceof ApiError ? error : new ApiError(response?.status ?? 0, error),
-  )
+  client.interceptors.error.use((error, response) => {
+    const apiError = error instanceof ApiError ? error : new ApiError(response?.status ?? 0, error)
+    options.onError?.(apiError)
+    return apiError
+  })
   return client
 }

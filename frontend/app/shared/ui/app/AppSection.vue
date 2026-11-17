@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { cn } from '~/shared/lib/utils'
 export type AppSectionProps = {
   title?: string
   description?: string
@@ -9,10 +10,11 @@ export type AppSectionProps = {
   display?: 'row' | 'column' | 'inline-row'
   class?: string
 }
-withDefaults(defineProps<AppSectionProps>(), { display: 'column', titleSize: 'lg' })
+const props = withDefaults(defineProps<AppSectionProps>(), { display: 'column', titleSize: 'lg' })
 </script>
 <template>
-  <section class="flex min-w-0 flex-col gap-4">
+  <!-- `class` is a declared prop (templates forward it), so it is applied here instead of falling through. -->
+  <section :class="cn('flex min-w-0 flex-col gap-4', props.class)">
     <header
       v-if="title || description || $slots.title || $slots.subtitle || $slots.actions || backAction"
       class="flex flex-col gap-1"

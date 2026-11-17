@@ -53,7 +53,9 @@ export const useResourceList = <TItem extends ResourceItem>(
     enabled: () => toValue(options.enabled) ?? true,
   })
   const items = computed<TItem[]>(() => query.data.value?.pages.flatMap((page) => page.items) ?? [])
-  return { ...query, items }
+  // The newest page's `meta.total` (null when the list does not count)
+  const total = computed<number | null>(() => query.data.value?.pages.at(-1)?.total ?? null)
+  return { ...query, items, total }
 }
 
 /** One record under `[key, id]`; disabled for an empty id or `'new'`. */

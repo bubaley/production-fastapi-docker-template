@@ -28,7 +28,7 @@ const model = defineModel<boolean>({ default: false })
     v-model="model"
     :disabled="disabled"
     :class="[
-      'border-0 [&_[data-slot=switch-thumb]]:shadow-none',
+      'border-0',
       sizeClasses[size],
       variant === 'contrast' &&
         'data-[state=checked]:bg-foreground data-[state=checked]:[&_[data-slot=switch-thumb]]:bg-background',

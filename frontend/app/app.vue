@@ -1,4 +1,9 @@
 <template>
+  <NuxtLoadingIndicator
+    color="var(--primary)"
+    :height="2"
+    :throttle="150"
+  />
   <NuxtLayout><NuxtPage /></NuxtLayout>
   <AppToaster />
   <AppImageLightbox />
@@ -9,5 +14,10 @@
 import '@fontsource-variable/inter'
 
 const { palette } = useTheme()
-useHead({ htmlAttrs: { 'data-palette': palette } })
+const { name } = useAppConfig()
+// Browser tab: «Page · Product»; a page without its own title shows the product name.
+useHead({
+  htmlAttrs: { 'data-palette': palette },
+  titleTemplate: (title) => (title && title !== name ? `${title} · ${name}` : name),
+})
 </script>

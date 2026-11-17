@@ -1,7 +1,8 @@
 <template>
   <span
     :style="_style"
-    class="app-avatar inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground"
+    class="app-avatar inline-flex items-center justify-center rounded-full"
+    :class="variant === 'soft' ? 'bg-primary/12 text-primary' : 'bg-primary text-primary-foreground'"
   >
     <img
       v-if="showImage"
@@ -12,7 +13,8 @@
     />
     <span
       v-else-if="!hasDefaultSlot"
-      class="app-avatar__initial font-semibold text-white"
+      class="app-avatar__initial font-semibold"
+      :class="[variant !== 'soft' && 'text-white', size === 'xsmall' || size === 'small' ? 'text-xs' : '']"
     >
       {{ initial }}
     </span>
@@ -27,10 +29,13 @@ export interface AppAvatarProps {
   name?: string | null
   src?: string | null
   size?: AppAvatarSize
+  /** `soft`: tinted initials for dense lists and the sidebar. */
+  variant?: 'solid' | 'soft'
 }
 
 const props = withDefaults(defineProps<AppAvatarProps>(), {
   size: 'normal',
+  variant: 'solid',
 })
 
 const slots = useSlots()
@@ -64,7 +69,7 @@ const _style = computed(() => {
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .app-avatar {
   overflow: hidden;
   flex-shrink: 0;

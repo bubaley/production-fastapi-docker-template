@@ -27,7 +27,7 @@ function onControlClick(event: MouseEvent) {
   <label
     v-if="!clearable"
     :for="switchId"
-    class="inline-flex shrink-0 cursor-pointer items-center gap-2 border border-input bg-background shadow-sm hover:bg-field-hover"
+    class="inline-flex shrink-0 cursor-pointer items-center gap-2 border border-input bg-background shadow-xs transition-colors hover:border-border-strong hover:bg-field-hover has-[:focus-visible]:border-border-strong"
     :class="[appSelectSizeClasses[size], disabled && 'cursor-not-allowed opacity-50']"
     @click="onControlClick"
   >

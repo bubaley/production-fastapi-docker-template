@@ -23,6 +23,7 @@ export type AppInputProps = {
   icon?: Component
   isSearch?: boolean
   loading?: boolean
+  /** Stretch the field to the width of its container. */
   fluid?: boolean
   debounce?: number
   id?: string
@@ -85,7 +86,7 @@ const describedBy = (message?: string) => [attrs['aria-describedby'], message].f
     :label="label"
     :error="error"
     :hint="hint"
-    :class="attrs.class"
+    :class="[fluid && 'w-full', attrs.class]"
     :style="attrs.style"
   >
     <template #default="field">
@@ -108,11 +109,14 @@ const describedBy = (message?: string) => [attrs['aria-describedby'], message].f
             appInputSizeClasses[props.size],
             ($slots.prepend || showIcon) && 'pl-10',
             ($slots.append || (clearable && clearInline)) && 'pr-10',
-            variant === 'active-outline' && [activeOutlineClasses, 'enabled:hover:bg-primary/20'],
+            variant === 'active-outline' && [
+              activeOutlineClasses,
+              'focus-visible:border-primary focus-visible:bg-primary/20 enabled:hover:border-primary enabled:hover:bg-primary/20',
+            ],
             variant === 'secondary' &&
-              'border-transparent bg-secondary text-secondary-foreground shadow-none enabled:hover:bg-accent',
-            variant === 'ghost' && 'border-transparent bg-transparent shadow-none',
-            error && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/30',
+              'border-transparent bg-secondary text-secondary-foreground shadow-none enabled:hover:border-transparent enabled:hover:bg-accent',
+            variant === 'ghost' && 'border-transparent bg-transparent shadow-none enabled:hover:border-transparent',
+            error && 'border-destructive focus-visible:border-destructive enabled:hover:border-destructive',
           ]"
         />
         <span

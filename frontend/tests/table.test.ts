@@ -32,6 +32,17 @@ describe('AppTable declarative columns', () => {
     expect(wrapper.findAll('td').map((node) => node.text())).toEqual(['Альфа', '2 шт.', 'Изменить Альфа'])
   })
 
+  it('applies kebab-case column classes written in templates', () => {
+    const wrapper = mount(AppTable, {
+      props: { items },
+      slots: {
+        default: () => [h(AppColumn, { field: 'name', 'header-class': 'w-40', 'body-class': 'max-sm:hidden' })],
+      },
+    })
+    expect(wrapper.get('th').classes()).toContain('w-40')
+    expect(wrapper.get('td').classes()).toContain('max-sm:hidden')
+  })
+
   it('opens the row with Enter but isolates nested actions', async () => {
     const wrapper = createTable()
     await wrapper.get('button').trigger('click')
@@ -46,7 +57,7 @@ describe('AppTable declarative columns', () => {
     const wrapper = createTable({ items: [] })
     expect(wrapper.findAll('th')).toHaveLength(3)
     expect(wrapper.get('td').attributes('colspan')).toBe('3')
-    expect(wrapper.text()).toContain('Данные отсутствуют')
+    expect(wrapper.text()).toContain('Здесь пока пусто')
     await wrapper.setProps({ loading: true })
     expect(wrapper.get('[role="status"]').text()).toBe('Загрузка')
     expect(wrapper.findAll('th')).toHaveLength(3)

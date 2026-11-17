@@ -5,7 +5,11 @@
     :build-new-item="() => organizationUserResource.toForm({ organization_id: organizationId })"
     :resource="organizationUserResource"
     :extra-params="{ organization_id: organizationId }"
-    title="Участники организации"
+    title="Участники"
+    title-size="md"
+    create-label="Добавить"
+    empty-text="Участников пока нет"
+    :detail-modal-props="{ title: 'Участник' }"
   >
     <template #detail-modal="{ detailItem }">
       <AppSelect
@@ -17,7 +21,7 @@
       />
     </template>
     <AppColumn
-      header="Email"
+      header="Электронная почта"
       :format="(row) => row.user?.email || '—'"
     />
     <AppColumn

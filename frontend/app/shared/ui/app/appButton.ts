@@ -2,7 +2,11 @@ import type { ButtonVariants } from '~/shared/ui/shadcn/button'
 import { cn } from '~/shared/lib/utils'
 import type { AppButtonSize } from './types/control'
 
-export type AppButtonVariant = 'default' | 'secondary' | 'outline' | 'ghost' | 'link' | 'destructive'
+/**
+ * `default` — every ordinary action (high-contrast neutral fill); `primary` — the palette accent, only for the one
+ * action that must stand out; `secondary`/`outline`/`ghost`/`link` — quieter companions; `destructive` — confirmation.
+ */
+export type AppButtonVariant = 'default' | 'primary' | 'secondary' | 'outline' | 'ghost' | 'link' | 'destructive'
 export type AppButtonTextVariant = 'base' | 'muted'
 
 /** Icon-only buttons take the square size of the same row height. */
@@ -13,7 +17,8 @@ export function resolveAppButtonSize(size: AppButtonSize, iconOnly: boolean): Ap
 
 // `muted` text stays muted at rest and takes the variant's own text color on hover and keyboard focus.
 const mutedHover: Record<AppButtonVariant, string> = {
-  default: 'hover:text-primary-foreground focus-visible:text-primary-foreground',
+  default: 'hover:text-contrast-foreground focus-visible:text-contrast-foreground',
+  primary: 'hover:text-primary-foreground focus-visible:text-primary-foreground',
   destructive: 'hover:text-destructive-foreground focus-visible:text-destructive-foreground',
   secondary: 'hover:text-secondary-foreground focus-visible:text-secondary-foreground',
   link: 'hover:text-primary focus-visible:text-primary',

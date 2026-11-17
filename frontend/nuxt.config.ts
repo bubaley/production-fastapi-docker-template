@@ -26,6 +26,7 @@ export default defineNuxtConfig({
     '/settings/**': clientOnly,
     '/auth': clientOnly,
     '/ui': clientOnly,
+    '/ui/**': clientOnly,
   },
   app: {
     head: {

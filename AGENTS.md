@@ -18,6 +18,7 @@ This file is an index. Do not copy patterns here — follow the linked docs.
 | How does the frontend call the API (generated client, query keys, session, SSR pages)? After an API change? | [docs/frontend-concept.md](docs/frontend-concept.md#data-layer) — `make gen-client` regenerates the client |
 | Auth contract (cookies, CSRF, SSR), OpenAPI conventions, `make openapi`? | [docs/backend-concept.md](docs/backend-concept.md#auth-and-tokens) and [#openapi-contract](docs/backend-concept.md#openapi-contract) |
 | When to write backend tests, where they live? | [docs/backend-concept.md](docs/backend-concept.md#tests) — canonical: `backend/app/domains/organization/tests/test_organization.py` |
+| Where is the product name / description? | One place per side: `frontend/app/app.config.ts` and `backend/app/core/product.py` (`make init` writes both). Never hardcode it elsewhere — [docs/template-core.md](docs/template-core.md#ui) |
 | How to run the project locally? | [README.md](README.md) |
 | How is the image built, released and deployed? | [docs/deployment.md](docs/deployment.md) — `Dockerfile`, `docker/rootfs/`, `.github/workflows/ci.yaml` |
 | How to lint, format, test, what CI checks? | `make lint` / `make check` in [README.md](README.md#makefile); frontend tooling in [docs/frontend-concept.md](docs/frontend-concept.md#tooling) |
@@ -27,7 +28,7 @@ If the knowledge graph is missing or stale, index the repo with codebase-memory.
 
 ## Always-on rules
 
-- **Do not run migrations** (`make mm`, `make m`, Tortoise migrate) unless the user explicitly asks. After model changes, describe the migration needed. A hook blocks these commands; when the user explicitly asked, prefix the command with `ALLOW_MIGRATIONS=1`.
+- **Model changes ship with their migration.** Run `make mm` to generate it and `make m` to apply it locally; review the generated file and commit it in the same change. Never edit a migration that is already released — add a new one.
 - **Do not duplicate.** Extend existing viewsets, UI primitives, repos, and helpers before creating new ones.
 - Comments in code: English only, and only when the logic is non-obvious.
 - User-facing UI copy is **Russian**. Do not add English labels, titles, or toasts in product screens. The one exception is the `/ui` component catalogue: its section titles and sample content are English so they read alongside the prop names they demonstrate.

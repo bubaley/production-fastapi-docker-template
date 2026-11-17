@@ -4,15 +4,16 @@
  * - `[data-palette=…]` on <html> overrides only the brand tokens (primary, ring, sidebar-primary).
  * - Every token is exposed to Tailwind in tailwind.css (`@theme inline`): use utilities such as
  *   `bg-primary`, `text-success`, `bg-field-hover`, `shadow-overlay`, `h-control-md`, never `var(--…)` in classes.
+ *   Page geometry (`--page-*`) is the exception: it is consumed only by `shared/ui/app/pageContainer.ts`.
  * To re-brand a fork, change the palette blocks (or add one) and, if needed, the neutral surfaces below.
  */
 
 :root {
   color-scheme: light;
 
-  /* Rem base: 87.5% = 14px with the default browser setting and still follows the user's font-size preference.
-     All Tailwind spacing and type utilities are rem-based, so this one value scales the whole UI. */
-  --font-size-root: 87.5%;
+  /* Rem base: 1rem = 14px. All Tailwind spacing and type utilities are rem-based, so this one value scales the whole UI.
+     Browser zoom still scales it; the browser's default font-size setting does not. */
+  --font-size-root: 14px;
   --app-font-sans: -apple-system, BlinkMacSystemFont, 'Inter Variable', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 
   /* Surfaces and text */
@@ -33,11 +34,23 @@
   --input: #d6dce6;
   --field-hover: #edf0f5;
   --row-hover: #e9edf5;
+  /* Switch in the off state: a light knob on a muted track. */
+  --switch-track: #cdd2dc;
+  --switch-thumb: #ffffff;
 
-  /* Brand (neutral palette) */
+  /* Brand (neutral palette): the accent of `primary` buttons, switches, checkboxes and selected states. */
   --primary: #202431;
   --primary-foreground: #f4f5f8;
   --ring: #60697c;
+
+  /*
+   * Contrast: the theme's highest-contrast fill and the text on it (near-black in light, near-white in dark),
+   * independent of the palette. Semantic, not tied to one component: the `default` button, active chips, the
+   * selected segment, tooltips. A product retunes it here (both themes) without touching components.
+   */
+  --contrast: var(--foreground);
+  --contrast-foreground: var(--background);
+  --contrast-hover: color-mix(in oklab, var(--contrast) 85%, var(--contrast-foreground));
 
   /* Status tones */
   --success: #237a53;
@@ -67,7 +80,8 @@
   --chart-5: #c73737;
 
   /* Elevation and stacking. Overlays above 1000 are ordered at runtime by useOverlayStack. */
-  --overlay-shadow: 0 16px 40px rgb(0 0 0 / 40%), 0 2px 8px rgb(0 0 0 / 28%);
+  /* One soft shadow for every floating surface: menus, popovers, selects, pickers, tooltips, dialogs. */
+  --overlay-shadow: 0 6px 16px -4px rgb(16 24 40 / 12%), 0 2px 4px -2px rgb(16 24 40 / 8%);
   --z-overlay: 1000;
 
   /* Radius scale, derived from one value */
@@ -81,6 +95,44 @@
   --font-size-control-xs: 0.75rem;
   --font-size-control-sm: 0.8525rem;
   --font-size-control-md: 0.875rem;
+
+  /* Page shell (AppPage / AppPageView through pageContainer.ts). One place for every page's geometry:
+     side gutter, space above the title, title → subheader, the controls bar (above it and under it, so content
+     scrolling under a pinned bar never touches the fields), the gap before the content, bottom room. */
+  --page-gutter-x: 16px;
+  --page-header-pt: 20px;
+  --page-subheader-gap: 12px;
+  --page-controls-pt: 12px;
+  --page-controls-pb: 10px;
+  --page-gap: 16px;
+  --page-content-pb: 24px;
+  --page-footer-py: 12px;
+  /* `maxWidth` of a page: forms, settings, wide lists. */
+  --page-width-sm: 640px;
+  --page-width-md: 720px;
+  --page-width-lg: 1200px;
+}
+
+/* Tailwind `md` (48rem): tablets and desktops get a calmer, wider rhythm. */
+@media (min-width: 48rem) {
+  :root {
+    --page-gutter-x: 24px;
+    --page-header-pt: 28px;
+    --page-subheader-gap: 16px;
+    --page-controls-pt: 16px;
+    --page-controls-pb: 12px;
+    --page-gap: 20px;
+    --page-content-pb: 40px;
+    --page-footer-py: 16px;
+  }
+}
+
+/* Tailwind `xl` (80rem): wide screens. */
+@media (min-width: 80rem) {
+  :root {
+    --page-gutter-x: 32px;
+    --page-header-pt: 32px;
+  }
 }
 
 [data-theme='dark'] {
@@ -103,6 +155,11 @@
   --input: #2b2d34;
   --field-hover: #1e1f24;
   --row-hover: #22232a;
+  --switch-track: #474a56;
+  --switch-thumb: #e4e5ea;
+
+  /* Dark surfaces need a denser shadow to read as raised. */
+  --overlay-shadow: 0 8px 20px -6px rgb(0 0 0 / 50%), 0 2px 6px -2px rgb(0 0 0 / 35%);
 
   --primary: #edeef2;
   --primary-foreground: #111215;
@@ -130,7 +187,7 @@
   --chart-5: #ef6262;
 }
 
-/* Palettes: brand color only. `neutral` is the default defined above. */
+/* Palettes: brand color only. `neutral` is the default (DEFAULT_PALETTE) and is defined above. */
 :root[data-palette='blue'] {
   --primary: #2563eb;
   --primary-foreground: #ffffff;

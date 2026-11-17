@@ -19,6 +19,7 @@ const messageId = computed(() => `${fieldId.value}-message`)
     /><span
       v-if="error || hint"
       :id="messageId"
+      :role="error ? 'alert' : undefined"
       class="text-xs"
       :class="error ? 'text-destructive' : 'text-muted-foreground'"
       >{{ error || hint }}</span

@@ -1,38 +1,39 @@
 <script setup lang="ts">
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '~/shared/ui/shadcn/sheet'
-import { computed } from 'vue'
+import type { HTMLAttributes } from 'vue'
+import { cn } from '~/shared/lib/utils'
 import { useOverlayStack } from './useOverlayStack'
 
+/** Side panel over the page (a sheet with a backdrop); takes part in the overlay stack like modals and menus. */
 defineOptions({ inheritAttrs: false })
-const props = withDefaults(
+withDefaults(
   defineProps<{
     side?: 'left' | 'right'
     width?: number
-    overlay?: boolean
     title?: string
     description?: string
     closeLabel?: string
+    /** The corner close button (Escape and the backdrop still close it). */
+    closeable?: boolean
+    /** Classes merged last into the sheet (e.g. `p-0` for a full-bleed panel). */
+    contentClass?: HTMLAttributes['class']
   }>(),
-  { side: 'left', width: 280, title: 'Панель' },
+  { side: 'left', width: 280, title: 'Панель', closeable: true },
 )
 const model = defineModel<boolean>({ default: false })
-const overlayOpen = computed(() => !!props.overlay && model.value)
-const { backdropStyle, contentStyle, isTop } = useOverlayStack(overlayOpen)
-const shellTarget = '#app-shell-drawer'
+const { backdropStyle, contentStyle, isTop } = useOverlayStack(model)
 </script>
 
 <template>
-  <Sheet
-    v-if="overlay"
-    v-model:open="model"
-  >
+  <Sheet v-model:open="model">
     <SheetContent
       v-bind="$attrs"
       :side="side"
       :close-label="closeLabel"
+      :show-close="closeable"
       :style="{ width: `${width}px`, ...contentStyle }"
       :overlay-style="backdropStyle"
-      class="block max-w-[100vw] overflow-y-auto bg-sidebar p-6 text-foreground sm:max-w-[100vw]"
+      :class="cn('block max-w-[100vw] overflow-y-auto bg-sidebar p-6 text-foreground sm:max-w-[100vw]', contentClass)"
       @interact-outside="!isTop && $event.preventDefault()"
     >
       <SheetTitle class="sr-only">{{ title || 'Панель' }}</SheetTitle>
@@ -40,49 +41,4 @@ const shellTarget = '#app-shell-drawer'
       <slot />
     </SheetContent>
   </Sheet>
-  <Teleport
-    v-else
-    :to="shellTarget"
-  >
-    <Transition :name="`drawer-${side}`">
-      <aside
-        v-if="model"
-        v-bind="$attrs"
-        class="h-full min-h-0 shrink-0 overflow-auto border-border bg-background text-foreground"
-        :style="{ width: `${width}px` }"
-        :class="side === 'right' ? 'border-l' : 'border-r'"
-      >
-        <slot />
-      </aside>
-    </Transition>
-  </Teleport>
 </template>
-
-<style scoped>
-.drawer-left-enter-active,
-.drawer-left-leave-active,
-.drawer-right-enter-active,
-.drawer-right-leave-active {
-  transition: transform 300ms ease;
-}
-.drawer-left-enter-active,
-.drawer-right-enter-active {
-  transition-duration: 200ms;
-}
-.drawer-left-enter-from,
-.drawer-left-leave-to {
-  transform: translateX(-100%);
-}
-.drawer-right-enter-from,
-.drawer-right-leave-to {
-  transform: translateX(100%);
-}
-@media (prefers-reduced-motion: reduce) {
-  .drawer-left-enter-active,
-  .drawer-left-leave-active,
-  .drawer-right-enter-active,
-  .drawer-right-leave-active {
-    transition: none;
-  }
-}
-</style>

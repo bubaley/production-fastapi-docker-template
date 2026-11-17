@@ -1,9 +1,13 @@
 <template>
   <AppListTemplate
-    title="Токены интеграции"
+    title="Токены API"
+    description="Для скриптов и интеграций. Полный токен показывается один раз, при создании"
     detail-mode="modal"
     template-variant="section"
+    title-size="md"
+    empty-text="Токенов пока нет"
     :detail-modal-props="{
+      title: 'Токен API',
       width: '32rem',
       closeOnSave: false,
       actionsProps: {
@@ -17,7 +21,7 @@
   >
     <AppColumn
       field="name"
-      header="Наименование"
+      header="Название"
     />
     <AppColumn
       field="value_preview"
@@ -47,7 +51,7 @@
     <template #detail-modal="{ detailItem }">
       <AppInput
         v-model="detailItem.name"
-        label="Наименование"
+        label="Название"
       />
       <div v-if="detailItem.id">
         <AppCard
@@ -55,7 +59,7 @@
           class="w-full"
         >
           <div class="flex w-full items-start gap-2">
-            <span class="min-w-0 flex-1 break-all whitespace-normal">
+            <span class="min-w-0 flex-1 font-mono text-sm break-all whitespace-normal">
               {{ detailItem.value || detailItem.value_preview }}
             </span>
             <AppButton
@@ -69,9 +73,11 @@
           </div>
         </AppCard>
       </div>
-      <AppCard v-else>
-        После сохранения полный токен будет показан в уведомлении. Сохраните его в надёжном месте.
-      </AppCard>
+      <AppAlert
+        v-else
+        tone="neutral"
+        description="Полный токен будет показан один раз, сразу после сохранения. Скопируйте его и храните в надёжном месте."
+      />
     </template>
   </AppListTemplate>
 </template>

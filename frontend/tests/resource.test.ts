@@ -32,7 +32,7 @@ describe('resource descriptor', () => {
     const list = vi.fn().mockResolvedValue({ data: { data: [], meta: { page: 3, has_next: true } } })
     const result = await fetchPage(createResource({ list }), {} as never, { name: 'a' }, 3, 20)
     expect(list.mock.calls[0]![0].query).toEqual({ name: 'a', page: 3, page_size: 20 })
-    expect(result).toEqual({ items: [], hasNext: false })
+    expect(result).toEqual({ items: [], hasNext: false, total: null })
   })
 
   it('creates without an id and updates with one, mapping the form to each body', async () => {

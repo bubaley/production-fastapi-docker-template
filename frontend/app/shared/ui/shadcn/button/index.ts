@@ -7,7 +7,11 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // `default` is the neutral high-contrast action (black in light, white in dark); `primary` is the palette
+        // accent, reserved for the one action a screen must stand out with.
         default:
+          'border border-contrast bg-contrast text-contrast-foreground shadow-sm hover:border-contrast-hover hover:bg-contrast-hover active:bg-contrast',
+        primary:
           'border border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:bg-primary',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         outline: 'border border-input bg-transparent hover:bg-field-hover',
